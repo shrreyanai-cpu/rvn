@@ -16,6 +16,7 @@ import OrdersPage from "@/pages/orders";
 import SearchPage from "@/pages/search";
 import AdminPage from "@/pages/admin";
 import NotFound from "@/pages/not-found";
+import WhatsAppButton from "@/components/WhatsAppButton";
 
 function AppRouter() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -47,6 +48,7 @@ function AppRouter() {
         </Switch>
       </main>
       <Footer />
+      <WhatsAppButton />
     </div>
   );
 }

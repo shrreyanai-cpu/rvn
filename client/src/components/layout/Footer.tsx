@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { SiInstagram, SiFacebook, SiYoutube, SiWhatsapp } from "react-icons/si";
 
 export default function Footer() {
   return (
@@ -10,9 +11,51 @@ export default function Footer() {
               <span className="text-foreground">RAVINDRRA</span>{" "}
               <span className="text-[#C9A961]">VASTRA</span>
             </h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-sm text-muted-foreground leading-relaxed mb-5">
               Premium Indian clothing for every occasion. Traditional elegance meets modern craftsmanship.
             </p>
+            <div className="flex items-center gap-3">
+              <a
+                href="https://instagram.com/ravindrra_vastra"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover-elevate transition-colors"
+                data-testid="link-footer-instagram"
+                aria-label="Follow us on Instagram"
+              >
+                <SiInstagram className="h-4 w-4 text-muted-foreground" />
+              </a>
+              <a
+                href="https://facebook.com/ravindrra.vastra"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover-elevate transition-colors"
+                data-testid="link-footer-facebook"
+                aria-label="Follow us on Facebook"
+              >
+                <SiFacebook className="h-4 w-4 text-muted-foreground" />
+              </a>
+              <a
+                href="https://youtube.com/@ravindrra_vastra"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover-elevate transition-colors"
+                data-testid="link-footer-youtube"
+                aria-label="Subscribe on YouTube"
+              >
+                <SiYoutube className="h-4 w-4 text-muted-foreground" />
+              </a>
+              <a
+                href="https://wa.me/919876543210"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover-elevate transition-colors"
+                data-testid="link-footer-whatsapp"
+                aria-label="Chat on WhatsApp"
+              >
+                <SiWhatsapp className="h-4 w-4 text-muted-foreground" />
+              </a>
+            </div>
           </div>
 
           <div>
@@ -48,6 +91,16 @@ export default function Footer() {
               <li>info@ravindrra.com</li>
               <li>+91 98765 43210</li>
             </ul>
+            <a
+              href="https://wa.me/919876543210"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 mt-4 text-sm font-medium text-green-600 dark:text-green-400 hover:underline"
+              data-testid="link-footer-whatsapp-chat"
+            >
+              <SiWhatsapp className="h-4 w-4" />
+              Chat on WhatsApp
+            </a>
           </div>
         </div>
 
