@@ -61,11 +61,16 @@ export default function Footer() {
           <div>
             <h4 className="text-sm font-semibold uppercase tracking-wider mb-4">Shop</h4>
             <ul className="space-y-2.5">
-              {["Sarees", "Kurtas", "Lehengas", "Sherwanis", "Accessories"].map((item) => (
-                <li key={item}>
-                  <Link href={`/shop?category=${item.toLowerCase()}`}>
+              {[
+                { label: "Sarees", slug: "sarees" },
+                { label: "Men's Wear", slug: "mens-wear" },
+                { label: "Women's Wear", slug: "womens-wear" },
+                { label: "Kids Wear", slug: "kids-wear" },
+              ].map((item) => (
+                <li key={item.slug}>
+                  <Link href={`/shop?category=${item.slug}`}>
                     <span className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-                      {item}
+                      {item.label}
                     </span>
                   </Link>
                 </li>

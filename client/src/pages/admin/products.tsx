@@ -124,9 +124,15 @@ function ProductForm({
           <Select value={form.categoryId} onValueChange={(v) => setForm({ ...form, categoryId: v })}>
             <SelectTrigger data-testid="select-product-category"><SelectValue placeholder="Select category" /></SelectTrigger>
             <SelectContent>
-              {categories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>
-              ))}
+              {categories.filter((c) => !c.parentId).map((main) => {
+                const subs = categories.filter((c) => c.parentId === main.id);
+                return [
+                  <SelectItem key={main.id} value={main.id.toString()} className="font-semibold">{main.name}</SelectItem>,
+                  ...subs.map((sub) => (
+                    <SelectItem key={sub.id} value={sub.id.toString()} className="pl-8">&nbsp;&nbsp;{sub.name}</SelectItem>
+                  )),
+                ];
+              })}
             </SelectContent>
           </Select>
         </div>
@@ -265,7 +271,11 @@ export default function AdminProducts() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell"><span className="text-sm text-muted-foreground">{cat?.name || "-"}</span></TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <span className="text-sm text-muted-foreground">
+                        {cat ? (cat.parentId ? `${categories?.find(c => c.id === cat.parentId)?.name || ""} > ${cat.name}` : cat.name) : "-"}
+                      </span>
+                    </TableCell>
                     <TableCell><span className="text-sm font-medium">Rs. {Number(product.price).toLocaleString("en-IN")}</span></TableCell>
                     <TableCell className="hidden md:table-cell"><span className="text-sm">{product.stockQuantity}</span></TableCell>
                     <TableCell className="hidden md:table-cell">

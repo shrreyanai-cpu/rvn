@@ -20,8 +20,9 @@ const navLinks = [
   { href: "/", label: "Home" },
   { href: "/shop", label: "Shop" },
   { href: "/shop?category=sarees", label: "Sarees" },
-  { href: "/shop?category=kurtas", label: "Kurtas" },
-  { href: "/shop?category=lehengas", label: "Lehengas" },
+  { href: "/shop?category=mens-wear", label: "Men's Wear" },
+  { href: "/shop?category=womens-wear", label: "Women's Wear" },
+  { href: "/shop?category=kids-wear", label: "Kids Wear" },
 ];
 
 export default function Header() {

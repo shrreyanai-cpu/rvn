@@ -218,12 +218,12 @@ export default function HomePage() {
               </Button>
             </Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             {loadingCategories
-              ? Array.from({ length: 5 }).map((_, i) => (
+              ? Array.from({ length: 4 }).map((_, i) => (
                   <Skeleton key={i} className="aspect-[3/4] rounded-md" />
                 ))
-              : categories?.map((cat) => (
+              : categories?.filter((cat) => !cat.parentId).map((cat) => (
                   <Link key={cat.id} href={`/shop?category=${cat.slug}`}>
                     <div
                       className="group relative aspect-[3/4] overflow-hidden rounded-md cursor-pointer"
@@ -336,7 +336,7 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
-              <Link href="/shop?category=lehengas">
+              <Link href="/shop?category=lehenga">
                 <Button
                   className="bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A] font-semibold px-8 tracking-wide"
                   data-testid="button-shop-bridal"

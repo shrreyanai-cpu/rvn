@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
-import { Search, SlidersHorizontal, X, ChevronDown } from "lucide-react";
+import { Search, X, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -12,18 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { useQuery } from "@tanstack/react-query";
 import type { Product, Category } from "@shared/schema";
 import ProductCard from "@/components/ProductCard";
 
 export default function ShopPage() {
+  const [, navigate] = useLocation();
   const searchString = useSearch();
   const params = new URLSearchParams(searchString);
   const initialCategory = params.get("category") || "";
@@ -32,11 +26,19 @@ export default function ShopPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [sortBy, setSortBy] = useState("newest");
-  const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
     setSelectedCategory(initialCategory);
   }, [initialCategory]);
+
+  const setCategoryAndUrl = (slug: string) => {
+    setSelectedCategory(slug);
+    if (slug) {
+      navigate(`/shop?category=${slug}`, { replace: true });
+    } else {
+      navigate("/shop", { replace: true });
+    }
+  };
 
   const { data: products, isLoading: loadingProducts } = useQuery<Product[]>({
     queryKey: ["/api/products"],
@@ -46,14 +48,49 @@ export default function ShopPage() {
     queryKey: ["/api/categories"],
   });
 
+  const mainCategories = useMemo(() => {
+    return categories?.filter((c) => !c.parentId) || [];
+  }, [categories]);
+
+  const getSubcategories = (parentId: number) => {
+    return categories?.filter((c) => c.parentId === parentId) || [];
+  };
+
+  const selectedCat = categories?.find((c) => c.slug === selectedCategory);
+  const isMainCategory = selectedCat && !selectedCat.parentId;
+  const isSubCategory = selectedCat && selectedCat.parentId;
+
+  const parentOfSelected = isSubCategory
+    ? mainCategories.find((m) => m.id === selectedCat.parentId)
+    : null;
+
+  const visibleSubcategories = useMemo(() => {
+    if (isMainCategory && selectedCat) {
+      return getSubcategories(selectedCat.id);
+    }
+    if (isSubCategory && parentOfSelected) {
+      return getSubcategories(parentOfSelected.id);
+    }
+    return [];
+  }, [categories, selectedCat, isMainCategory, isSubCategory, parentOfSelected]);
+
   const filteredProducts = useMemo(() => {
-    if (!products) return [];
+    if (!products || !categories) return [];
     let filtered = [...products];
 
     if (selectedCategory) {
-      const cat = categories?.find((c) => c.slug === selectedCategory);
+      const cat = categories.find((c) => c.slug === selectedCategory);
       if (cat) {
-        filtered = filtered.filter((p) => p.categoryId === cat.id);
+        if (!cat.parentId) {
+          const subIds = categories
+            .filter((c) => c.parentId === cat.id)
+            .map((c) => c.id);
+          filtered = filtered.filter(
+            (p) => p.categoryId === cat.id || subIds.includes(p.categoryId!)
+          );
+        } else {
+          filtered = filtered.filter((p) => p.categoryId === cat.id);
+        }
       }
     }
 
@@ -90,38 +127,77 @@ export default function ShopPage() {
     return filtered;
   }, [products, categories, selectedCategory, searchQuery, sortBy, initialFeatured]);
 
-  const activeCategory = categories?.find((c) => c.slug === selectedCategory);
+  const pageTitle = selectedCat
+    ? selectedCat.name
+    : initialFeatured
+      ? "Featured Collection"
+      : "All Collections";
+  const pageDescription = selectedCat?.description || "Discover our complete range of premium Indian clothing";
 
   return (
     <div className="min-h-screen">
       <div className="bg-card border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+          {(isSubCategory && parentOfSelected) && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
+              <button
+                onClick={() => setCategoryAndUrl("")}
+                className="hover:text-foreground transition-colors"
+                data-testid="breadcrumb-all"
+              >
+                All
+              </button>
+              <ChevronRight className="h-3 w-3" />
+              <button
+                onClick={() => setCategoryAndUrl(parentOfSelected.slug)}
+                className="hover:text-foreground transition-colors"
+                data-testid="breadcrumb-parent"
+              >
+                {parentOfSelected.name}
+              </button>
+              <ChevronRight className="h-3 w-3" />
+              <span className="text-foreground font-medium">{selectedCat.name}</span>
+            </div>
+          )}
+          {(isMainCategory && selectedCat) && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
+              <button
+                onClick={() => setCategoryAndUrl("")}
+                className="hover:text-foreground transition-colors"
+                data-testid="breadcrumb-all"
+              >
+                All
+              </button>
+              <ChevronRight className="h-3 w-3" />
+              <span className="text-foreground font-medium">{selectedCat.name}</span>
+            </div>
+          )}
           <h1 className="font-serif text-3xl sm:text-4xl font-bold" data-testid="text-shop-title">
-            {activeCategory ? activeCategory.name : initialFeatured ? "Featured Collection" : "All Collections"}
+            {pageTitle}
           </h1>
           <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-            {activeCategory?.description || "Discover our complete range of premium Indian clothing"}
+            {pageDescription}
           </p>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
           <div className="flex items-center flex-wrap gap-2">
             <Badge
               variant={!selectedCategory ? "default" : "secondary"}
               className={`cursor-pointer text-xs ${!selectedCategory ? "bg-[#2C3E50] text-white dark:bg-[#C9A961] dark:text-[#1A1A1A]" : ""}`}
-              onClick={() => setSelectedCategory("")}
+              onClick={() => setCategoryAndUrl("")}
               data-testid="badge-filter-all"
             >
               All
             </Badge>
-            {categories?.map((cat) => (
+            {mainCategories.map((cat) => (
               <Badge
                 key={cat.id}
-                variant={selectedCategory === cat.slug ? "default" : "secondary"}
-                className={`cursor-pointer text-xs ${selectedCategory === cat.slug ? "bg-[#2C3E50] text-white dark:bg-[#C9A961] dark:text-[#1A1A1A]" : ""}`}
-                onClick={() => setSelectedCategory(selectedCategory === cat.slug ? "" : cat.slug)}
+                variant={selectedCategory === cat.slug || (isSubCategory && parentOfSelected?.id === cat.id) ? "default" : "secondary"}
+                className={`cursor-pointer text-xs ${selectedCategory === cat.slug || (isSubCategory && parentOfSelected?.id === cat.id) ? "bg-[#2C3E50] text-white dark:bg-[#C9A961] dark:text-[#1A1A1A]" : ""}`}
+                onClick={() => setCategoryAndUrl(selectedCategory === cat.slug ? "" : cat.slug)}
                 data-testid={`badge-filter-${cat.slug}`}
               >
                 {cat.name}
@@ -162,6 +238,23 @@ export default function ShopPage() {
           </div>
         </div>
 
+        {visibleSubcategories.length > 0 && (
+          <div className="flex items-center flex-wrap gap-2 mb-6 pl-1">
+            <span className="text-xs text-muted-foreground mr-1">Subcategories:</span>
+            {visibleSubcategories.map((sub) => (
+              <Badge
+                key={sub.id}
+                variant={selectedCategory === sub.slug ? "default" : "outline"}
+                className={`cursor-pointer text-xs ${selectedCategory === sub.slug ? "bg-[#C9A961] text-white dark:bg-[#C9A961] dark:text-[#1A1A1A]" : ""}`}
+                onClick={() => setCategoryAndUrl(selectedCategory === sub.slug ? (parentOfSelected?.slug || (isMainCategory ? selectedCat!.slug : "")) : sub.slug)}
+                data-testid={`badge-sub-${sub.slug}`}
+              >
+                {sub.name}
+              </Badge>
+            ))}
+          </div>
+        )}
+
         <p className="text-sm text-muted-foreground mb-6" data-testid="text-product-count">
           {filteredProducts.length} product{filteredProducts.length !== 1 ? "s" : ""}
         </p>
@@ -170,7 +263,7 @@ export default function ShopPage() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="space-y-3">
-                <Skeleton className="aspect-[3/4] rounded-md" />
+                <Skeleton key={i} className="aspect-[3/4] rounded-md" />
                 <Skeleton className="h-4 w-3/4" />
                 <Skeleton className="h-4 w-1/2" />
               </div>
@@ -185,7 +278,7 @@ export default function ShopPage() {
               className="mt-4"
               onClick={() => {
                 setSearchQuery("");
-                setSelectedCategory("");
+                setCategoryAndUrl("");
               }}
               data-testid="button-clear-filters"
             >

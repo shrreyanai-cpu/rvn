@@ -34,18 +34,71 @@ export async function seedDatabase() {
 
   console.log("Seeding database with initial data...");
 
-  const categoryData = [
-    { name: "Sarees", slug: "sarees", description: "Exquisite handcrafted sarees in silk, chiffon, and cotton", imageUrl: "/images/products/silk-saree-burgundy.png" },
-    { name: "Kurtas", slug: "kurtas", description: "Premium kurtas and kurta sets for men and women", imageUrl: "/images/products/navy-kurta-set.png" },
-    { name: "Lehengas", slug: "lehengas", description: "Stunning lehenga cholis for weddings and celebrations", imageUrl: "/images/products/emerald-lehenga.png" },
-    { name: "Sherwanis", slug: "sherwanis", description: "Regal sherwanis and achkans for grooms and special occasions", imageUrl: "/images/products/cream-sherwani.png" },
-    { name: "Accessories", slug: "accessories", description: "Beautiful dupattas, stoles, and fashion accessories", imageUrl: "/images/products/pink-banarasi-dupatta.png" },
+  const mainCategories = [
+    { name: "Sarees", slug: "sarees", description: "Exquisite handcrafted sarees in silk, chiffon, and cotton" },
+    { name: "Men's Wear", slug: "mens-wear", description: "Premium clothing for men including kurtas, sherwanis, and more" },
+    { name: "Women's Wear", slug: "womens-wear", description: "Elegant women's clothing from casual wear to party outfits" },
+    { name: "Kids Wear", slug: "kids-wear", description: "Adorable and comfortable clothing for children" },
   ];
 
-  const createdCategories: Record<string, number> = {};
-  for (const cat of categoryData) {
+  const createdMain: Record<string, number> = {};
+  for (const cat of mainCategories) {
     const created = await storage.createCategory(cat);
-    createdCategories[cat.slug] = created.id;
+    createdMain[cat.slug] = created.id;
+  }
+
+  const subCategories: { parentSlug: string; name: string; slug: string; description: string }[] = [
+    { parentSlug: "sarees", name: "Silk Sarees", slug: "silk-sarees", description: "Pure silk sarees from Banarasi, Kanjivaram, and more" },
+    { parentSlug: "sarees", name: "Cotton Sarees", slug: "cotton-sarees", description: "Comfortable and elegant cotton sarees for daily and festive wear" },
+    { parentSlug: "sarees", name: "Chiffon Sarees", slug: "chiffon-sarees", description: "Lightweight and graceful chiffon sarees" },
+    { parentSlug: "sarees", name: "Designer Sarees", slug: "designer-sarees", description: "Premium designer sarees for special occasions" },
+    { parentSlug: "sarees", name: "Printed Sarees", slug: "printed-sarees", description: "Beautiful printed sarees in various patterns" },
+    { parentSlug: "sarees", name: "Georgette Sarees", slug: "georgette-sarees", description: "Flowy georgette sarees for a sophisticated look" },
+
+    { parentSlug: "mens-wear", name: "Kurta", slug: "mens-kurta", description: "Traditional and modern kurtas for men" },
+    { parentSlug: "mens-wear", name: "Sherwani", slug: "sherwani", description: "Regal sherwanis for grooms and special occasions" },
+    { parentSlug: "mens-wear", name: "Nehru Jacket", slug: "nehru-jacket", description: "Classic Nehru jackets for a distinguished look" },
+    { parentSlug: "mens-wear", name: "Shirt", slug: "mens-shirt", description: "Formal and casual shirts for men" },
+    { parentSlug: "mens-wear", name: "Trouser", slug: "mens-trouser", description: "Well-fitted trousers for all occasions" },
+    { parentSlug: "mens-wear", name: "Jeans", slug: "mens-jeans", description: "Stylish and comfortable jeans for men" },
+    { parentSlug: "mens-wear", name: "T-Shirt", slug: "mens-tshirt", description: "Casual t-shirts for everyday comfort" },
+    { parentSlug: "mens-wear", name: "Pajama Set", slug: "mens-pajama-set", description: "Comfortable kurta pajama sets for men" },
+    { parentSlug: "mens-wear", name: "Dhoti", slug: "dhoti", description: "Traditional dhotis in silk and cotton" },
+
+    { parentSlug: "womens-wear", name: "Regular Wear Dresses", slug: "regular-wear-dresses", description: "Comfortable and stylish dresses for daily wear" },
+    { parentSlug: "womens-wear", name: "Cord Set", slug: "cord-set", description: "Trendy matching cord sets for a coordinated look" },
+    { parentSlug: "womens-wear", name: "Kurti", slug: "kurti", description: "Beautiful kurtis in various styles and patterns" },
+    { parentSlug: "womens-wear", name: "Dress Material", slug: "dress-material", description: "Unstitched dress materials with dupatta" },
+    { parentSlug: "womens-wear", name: "Tops", slug: "womens-tops", description: "Trendy tops for casual and semi-formal wear" },
+    { parentSlug: "womens-wear", name: "Jeans", slug: "womens-jeans", description: "Comfortable and stylish jeans for women" },
+    { parentSlug: "womens-wear", name: "Night Pant", slug: "night-pant", description: "Soft and comfortable night pants for relaxation" },
+    { parentSlug: "womens-wear", name: "Gown", slug: "gown", description: "Elegant gowns for parties and special occasions" },
+    { parentSlug: "womens-wear", name: "Night Dress", slug: "night-dress", description: "Comfortable and stylish night dresses" },
+    { parentSlug: "womens-wear", name: "Lehenga", slug: "lehenga", description: "Stunning lehenga cholis for weddings and celebrations" },
+    { parentSlug: "womens-wear", name: "Anarkali", slug: "anarkali", description: "Graceful Anarkali suits in various designs" },
+    { parentSlug: "womens-wear", name: "Dupatta", slug: "dupatta", description: "Beautiful dupattas and stoles as accessories" },
+
+    { parentSlug: "kids-wear", name: "Boys Kurta", slug: "boys-kurta", description: "Traditional kurtas for boys" },
+    { parentSlug: "kids-wear", name: "Girls Lehenga", slug: "girls-lehenga", description: "Mini lehengas and chaniya cholis for girls" },
+    { parentSlug: "kids-wear", name: "Boys Shirt", slug: "boys-shirt", description: "Casual and formal shirts for boys" },
+    { parentSlug: "kids-wear", name: "Girls Dress", slug: "girls-dress", description: "Adorable frocks and dresses for girls" },
+    { parentSlug: "kids-wear", name: "Boys T-Shirt", slug: "boys-tshirt", description: "Fun and comfortable t-shirts for boys" },
+    { parentSlug: "kids-wear", name: "Girls Kurti", slug: "girls-kurti", description: "Pretty kurtis for girls" },
+    { parentSlug: "kids-wear", name: "Boys Jeans", slug: "boys-jeans", description: "Durable and stylish jeans for boys" },
+    { parentSlug: "kids-wear", name: "Girls Jeans", slug: "girls-jeans", description: "Trendy jeans for girls" },
+    { parentSlug: "kids-wear", name: "Kids Night Wear", slug: "kids-night-wear", description: "Soft and cozy night wear for children" },
+    { parentSlug: "kids-wear", name: "Kids Ethnic Set", slug: "kids-ethnic-set", description: "Traditional ethnic sets for kids" },
+  ];
+
+  const createdSub: Record<string, number> = {};
+  for (const sub of subCategories) {
+    const created = await storage.createCategory({
+      name: sub.name,
+      slug: sub.slug,
+      description: sub.description,
+      parentId: createdMain[sub.parentSlug],
+    });
+    createdSub[sub.slug] = created.id;
   }
 
   const productData = [
@@ -55,7 +108,7 @@ export async function seedDatabase() {
       description: "A magnificent pure silk saree in deep burgundy with intricate gold zari border work. Handwoven by master artisans from Varanasi, this saree exemplifies the finest traditions of Indian textile craftsmanship. Perfect for weddings and festive occasions.",
       price: "12999.00",
       compareAtPrice: "15999.00",
-      categoryId: createdCategories["sarees"],
+      categoryId: createdSub["silk-sarees"],
       images: ["/images/products/silk-saree-burgundy.png"],
       sizes: ["Free Size"],
       colors: ["Burgundy", "Gold"],
@@ -70,7 +123,7 @@ export async function seedDatabase() {
       description: "A sophisticated navy blue kurta pajama set crafted from premium cotton silk blend. Features subtle embroidery on the collar and sleeves. Ideal for festive gatherings and formal occasions.",
       price: "4999.00",
       compareAtPrice: null,
-      categoryId: createdCategories["kurtas"],
+      categoryId: createdSub["mens-kurta"],
       images: ["/images/products/navy-kurta-set.png"],
       sizes: ["S", "M", "L", "XL", "XXL"],
       colors: ["Navy Blue"],
@@ -85,7 +138,7 @@ export async function seedDatabase() {
       description: "A breathtaking emerald green lehenga choli adorned with exquisite gold zari embroidery. The flared lehenga features a heavily embroidered border, paired with a beautifully designed choli and net dupatta. A showstopper for weddings.",
       price: "24999.00",
       compareAtPrice: "29999.00",
-      categoryId: createdCategories["lehengas"],
+      categoryId: createdSub["lehenga"],
       images: ["/images/products/emerald-lehenga.png"],
       sizes: ["S", "M", "L", "XL"],
       colors: ["Emerald Green", "Gold"],
@@ -100,7 +153,7 @@ export async function seedDatabase() {
       description: "An exquisite cream sherwani with elaborate gold embroidery, perfect for grooms. Features intricate thread work and sequin detailing on premium jacquard fabric. Comes with matching churidar and stole.",
       price: "18999.00",
       compareAtPrice: "22999.00",
-      categoryId: createdCategories["sherwanis"],
+      categoryId: createdSub["sherwani"],
       images: ["/images/products/cream-sherwani.png"],
       sizes: ["38", "40", "42", "44"],
       colors: ["Cream", "Ivory"],
@@ -115,7 +168,7 @@ export async function seedDatabase() {
       description: "A stunning royal blue Anarkali suit with silver embroidery. The flowing silhouette is complemented by intricate threadwork on the bodice and hem. Includes matching churidar and dupatta.",
       price: "8999.00",
       compareAtPrice: null,
-      categoryId: createdCategories["kurtas"],
+      categoryId: createdSub["anarkali"],
       images: ["/images/products/blue-anarkali.png"],
       sizes: ["S", "M", "L", "XL"],
       colors: ["Royal Blue", "Silver"],
@@ -130,7 +183,7 @@ export async function seedDatabase() {
       description: "A timeless white kurta crafted from the finest organic cotton. Features clean lines and minimalist design, perfect for everyday wear and casual gatherings. Breathable and comfortable for all seasons.",
       price: "2499.00",
       compareAtPrice: null,
-      categoryId: createdCategories["kurtas"],
+      categoryId: createdSub["mens-kurta"],
       images: ["/images/products/white-cotton-kurta.png"],
       sizes: ["S", "M", "L", "XL", "XXL"],
       colors: ["White", "Off-White"],
@@ -145,7 +198,7 @@ export async function seedDatabase() {
       description: "A luxurious pink Banarasi silk dupatta with intricate gold zari weaving. This versatile accessory adds elegance to any outfit, whether paired with a simple kurta or a festive ensemble.",
       price: "3499.00",
       compareAtPrice: "4499.00",
-      categoryId: createdCategories["accessories"],
+      categoryId: createdSub["dupatta"],
       images: ["/images/products/pink-banarasi-dupatta.png"],
       sizes: ["Free Size"],
       colors: ["Pink", "Gold"],
@@ -160,7 +213,7 @@ export async function seedDatabase() {
       description: "A distinguished maroon velvet Nehru jacket that adds instant sophistication to any outfit. Features gold buttons, satin lining, and impeccable tailoring. Perfect layered over kurtas or formal shirts.",
       price: "5999.00",
       compareAtPrice: null,
-      categoryId: createdCategories["sherwanis"],
+      categoryId: createdSub["nehru-jacket"],
       images: ["/images/products/maroon-nehru-jacket.png"],
       sizes: ["S", "M", "L", "XL", "XXL"],
       colors: ["Maroon"],
@@ -175,7 +228,7 @@ export async function seedDatabase() {
       description: "A graceful lavender chiffon saree with delicate silver border embroidery. Lightweight and elegant, this saree drapes beautifully and is perfect for evening occasions and cocktail events.",
       price: "6999.00",
       compareAtPrice: "8499.00",
-      categoryId: createdCategories["sarees"],
+      categoryId: createdSub["chiffon-sarees"],
       images: ["/images/products/lavender-chiffon-saree.png"],
       sizes: ["Free Size"],
       colors: ["Lavender", "Silver"],
@@ -190,7 +243,7 @@ export async function seedDatabase() {
       description: "A magnificent red bridal lehenga featuring heavy kundan and zardozi embroidery. This bridal masterpiece is crafted with the finest silk and adorned with thousands of hand-applied sequins. The ultimate statement for the modern Indian bride.",
       price: "45999.00",
       compareAtPrice: "55999.00",
-      categoryId: createdCategories["lehengas"],
+      categoryId: createdSub["lehenga"],
       images: ["/images/products/red-bridal-lehenga.png"],
       sizes: ["S", "M", "L", "XL"],
       colors: ["Red", "Gold"],
@@ -205,7 +258,7 @@ export async function seedDatabase() {
       description: "A strikingly elegant black achkan coat with gold buttons and subtle self-work embroidery. This structured silhouette is perfect for formal Indian occasions, sangeet, and reception events.",
       price: "14999.00",
       compareAtPrice: null,
-      categoryId: createdCategories["sherwanis"],
+      categoryId: createdSub["sherwani"],
       images: ["/images/products/black-achkan.png"],
       sizes: ["38", "40", "42", "44", "46"],
       colors: ["Black"],

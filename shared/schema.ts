@@ -11,10 +11,17 @@ export const categories = pgTable("categories", {
   slug: text("slug").notNull().unique(),
   description: text("description"),
   imageUrl: text("image_url"),
+  parentId: integer("parent_id"),
 });
 
-export const categoriesRelations = relations(categories, ({ many }) => ({
+export const categoriesRelations = relations(categories, ({ many, one }) => ({
   products: many(products),
+  children: many(categories, { relationName: "parentChild" }),
+  parent: one(categories, {
+    fields: [categories.parentId],
+    references: [categories.id],
+    relationName: "parentChild",
+  }),
 }));
 
 export const insertCategorySchema = createInsertSchema(categories).omit({ id: true });
