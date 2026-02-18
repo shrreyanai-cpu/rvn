@@ -1,10 +1,12 @@
 import { Link } from "wouter";
-import { Package, ArrowLeft, Clock, Truck, CheckCircle, ShoppingBag, XCircle, CreditCard } from "lucide-react";
+import { Package, ArrowLeft, Clock, Truck, CheckCircle, ShoppingBag, XCircle, CreditCard, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { Order, OrderItem } from "@shared/schema";
 
 const statusConfig: Record<string, { label: string; icon: any; className: string }> = {
@@ -16,8 +18,22 @@ const statusConfig: Record<string, { label: string; icon: any; className: string
 };
 
 export default function OrdersPage() {
+  const { toast } = useToast();
   const { data: orders, isLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
+  });
+
+  const deleteOrderMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      await apiRequest("DELETE", `/api/orders/${orderId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      toast({ title: "Order deleted", description: "The order has been removed from your history." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Could not delete order. Please try again.", variant: "destructive" });
+    },
   });
 
   if (isLoading) {
@@ -95,9 +111,29 @@ export default function OrdersPage() {
                       Placed on {new Date(order.createdAt!).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" })}
                     </p>
                   </div>
-                  <span className="font-semibold" data-testid={`text-order-total-${order.id}`}>
-                    Rs. {Number(order.totalAmount).toLocaleString("en-IN")}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold" data-testid={`text-order-total-${order.id}`}>
+                      Rs. {Number(order.totalAmount).toLocaleString("en-IN")}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground"
+                      disabled={deleteOrderMutation.isPending}
+                      onClick={() => {
+                        if (confirm("Are you sure you want to delete this order?")) {
+                          deleteOrderMutation.mutate(order.id);
+                        }
+                      }}
+                      data-testid={`button-delete-order-${order.id}`}
+                    >
+                      {deleteOrderMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">

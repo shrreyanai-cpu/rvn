@@ -4,6 +4,8 @@ import { CheckCircle, XCircle, Loader2, Clock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 type PaymentResult = {
   status: "loading" | "success" | "failed" | "pending";
@@ -12,7 +14,13 @@ type PaymentResult = {
 
 export default function PaymentCallbackPage() {
   const [, navigate] = useLocation();
+  const { toast } = useToast();
   const [result, setResult] = useState<PaymentResult>({ status: "loading", orderId: null });
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
+
+  const { data: savedAddressData } = useQuery<{ savedAddress: any }>({
+    queryKey: ["/api/user/saved-address"],
+  });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -46,8 +54,59 @@ export default function PaymentCallbackPage() {
     verifyPayment();
   }, []);
 
+  useEffect(() => {
+    if (result.status === "success" && savedAddressData && !savedAddressData.savedAddress) {
+      setShowSavePrompt(true);
+    }
+  }, [result.status, savedAddressData]);
+
+  async function saveShippingAddress() {
+    try {
+      const orderId = result.orderId;
+      if (!orderId) return;
+      const orderRes = await fetch(`/api/orders`, { credentials: "include" });
+      const orders = await orderRes.json();
+      const order = orders.find((o: any) => o.id === Number(orderId));
+      if (order?.shippingAddress) {
+        await apiRequest("POST", "/api/user/saved-address", order.shippingAddress);
+        queryClient.invalidateQueries({ queryKey: ["/api/user/saved-address"] });
+        toast({ title: "Address saved", description: "Your shipping info will be auto-filled next time." });
+      }
+    } catch {
+    }
+    setShowSavePrompt(false);
+  }
+
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4">
+      {showSavePrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <Card className="p-6 max-w-sm mx-4">
+            <h3 className="font-semibold mb-2">Save your shipping info?</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              We can save your address so it's auto-filled next time you order. Would you like that?
+            </p>
+            <div className="flex gap-3">
+              <Button
+                className="flex-1 bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A]"
+                onClick={saveShippingAddress}
+                data-testid="button-save-address-yes"
+              >
+                Yes, Save
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowSavePrompt(false)}
+                data-testid="button-save-address-no"
+              >
+                No Thanks
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
       <Card className="max-w-md w-full p-8 text-center">
         {result.status === "loading" && (
           <div data-testid="payment-loading">

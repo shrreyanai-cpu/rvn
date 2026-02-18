@@ -35,6 +35,7 @@ export interface IStorage {
   createOrder(data: InsertOrder): Promise<Order>;
   updateOrderStatus(id: number, status: string): Promise<Order | undefined>;
   updateOrderPayment(id: number, data: { paymentStatus: string; cashfreeOrderId?: string }): Promise<Order | undefined>;
+  deleteOrder(id: number, userId: string): Promise<void>;
 
   updateCategory(id: number, data: Partial<InsertCategory>): Promise<Category | undefined>;
   deleteCategory(id: number): Promise<void>;
@@ -184,6 +185,10 @@ export class DatabaseStorage implements IStorage {
     if (data.cashfreeOrderId) updateData.cashfreeOrderId = data.cashfreeOrderId;
     const [order] = await db.update(orders).set(updateData).where(eq(orders.id, id)).returning();
     return order;
+  }
+
+  async deleteOrder(id: number, userId: string): Promise<void> {
+    await db.delete(orders).where(and(eq(orders.id, id), eq(orders.userId, userId)));
   }
 
   async updateCategory(id: number, data: Partial<InsertCategory>): Promise<Category | undefined> {

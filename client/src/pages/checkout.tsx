@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { ArrowLeft, Loader2, CreditCard, Shield, Tag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +19,17 @@ declare global {
     Cashfree: any;
   }
 }
+
+const INDIAN_STATES = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
+  "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
+  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
+  "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
+  "Uttar Pradesh", "Uttarakhand", "West Bengal",
+  "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu",
+  "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry",
+];
 
 function loadCashfreeScript(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -38,6 +50,7 @@ export default function CheckoutPage() {
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
+  const [addressLoaded, setAddressLoaded] = useState(false);
 
   const [form, setForm] = useState({
     fullName: "",
@@ -48,14 +61,50 @@ export default function CheckoutPage() {
     phone: "",
   });
 
-  const { data: cartItems, isLoading } = useQuery<CartItemWithProduct[]>({
-    queryKey: ["/api/cart"],
+  const urlParams = new URLSearchParams(window.location.search);
+  const isBuyNow = urlParams.get("buyNow") === "true";
+  const buyNowProductId = urlParams.get("productId");
+  const buyNowQuantity = Number(urlParams.get("quantity") || "1");
+  const buyNowSize = urlParams.get("size") || undefined;
+  const buyNowColor = urlParams.get("color") || undefined;
+
+  const { data: savedAddressData } = useQuery<{ savedAddress: any }>({
+    queryKey: ["/api/user/saved-address"],
   });
 
-  const subtotal = cartItems?.reduce(
+  useEffect(() => {
+    if (savedAddressData?.savedAddress && !addressLoaded) {
+      const addr = savedAddressData.savedAddress;
+      setForm({
+        fullName: addr.fullName || "",
+        address: addr.address || "",
+        city: addr.city || "",
+        state: addr.state || "",
+        pincode: addr.pincode || "",
+        phone: addr.phone || "",
+      });
+      setAddressLoaded(true);
+    }
+  }, [savedAddressData, addressLoaded]);
+
+  const { data: buyNowProduct, isLoading: buyNowLoading, isError: buyNowError } = useQuery<Product>({
+    queryKey: [`/api/products/by-id/${buyNowProductId}`],
+    enabled: isBuyNow && !!buyNowProductId,
+  });
+
+  const { data: cartItems, isLoading } = useQuery<CartItemWithProduct[]>({
+    queryKey: ["/api/cart"],
+    enabled: !isBuyNow,
+  });
+
+  const displayItems = isBuyNow && buyNowProduct
+    ? [{ product: buyNowProduct, quantity: buyNowQuantity }]
+    : cartItems || [];
+
+  const subtotal = displayItems.reduce(
     (sum, item) => sum + Number(item.product.price) * item.quantity,
     0
-  ) || 0;
+  );
   const shipping = subtotal > 2999 ? 0 : 199;
   const discount = appliedCoupon?.discount || 0;
   const total = Math.max(0, subtotal + shipping - discount);
@@ -88,6 +137,58 @@ export default function CheckoutPage() {
     setCouponError("");
   }
 
+  async function handlePaymentRedirect(data: any) {
+    setPaymentLoading(true);
+    try {
+      await loadCashfreeScript();
+      const cashfreeMode = import.meta.env.VITE_CASHFREE_ENV === "PRODUCTION" ? "production" : "sandbox";
+      const cashfree = window.Cashfree({ mode: cashfreeMode });
+      cashfree.checkout({
+        paymentSessionId: data.paymentSessionId,
+        returnUrl: `${window.location.origin}/payment/callback?order_id=${data.id}&cf_order_id=${data.cashfreeOrderId}`,
+      });
+    } catch (err) {
+      console.error("Cashfree checkout error:", err);
+      setPaymentLoading(false);
+      toast({
+        title: "Payment Error",
+        description: "Could not open payment page. Your order has been saved.",
+        variant: "destructive",
+      });
+      navigate("/orders");
+    }
+  }
+
+  const buyNowMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/orders/buy-now", {
+        productId: Number(buyNowProductId),
+        quantity: buyNowQuantity,
+        size: buyNowSize || null,
+        color: buyNowColor || null,
+        shippingAddress: form,
+        couponCode: appliedCoupon?.code || null,
+      });
+      return res.json();
+    },
+    onSuccess: async (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      if (data.paymentSessionId) {
+        await handlePaymentRedirect(data);
+      } else {
+        toast({
+          title: "Order placed!",
+          description: `Order #${data.id} created. Payment could not be initiated.`,
+          variant: "destructive",
+        });
+        navigate("/orders");
+      }
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Could not place order. Please try again.", variant: "destructive" });
+    },
+  });
+
   const placeOrderMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/orders", {
@@ -99,27 +200,8 @@ export default function CheckoutPage() {
     onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
-
       if (data.paymentSessionId) {
-        setPaymentLoading(true);
-        try {
-          await loadCashfreeScript();
-          const cashfreeMode = import.meta.env.VITE_CASHFREE_ENV === "PRODUCTION" ? "production" : "sandbox";
-          const cashfree = window.Cashfree({ mode: cashfreeMode });
-          cashfree.checkout({
-            paymentSessionId: data.paymentSessionId,
-            returnUrl: `${window.location.origin}/payment/callback?order_id=${data.id}&cf_order_id=${data.cashfreeOrderId}`,
-          });
-        } catch (err) {
-          console.error("Cashfree checkout error:", err);
-          setPaymentLoading(false);
-          toast({
-            title: "Payment Error",
-            description: "Could not open payment page. Your order has been saved.",
-            variant: "destructive",
-          });
-          navigate("/orders");
-        }
+        await handlePaymentRedirect(data);
       } else {
         toast({
           title: "Order placed!",
@@ -144,7 +226,9 @@ export default function CheckoutPage() {
     form.phone.length >= 10 &&
     /^\d+$/.test(form.phone);
 
-  if (isLoading) {
+  const isProcessing = placeOrderMutation.isPending || buyNowMutation.isPending || paymentLoading;
+
+  if (!isBuyNow && isLoading) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 text-center">
         <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
@@ -152,7 +236,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (!cartItems || cartItems.length === 0) {
+  if (!isBuyNow && (!cartItems || cartItems.length === 0)) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-20 text-center">
         <p className="text-muted-foreground mb-4">Your cart is empty</p>
@@ -163,12 +247,31 @@ export default function CheckoutPage() {
     );
   }
 
+  if (isBuyNow && buyNowLoading) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 text-center">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (isBuyNow && (buyNowError || !buyNowProduct)) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-20 text-center">
+        <p className="text-muted-foreground mb-4">Product not found</p>
+        <Link href="/shop">
+          <Button data-testid="button-back-shop">Back to Shop</Button>
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-      <Link href="/cart">
+      <Link href={isBuyNow ? "/shop" : "/cart"}>
         <Button variant="ghost" size="sm" className="mb-4" data-testid="button-back-cart">
           <ArrowLeft className="mr-1.5 h-4 w-4" />
-          Back to Cart
+          {isBuyNow ? "Back to Shop" : "Back to Cart"}
         </Button>
       </Link>
 
@@ -213,13 +316,21 @@ export default function CheckoutPage() {
               </div>
               <div>
                 <Label htmlFor="state">State</Label>
-                <Input
-                  id="state"
+                <Select
                   value={form.state}
-                  onChange={(e) => setForm({ ...form, state: e.target.value })}
-                  placeholder="State"
-                  data-testid="input-state"
-                />
+                  onValueChange={(value) => setForm({ ...form, state: value })}
+                >
+                  <SelectTrigger data-testid="select-state">
+                    <SelectValue placeholder="Select state" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INDIAN_STATES.map((state) => (
+                      <SelectItem key={state} value={state} data-testid={`option-state-${state}`}>
+                        {state}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="pincode">PIN Code</Label>
@@ -313,8 +424,8 @@ export default function CheckoutPage() {
           <Card className="p-6 sticky top-20">
             <h3 className="font-semibold mb-4">Order Summary</h3>
             <div className="space-y-3 mb-4">
-              {cartItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 text-sm">
+              {displayItems.map((item, idx) => (
+                <div key={idx} className="flex items-center gap-3 text-sm">
                   <div className="w-10 h-12 rounded overflow-hidden bg-muted flex-shrink-0">
                     <img
                       src={item.product.images?.[0] || "/images/products/silk-saree-burgundy.png"}
@@ -364,11 +475,17 @@ export default function CheckoutPage() {
 
             <Button
               className="w-full mt-4 bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A] font-semibold"
-              disabled={!isFormValid || placeOrderMutation.isPending || paymentLoading}
-              onClick={() => placeOrderMutation.mutate()}
+              disabled={!isFormValid || isProcessing}
+              onClick={() => {
+                if (isBuyNow) {
+                  buyNowMutation.mutate();
+                } else {
+                  placeOrderMutation.mutate();
+                }
+              }}
               data-testid="button-place-order"
             >
-              {placeOrderMutation.isPending || paymentLoading ? (
+              {isProcessing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   {paymentLoading ? "Redirecting to Payment..." : "Processing..."}

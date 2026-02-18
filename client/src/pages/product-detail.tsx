@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useRoute, Link } from "wouter";
-import { ArrowLeft, ShoppingBag, Heart, Minus, Plus, Check } from "lucide-react";
+import { useRoute, Link, useLocation } from "wouter";
+import { ArrowLeft, ShoppingBag, Minus, Plus, Check, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,6 +13,7 @@ import type { Product } from "@shared/schema";
 
 export default function ProductDetailPage() {
   const [, params] = useRoute("/product/:slug");
+  const [, navigate] = useLocation();
   const slug = params?.slug;
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
@@ -234,6 +235,27 @@ export default function ProductDetailPage() {
                   Add to Cart
                 </>
               )}
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 border-[#C9A961] text-[#C9A961] font-semibold"
+              disabled={!product.inStock}
+              onClick={() => {
+                if (!isAuthenticated) {
+                  window.location.href = "/login";
+                  return;
+                }
+                const params = new URLSearchParams();
+                params.set("productId", String(product.id));
+                params.set("quantity", String(quantity));
+                if (selectedSize) params.set("size", selectedSize);
+                if (selectedColor) params.set("color", selectedColor);
+                navigate(`/checkout?buyNow=true&${params.toString()}`);
+              }}
+              data-testid="button-buy-now"
+            >
+              <Zap className="mr-2 h-4 w-4" />
+              Buy Now
             </Button>
           </div>
 

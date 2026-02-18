@@ -103,6 +103,16 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/products/by-id/:id", async (req, res) => {
+    try {
+      const product = await storage.getProductById(Number(req.params.id));
+      if (!product) return res.status(404).json({ message: "Product not found" });
+      res.json(product);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch product" });
+    }
+  });
+
   app.get("/api/products/:slug", async (req, res) => {
     try {
       const product = await storage.getProductBySlug(req.params.slug);
@@ -274,6 +284,147 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Order error:", error);
       res.status(500).json({ message: "Failed to create order" });
+    }
+  });
+
+  app.delete("/api/orders/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      const orderId = Number(req.params.id);
+      const order = await storage.getOrderById(orderId);
+      if (!order) return res.status(404).json({ message: "Order not found" });
+      if (order.userId !== userId) return res.status(403).json({ message: "Forbidden" });
+      await storage.deleteOrder(orderId, userId);
+      res.json({ message: "Order deleted" });
+    } catch (error) {
+      console.error("Delete order error:", error);
+      res.status(500).json({ message: "Failed to delete order" });
+    }
+  });
+
+  app.get("/api/user/saved-address", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      const user = await authStorage.getUser(userId);
+      res.json({ savedAddress: (user as any)?.savedShippingAddress || null });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch saved address" });
+    }
+  });
+
+  app.post("/api/user/saved-address", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      const parsed = shippingAddressSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid address data" });
+      const { users } = await import("@shared/models/auth");
+      const { db } = await import("./db");
+      const { eq } = await import("drizzle-orm");
+      await db.update(users).set({ savedShippingAddress: parsed.data, updatedAt: new Date() }).where(eq(users.id, userId));
+      res.json({ message: "Address saved" });
+    } catch (error) {
+      console.error("Save address error:", error);
+      res.status(500).json({ message: "Failed to save address" });
+    }
+  });
+
+  app.post("/api/orders/buy-now", isAuthenticated, async (req: any, res) => {
+    try {
+      const buyNowSchema = z.object({
+        productId: z.number().int().positive(),
+        quantity: z.number().int().min(1).default(1),
+        size: z.string().nullable().optional(),
+        color: z.string().nullable().optional(),
+        shippingAddress: shippingAddressSchema,
+        couponCode: z.string().nullable().optional(),
+      });
+      const parsed = buyNowSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+
+      const userId = getUserId(req);
+      const product = await storage.getProductById(parsed.data.productId);
+      if (!product) return res.status(404).json({ message: "Product not found" });
+      if (!product.inStock) return res.status(400).json({ message: "Product is out of stock" });
+
+      const items = [{
+        productId: product.id,
+        name: product.name,
+        price: product.price,
+        quantity: parsed.data.quantity,
+        size: parsed.data.size || undefined,
+        color: parsed.data.color || undefined,
+        imageUrl: product.images?.[0] || null,
+      }];
+
+      const subtotal = Number(product.price) * parsed.data.quantity;
+      const shipping = subtotal > 2999 ? 0 : 199;
+      let discount = 0;
+
+      if (parsed.data.couponCode) {
+        const coupon = await storage.getCouponByCode(parsed.data.couponCode);
+        if (coupon && coupon.isActive) {
+          if (coupon.discountType === "percentage") {
+            discount = subtotal * Number(coupon.discountValue) / 100;
+            if (coupon.maxDiscount) discount = Math.min(discount, Number(coupon.maxDiscount));
+          } else {
+            discount = Number(coupon.discountValue);
+          }
+        }
+      }
+
+      const finalTotal = Math.max(0, subtotal + shipping - discount).toFixed(2);
+
+      const order = await storage.createOrder({
+        userId,
+        status: "pending",
+        totalAmount: finalTotal,
+        shippingAddress: parsed.data.shippingAddress,
+        items,
+        paymentStatus: "pending",
+        paymentMethod: "cashfree",
+      });
+
+      const clientId = process.env.CASHFREE_APP_ID;
+      const clientSecret = process.env.CASHFREE_SECRET_KEY;
+
+      if (!clientId || !clientSecret) {
+        return res.json({ ...order, paymentSessionId: null });
+      }
+
+      const cashfree = getCashfreeInstance();
+      const cfOrderId = `order_${order.id}_${Date.now()}`;
+      const user = await authStorage.getUser(userId);
+
+      const cfRequest = {
+        order_amount: Number(finalTotal),
+        order_currency: "INR",
+        order_id: cfOrderId,
+        customer_details: {
+          customer_id: userId,
+          customer_phone: parsed.data.shippingAddress.phone || "9999999999",
+          customer_email: user?.email || "customer@example.com",
+          customer_name: parsed.data.shippingAddress.fullName || "Customer",
+        },
+        order_meta: {
+          return_url: `${req.protocol}://${req.get("host")}/payment/callback?order_id=${order.id}&cf_order_id=${cfOrderId}`,
+        },
+      };
+
+      try {
+        const cfResponse = await cashfree.PGCreateOrder(cfRequest);
+        await storage.updateOrderPayment(order.id, { paymentStatus: "pending", cashfreeOrderId: cfOrderId });
+        res.json({
+          ...order,
+          cashfreeOrderId: cfOrderId,
+          paymentSessionId: cfResponse.data?.payment_session_id || null,
+        });
+      } catch (cfError: any) {
+        console.error("Cashfree error:", cfError?.response?.data || cfError);
+        res.json({ ...order, paymentSessionId: null });
+      }
+    } catch (error) {
+      console.error("Buy now error:", error);
+      res.status(500).json({ message: "Failed to process order" });
     }
   });
 
