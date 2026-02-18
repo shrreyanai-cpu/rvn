@@ -5,7 +5,8 @@ import { storage } from "./storage";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { authStorage } from "./replit_integrations/auth/storage";
-import { Cashfree } from "cashfree-pg";
+import { Cashfree as CashfreeSDK, CFEnvironment } from "cashfree-pg";
+const Cashfree = CashfreeSDK as any;
 
 function getUserId(req: any): string {
   return (req.session as any)?.userId;
@@ -229,10 +230,9 @@ export async function registerRoutes(
       }
 
       const user = await authStorage.getUser(userId);
-      const cfEnv = process.env.CASHFREE_ENV === "PRODUCTION" ? Cashfree.Environment.PRODUCTION : Cashfree.Environment.SANDBOX;
       Cashfree.XClientId = clientId;
       Cashfree.XClientSecret = clientSecret;
-      Cashfree.XEnvironment = cfEnv;
+      Cashfree.XEnvironment = process.env.CASHFREE_ENV === "PRODUCTION" ? CFEnvironment.PRODUCTION : CFEnvironment.SANDBOX;
 
       const baseUrl = `${req.protocol}://${req.get("host")}`;
       const cfOrderId = `rvn_${order.id}_${Date.now()}`;
@@ -297,10 +297,9 @@ export async function registerRoutes(
         return res.status(500).json({ message: "Payment gateway not configured" });
       }
 
-      const cfEnv = process.env.CASHFREE_ENV === "PRODUCTION" ? Cashfree.Environment.PRODUCTION : Cashfree.Environment.SANDBOX;
       Cashfree.XClientId = clientId;
       Cashfree.XClientSecret = clientSecret;
-      Cashfree.XEnvironment = cfEnv;
+      Cashfree.XEnvironment = process.env.CASHFREE_ENV === "PRODUCTION" ? CFEnvironment.PRODUCTION : CFEnvironment.SANDBOX;
 
       const cfResponse = await Cashfree.PGFetchOrder("2023-08-01", storedCfOrderId);
       const cfStatus = cfResponse.data.order_status;
