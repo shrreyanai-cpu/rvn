@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ShoppingBag, Search, Menu, X, User, LogOut, LayoutDashboard } from "lucide-react";
+import { ShoppingBag, Search, Menu, X, User, LogOut, LayoutDashboard, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
@@ -11,29 +11,40 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import type { CartItem } from "@shared/schema";
+import type { CartItem, Category } from "@shared/schema";
 
-const navLinks = [
+const simpleLinks = [
   { href: "/", label: "Home" },
   { href: "/shop", label: "Shop" },
-  { href: "/shop?category=sarees", label: "Sarees" },
-  { href: "/shop?category=mens-wear", label: "Men's Wear" },
-  { href: "/shop?category=womens-wear", label: "Women's Wear" },
-  { href: "/shop?category=kids-wear", label: "Kids Wear" },
 ];
 
 export default function Header() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileExpanded, setMobileExpanded] = useState<number | null>(null);
   const { user, isAuthenticated, isLoading } = useAuth();
 
   const { data: cartItems } = useQuery<CartItem[]>({
     queryKey: ["/api/cart"],
     enabled: isAuthenticated,
   });
+
+  const { data: categories } = useQuery<Category[]>({
+    queryKey: ["/api/categories"],
+  });
+
+  const mainCategories = categories?.filter((c) => !c.parentId) || [];
+  const getSubcategories = (parentId: number) => categories?.filter((c) => c.parentId === parentId) || [];
 
   const cartCount = cartItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
@@ -54,13 +65,11 @@ export default function Header() {
               </SheetTrigger>
               <SheetContent side="left" className="w-72 p-6">
                 <div className="flex flex-col gap-1 mt-8">
-                  {navLinks.map((link) => (
+                  {simpleLinks.map((link) => (
                     <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)}>
                       <span
                         className={`block px-3 py-2.5 rounded-md text-sm font-medium transition-colors hover-elevate ${
-                          location === link.href
-                            ? "bg-primary/10 text-foreground"
-                            : "text-muted-foreground"
+                          location === link.href ? "bg-primary/10 text-foreground" : "text-muted-foreground"
                         }`}
                         data-testid={`link-mobile-nav-${link.label.toLowerCase()}`}
                       >
@@ -68,6 +77,47 @@ export default function Header() {
                       </span>
                     </Link>
                   ))}
+                  {mainCategories.map((main) => {
+                    const subs = getSubcategories(main.id);
+                    const isExpanded = mobileExpanded === main.id;
+                    return (
+                      <div key={main.id}>
+                        <button
+                          onClick={() => {
+                            if (subs.length > 0) {
+                              setMobileExpanded(isExpanded ? null : main.id);
+                            } else {
+                              navigate(`/shop?category=${main.slug}`);
+                              setMobileOpen(false);
+                            }
+                          }}
+                          className="flex items-center justify-between w-full px-3 py-2.5 rounded-md text-sm font-medium text-muted-foreground hover-elevate transition-colors"
+                          data-testid={`link-mobile-nav-${main.slug}`}
+                        >
+                          {main.name}
+                          {subs.length > 0 && (
+                            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                          )}
+                        </button>
+                        {isExpanded && subs.length > 0 && (
+                          <div className="ml-3 border-l pl-2 space-y-0.5 mt-0.5 mb-1">
+                            <Link href={`/shop?category=${main.slug}`} onClick={() => setMobileOpen(false)}>
+                              <span className="block px-3 py-2 rounded-md text-xs font-medium text-[#C9A961] hover-elevate transition-colors" data-testid={`link-mobile-sub-all-${main.slug}`}>
+                                All {main.name}
+                              </span>
+                            </Link>
+                            {subs.map((sub) => (
+                              <Link key={sub.id} href={`/shop?category=${sub.slug}`} onClick={() => setMobileOpen(false)}>
+                                <span className="block px-3 py-2 rounded-md text-xs text-muted-foreground hover-elevate transition-colors" data-testid={`link-mobile-sub-${sub.slug}`}>
+                                  {sub.name}
+                                </span>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </SheetContent>
             </Sheet>
@@ -81,13 +131,11 @@ export default function Header() {
           </Link>
 
           <nav className="hidden lg:flex items-center gap-1">
-            {navLinks.map((link) => (
+            {simpleLinks.map((link) => (
               <Link key={link.href} href={link.href}>
                 <span
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
-                    location === link.href
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
+                    location === link.href ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                   }`}
                   data-testid={`link-nav-${link.label.toLowerCase()}`}
                 >
@@ -95,6 +143,59 @@ export default function Header() {
                 </span>
               </Link>
             ))}
+
+            <NavigationMenu>
+              <NavigationMenuList>
+                {mainCategories.map((main) => {
+                  const subs = getSubcategories(main.id);
+                  if (subs.length === 0) {
+                    return (
+                      <NavigationMenuItem key={main.id}>
+                        <Link href={`/shop?category=${main.slug}`}>
+                          <span
+                            className="px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer text-muted-foreground hover:text-foreground"
+                            data-testid={`link-nav-${main.slug}`}
+                          >
+                            {main.name}
+                          </span>
+                        </Link>
+                      </NavigationMenuItem>
+                    );
+                  }
+                  return (
+                    <NavigationMenuItem key={main.id}>
+                      <NavigationMenuTrigger
+                        className="text-sm font-medium text-muted-foreground hover:text-foreground bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent"
+                        data-testid={`link-nav-${main.slug}`}
+                      >
+                        {main.name}
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <div className="w-[280px] p-3" data-testid={`dropdown-${main.slug}`}>
+                          <Link href={`/shop?category=${main.slug}`}>
+                            <div className="px-3 py-2 rounded-md text-sm font-semibold text-[#C9A961] hover-elevate transition-colors cursor-pointer mb-1" data-testid={`link-dropdown-all-${main.slug}`}>
+                              All {main.name}
+                            </div>
+                          </Link>
+                          <div className="grid grid-cols-1 gap-0.5">
+                            {subs.map((sub) => (
+                              <Link key={sub.id} href={`/shop?category=${sub.slug}`}>
+                                <div
+                                  className="px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover-elevate transition-colors cursor-pointer"
+                                  data-testid={`link-dropdown-${sub.slug}`}
+                                >
+                                  {sub.name}
+                                </div>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+                  );
+                })}
+              </NavigationMenuList>
+            </NavigationMenu>
           </nav>
 
           <div className="flex items-center gap-1">
