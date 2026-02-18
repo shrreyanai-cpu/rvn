@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Package, ArrowLeft, Clock, Truck, CheckCircle, ShoppingBag } from "lucide-react";
+import { Package, ArrowLeft, Clock, Truck, CheckCircle, ShoppingBag, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,9 +9,10 @@ import type { Order, OrderItem } from "@shared/schema";
 
 const statusConfig: Record<string, { label: string; icon: any; className: string }> = {
   pending: { label: "Pending", icon: Clock, className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" },
-  processing: { label: "Processing", icon: Package, className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" },
+  confirmed: { label: "Confirmed", icon: CheckCircle, className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" },
   shipped: { label: "Shipped", icon: Truck, className: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400" },
-  delivered: { label: "Delivered", icon: CheckCircle, className: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" },
+  delivered: { label: "Delivered", icon: Package, className: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" },
+  cancelled: { label: "Cancelled", icon: XCircle, className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" },
 };
 
 export default function OrdersPage() {
