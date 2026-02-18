@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { ArrowRight, Truck, Shield, Repeat, Sparkles, Star, Quote } from "lucide-react";
+import { ArrowRight, Truck, Shield, Repeat, Sparkles, Star, Quote, Award, Users, MapPin, Clock } from "lucide-react";
 import { SiInstagram } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -25,7 +25,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen">
-      <section className="relative h-[85vh] overflow-hidden">
+      <section className="relative h-[90vh] overflow-hidden">
         <img
           src="/images/hero-banner.png"
           alt="Luxury Indian Clothing"
@@ -38,7 +38,7 @@ export default function HomePage() {
               className="text-[#C9A961] text-xs sm:text-sm font-medium tracking-[0.3em] uppercase mb-5"
               data-testid="text-hero-subtitle"
             >
-              Premium Indian Fashion
+              Premium Indian Fashion Since 1985
             </p>
             <div className="w-12 h-[2px] bg-[#C9A961] mb-6" />
             <h1
@@ -70,6 +70,17 @@ export default function HomePage() {
                   View Featured
                 </Button>
               </Link>
+            </div>
+            <div className="flex items-center gap-8 mt-10 text-white/50 text-xs">
+              <span className="flex items-center gap-1.5">
+                <Shield className="h-3.5 w-3.5" /> Secure Payments
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Truck className="h-3.5 w-3.5" /> Free Delivery
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Star className="h-3.5 w-3.5" /> Premium Quality
+              </span>
             </div>
           </div>
         </div>
@@ -109,57 +120,140 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-16 sm:py-20 max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex items-end justify-between mb-10">
+      <section className="py-20 sm:py-24 max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
-            <p className="text-[#C9A961] text-xs font-medium tracking-[0.2em] uppercase mb-2">
-              Explore
+            <p className="text-[#C9A961] text-xs font-medium tracking-[0.2em] uppercase mb-3">
+              Our Heritage
             </p>
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold" data-testid="text-categories-title">
-              Shop by Category
+            <div className="w-10 h-[2px] bg-[#C9A961] mb-6" />
+            <h2
+              className="font-serif text-3xl sm:text-4xl font-bold leading-tight mb-5"
+              data-testid="text-our-story-title"
+            >
+              A Legacy of{" "}
+              <span className="text-[#C9A961] italic">Craftsmanship</span>
             </h2>
-          </div>
-          <Link href="/shop">
-            <Button variant="ghost" size="sm" data-testid="link-view-all-categories">
-              View All <ArrowRight className="ml-1 h-3.5 w-3.5" />
-            </Button>
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-          {loadingCategories
-            ? Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="aspect-[3/4] rounded-md" />
-              ))
-            : categories?.map((cat) => (
-                <Link key={cat.id} href={`/shop?category=${cat.slug}`}>
-                  <div
-                    className="group relative aspect-[3/4] overflow-hidden rounded-md cursor-pointer"
-                    data-testid={`card-category-${cat.id}`}
-                  >
-                    {cat.imageUrl && (
-                      <img
-                        src={cat.imageUrl}
-                        alt={cat.name}
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent transition-all duration-300 group-hover:from-black/80" />
-                    <div className="absolute inset-0 border border-white/0 group-hover:border-[#C9A961]/50 rounded-md transition-all duration-300" />
-                    <div className="absolute bottom-0 left-0 right-0 p-4">
-                      <h3 className="font-serif text-white text-lg font-semibold mb-1">{cat.name}</h3>
-                      <span className="text-white/0 group-hover:text-white/80 text-xs font-medium tracking-wider uppercase transition-all duration-300 flex items-center gap-1">
-                        Shop Now <ArrowRight className="h-3 w-3" />
-                      </span>
-                    </div>
+            <p className="text-muted-foreground leading-relaxed mb-4">
+              For over three decades, Ravindrra Vastra Niketan has been a trusted name in Indian fashion.
+              Founded in 1985, we began as a small family-run textile shop with a vision to bring the finest
+              Indian fabrics and traditional artistry to discerning customers.
+            </p>
+            <p className="text-muted-foreground leading-relaxed mb-8">
+              Today, we continue that legacy by working directly with master weavers and artisans from
+              Varanasi, Jaipur, and Lucknow, ensuring every piece that carries our name is a testament
+              to India's unparalleled textile heritage.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+              {[
+                { icon: Clock, value: "38+", label: "Years" },
+                { icon: Users, value: "10K+", label: "Customers" },
+                { icon: Award, value: "500+", label: "Products" },
+                { icon: MapPin, value: "Pan India", label: "Delivery" },
+              ].map((stat) => (
+                <div key={stat.label} className="text-center" data-testid={`stat-${stat.label.toLowerCase()}`}>
+                  <div className="w-10 h-10 mx-auto rounded-full bg-[#C9A961]/10 flex items-center justify-center mb-2">
+                    <stat.icon className="h-4.5 w-4.5 text-[#C9A961]" />
                   </div>
-                </Link>
+                  <p className="text-lg font-serif font-bold">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">{stat.label}</p>
+                </div>
               ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-3">
+              <div className="relative aspect-[3/4] rounded-md overflow-hidden">
+                <img
+                  src="/images/products/silk-saree-burgundy.png"
+                  alt="Handcrafted Silk Saree"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              </div>
+              <div className="relative aspect-square rounded-md overflow-hidden">
+                <img
+                  src="/images/products/pink-banarasi-dupatta.png"
+                  alt="Banarasi Dupatta"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              </div>
+            </div>
+            <div className="space-y-3 pt-8">
+              <div className="relative aspect-square rounded-md overflow-hidden">
+                <img
+                  src="/images/products/cream-sherwani.png"
+                  alt="Designer Sherwani"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              </div>
+              <div className="relative aspect-[3/4] rounded-md overflow-hidden">
+                <img
+                  src="/images/products/emerald-lehenga.png"
+                  alt="Lehenga Choli"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="py-16 sm:py-20 bg-card">
+      <section className="py-20 sm:py-24 bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-end justify-between mb-10">
+          <div className="flex items-end justify-between gap-4 mb-12">
+            <div>
+              <p className="text-[#C9A961] text-xs font-medium tracking-[0.2em] uppercase mb-2">
+                Explore
+              </p>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold" data-testid="text-categories-title">
+                Shop by Category
+              </h2>
+              <p className="text-muted-foreground text-sm mt-2 max-w-md">
+                From elegant sarees to regal sherwanis, find the perfect outfit for every occasion
+              </p>
+            </div>
+            <Link href="/shop">
+              <Button variant="ghost" size="sm" data-testid="link-view-all-categories">
+                View All <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            {loadingCategories
+              ? Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="aspect-[3/4] rounded-md" />
+                ))
+              : categories?.map((cat) => (
+                  <Link key={cat.id} href={`/shop?category=${cat.slug}`}>
+                    <div
+                      className="group relative aspect-[3/4] overflow-hidden rounded-md cursor-pointer"
+                      data-testid={`card-category-${cat.id}`}
+                    >
+                      {cat.imageUrl && (
+                        <img
+                          src={cat.imageUrl}
+                          alt={cat.name}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent transition-all duration-300 group-hover:from-black/80" />
+                      <div className="absolute inset-0 border border-white/0 group-hover:border-[#C9A961]/50 rounded-md transition-all duration-300" />
+                      <div className="absolute bottom-0 left-0 right-0 p-4">
+                        <h3 className="font-serif text-white text-lg font-semibold mb-1">{cat.name}</h3>
+                        <span className="text-white/0 group-hover:text-white/80 text-xs font-medium tracking-wider uppercase transition-all duration-300 flex items-center gap-1" data-testid={`link-shop-now-${cat.slug}`}>
+                          Shop Now <ArrowRight className="h-3 w-3" />
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-20 sm:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex items-end justify-between gap-4 mb-12">
             <div>
               <p className="text-[#C9A961] text-xs font-medium tracking-[0.2em] uppercase mb-2">
                 Curated for You
@@ -167,6 +261,9 @@ export default function HomePage() {
               <h2 className="font-serif text-2xl sm:text-3xl font-bold" data-testid="text-featured-title">
                 Featured Collection
               </h2>
+              <p className="text-muted-foreground text-sm mt-2 max-w-md">
+                Hand-picked pieces from our finest collections, chosen for their exceptional quality and design
+              </p>
             </div>
             <Link href="/shop?featured=true">
               <Button variant="ghost" size="sm" data-testid="link-view-all-featured">
@@ -190,9 +287,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="relative py-20 sm:py-24 overflow-hidden">
+      <section className="relative py-24 sm:py-28 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="relative aspect-[4/5] lg:aspect-[3/4] rounded-md overflow-hidden">
               <img
                 src="/images/products/red-bridal-lehenga.png"
@@ -200,10 +297,15 @@ export default function HomePage() {
                 className="absolute inset-0 w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+              <div className="absolute top-4 left-4">
+                <span className="bg-[#C9A961] text-[#1A1A1A] text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full">
+                  Bestseller
+                </span>
+              </div>
             </div>
             <div className="lg:pl-8">
               <p className="text-[#C9A961] text-xs font-medium tracking-[0.3em] uppercase mb-4">
-                Exclusive
+                Exclusive Collection
               </p>
               <div className="w-10 h-[2px] bg-[#C9A961] mb-6" />
               <h2
@@ -213,15 +315,20 @@ export default function HomePage() {
                 The Bridal{" "}
                 <span className="text-[#C9A961] italic">Collection</span>
               </h2>
-              <p className="text-muted-foreground leading-relaxed mb-8 max-w-md">
+              <p className="text-muted-foreground leading-relaxed mb-4">
                 A magnificent collection of bridal lehengas featuring heavy kundan and zardozi embroidery.
                 Crafted with the finest silk and adorned with thousands of hand-applied sequins for the modern Indian bride.
               </p>
-              <div className="flex flex-wrap gap-6 mb-8">
+              <p className="text-muted-foreground leading-relaxed mb-8">
+                Each bridal piece takes over 200 hours of meticulous hand-embroidery, 
+                ensuring that every bride wearing Ravindrra feels truly extraordinary on her special day.
+              </p>
+              <div className="flex flex-wrap gap-6 mb-10">
                 {[
                   { label: "Handcrafted", value: "100%" },
                   { label: "Premium Silk", value: "Pure" },
                   { label: "Custom Fit", value: "Tailored" },
+                  { label: "Embroidery Hours", value: "200+" },
                 ].map((stat) => (
                   <div key={stat.label}>
                     <p className="text-xl font-serif font-bold text-[#C9A961]">{stat.value}</p>
@@ -234,7 +341,7 @@ export default function HomePage() {
                   className="bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A] font-semibold px-8 tracking-wide"
                   data-testid="button-shop-bridal"
                 >
-                  Shop Bridal
+                  Shop Bridal Collection
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -243,9 +350,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-16 sm:py-20 bg-card">
+      <section className="py-20 sm:py-24 bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-end justify-between mb-10">
+          <div className="flex items-end justify-between gap-4 mb-12">
             <div>
               <p className="text-[#C9A961] text-xs font-medium tracking-[0.2em] uppercase mb-2">
                 Just In
@@ -253,6 +360,9 @@ export default function HomePage() {
               <h2 className="font-serif text-2xl sm:text-3xl font-bold" data-testid="text-new-arrivals-title">
                 New Arrivals
               </h2>
+              <p className="text-muted-foreground text-sm mt-2 max-w-md">
+                The latest additions to our collection, fresh from our artisan workshops
+              </p>
             </div>
             <Link href="/shop">
               <Button variant="ghost" size="sm" data-testid="link-view-all-products">
@@ -276,34 +386,69 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-16 sm:py-20">
+      <section className="py-16 sm:py-20 bg-[#2C3E50] dark:bg-[#1a2530]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                title: "Expert Craftsmanship",
+                desc: "Every piece is meticulously crafted by skilled artisans who have inherited centuries of textile knowledge. Our craftsmen use traditional techniques passed down through generations.",
+                icon: Sparkles,
+              },
+              {
+                title: "Authentic Materials",
+                desc: "We source only the finest fabrics - pure Banarasi silk, organic cotton, premium chiffon, and hand-dyed georgette from trusted Indian mills and weaving communities.",
+                icon: Shield,
+              },
+              {
+                title: "Personal Service",
+                desc: "From selecting the right fabric to custom alterations, our team provides personalized assistance to ensure you find the perfect outfit for your special occasion.",
+                icon: Users,
+              },
+            ].map((item) => (
+              <div key={item.title} className="text-center" data-testid={`card-why-${item.title.toLowerCase().replace(/\s/g, "-")}`}>
+                <div className="w-14 h-14 mx-auto rounded-full bg-[#C9A961]/15 flex items-center justify-center mb-5">
+                  <item.icon className="h-6 w-6 text-[#C9A961]" />
+                </div>
+                <h3 className="font-serif text-lg font-semibold text-white mb-3">{item.title}</h3>
+                <p className="text-sm text-white/60 leading-relaxed max-w-xs mx-auto">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-20 sm:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-14">
             <p className="text-[#C9A961] text-xs font-medium tracking-[0.2em] uppercase mb-2">
               Voices of Trust
             </p>
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold" data-testid="text-testimonials-title">
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold mb-2" data-testid="text-testimonials-title">
               What Our Customers Say
             </h2>
+            <p className="text-muted-foreground text-sm max-w-md mx-auto">
+              Hear from our valued customers about their shopping experience with us
+            </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               {
                 name: "Priya Sharma",
                 location: "Mumbai",
-                text: "The quality of the silk saree I purchased was absolutely breathtaking. The intricate zari work is even more beautiful in person. Truly a masterpiece!",
+                text: "The quality of the silk saree I purchased was absolutely breathtaking. The intricate zari work is even more beautiful in person. Truly a masterpiece! I wore it to my sister's wedding and received so many compliments.",
                 rating: 5,
               },
               {
                 name: "Arjun Patel",
                 location: "Delhi",
-                text: "Ordered a sherwani for my wedding and it was perfect. The fit, the embroidery, the fabric - everything exceeded my expectations. Thank you, Ravindrra!",
+                text: "Ordered a sherwani for my wedding and it was perfect. The fit, the embroidery, the fabric - everything exceeded my expectations. The team also helped with custom alterations at no extra charge. Thank you, Ravindrra!",
                 rating: 5,
               },
               {
                 name: "Meera Krishnan",
                 location: "Bangalore",
-                text: "I've been ordering from Ravindrra for two years now. The consistency in quality and their attention to detail is what keeps me coming back. Highly recommended!",
+                text: "I've been ordering from Ravindrra for two years now. The consistency in quality and their attention to detail is what keeps me coming back. Their customer service is exceptional - always helpful and responsive.",
                 rating: 5,
               },
             ].map((testimonial) => (
@@ -327,7 +472,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-12 border-y bg-card">
+      <section className="py-14 border-y bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {[
@@ -354,9 +499,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-16 sm:py-20">
+      <section className="py-20 sm:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-10">
+          <div className="text-center mb-12">
             <p className="text-[#C9A961] text-xs font-medium tracking-[0.2em] uppercase mb-2">
               Follow Us
             </p>
@@ -364,7 +509,7 @@ export default function HomePage() {
               @ravindrra_vastra
             </h2>
             <p className="text-muted-foreground text-sm">
-              Follow us on Instagram for the latest styles and behind-the-scenes
+              Follow us on Instagram for the latest styles, behind-the-scenes, and exclusive previews
             </p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
@@ -376,6 +521,7 @@ export default function HomePage() {
                 rel="noopener noreferrer"
                 className="group relative aspect-square overflow-hidden rounded-md"
                 data-testid={`link-instagram-${i}`}
+                aria-label={`View ${product.name} on Instagram`}
               >
                 <img
                   src={product.images?.[0] || "/images/products/silk-saree-burgundy.png"}
@@ -407,7 +553,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-20 sm:py-24 bg-[#2C3E50] dark:bg-[#1a2530] relative overflow-hidden">
+      <section className="py-24 sm:py-28 bg-[#2C3E50] dark:bg-[#1a2530] relative overflow-hidden">
         <div className="absolute inset-0 opacity-5">
           <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "40px 40px" }} />
         </div>
@@ -418,7 +564,8 @@ export default function HomePage() {
           </h2>
           <p className="text-white/60 max-w-xl mx-auto mb-10 leading-relaxed">
             Each piece in our collection tells a story of craftsmanship, tradition, and elegance.
-            Experience the beauty of India's rich textile heritage.
+            Experience the beauty of India's rich textile heritage. Visit our store or shop online
+            for a curated selection of premium Indian clothing.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link href="/shop">
@@ -436,7 +583,7 @@ export default function HomePage() {
                 className="text-white border-white/25 bg-white/5 px-8 tracking-wide"
                 data-testid="button-whatsapp-cta"
               >
-                Contact Us
+                Contact Us on WhatsApp
               </Button>
             </a>
           </div>

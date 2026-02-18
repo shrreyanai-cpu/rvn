@@ -1,8 +1,32 @@
 import { storage } from "./storage";
 import { db } from "./db";
 import { categories, products } from "@shared/schema";
+import { users } from "@shared/models/auth";
+import { eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
+
+async function seedAdminUser() {
+  const adminEmail = "shrreyango@gmail.com";
+  const [existing] = await db.select().from(users).where(eq(users.email, adminEmail));
+  if (!existing) {
+    const hashedPassword = await bcrypt.hash("100808", 12);
+    await db.insert(users).values({
+      email: adminEmail,
+      password: hashedPassword,
+      firstName: "Admin",
+      lastName: "User",
+      isAdmin: true,
+    });
+    console.log("Admin user created: " + adminEmail);
+  } else if (!existing.isAdmin) {
+    await db.update(users).set({ isAdmin: true }).where(eq(users.email, adminEmail));
+    console.log("Admin privileges granted to: " + adminEmail);
+  }
+}
 
 export async function seedDatabase() {
+  await seedAdminUser();
+
   const existingCategories = await storage.getCategories();
   if (existingCategories.length > 0) {
     return;

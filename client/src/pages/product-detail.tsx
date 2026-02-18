@@ -217,7 +217,7 @@ export default function ProductDetailPage() {
               disabled={!product.inStock || addToCartMutation.isPending}
               onClick={() => {
                 if (!isAuthenticated) {
-                  window.location.href = "/api/login";
+                  window.location.href = "/login";
                   return;
                 }
                 addToCartMutation.mutate();

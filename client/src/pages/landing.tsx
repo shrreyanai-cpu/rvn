@@ -35,7 +35,7 @@ export default function LandingPage() {
             <div className="flex flex-wrap gap-3">
               <Button
                 className="bg-[#C9A961] text-[#1A1A1A] border-[#C9A961] font-semibold px-8"
-                onClick={() => (window.location.href = "/api/login")}
+                onClick={() => (window.location.href = "/login")}
                 data-testid="button-landing-get-started"
               >
                 Get Started
@@ -111,7 +111,7 @@ export default function LandingPage() {
           </p>
           <Button
             className="bg-[#C9A961] text-[#1A1A1A] border-[#C9A961] font-semibold px-8"
-            onClick={() => (window.location.href = "/api/login")}
+            onClick={() => (window.location.href = "/login")}
             data-testid="button-landing-cta-signin"
           >
             Sign In to Shop

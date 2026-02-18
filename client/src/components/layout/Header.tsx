@@ -159,6 +159,7 @@ export default function Header() {
                   <DropdownMenuItem
                     onClick={() => (window.location.href = "/api/logout")}
                     data-testid="button-logout"
+                    className="cursor-pointer"
                   >
                     <LogOut className="mr-2 h-4 w-4" />
                     Sign Out
@@ -169,7 +170,7 @@ export default function Header() {
               <Button
                 variant="default"
                 size="sm"
-                onClick={() => (window.location.href = "/api/login")}
+                onClick={() => (window.location.href = "/login")}
                 data-testid="button-login"
                 className="bg-[#2C3E50] hover:bg-[#2C3E50]/90 dark:bg-[#C9A961] dark:text-[#1A1A1A]"
               >

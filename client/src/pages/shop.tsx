@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { Search, SlidersHorizontal, X, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,10 @@ export default function ShopPage() {
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [sortBy, setSortBy] = useState("newest");
   const [filterOpen, setFilterOpen] = useState(false);
+
+  useEffect(() => {
+    setSelectedCategory(initialCategory);
+  }, [initialCategory]);
 
   const { data: products, isLoading: loadingProducts } = useQuery<Product[]>({
     queryKey: ["/api/products"],

@@ -4,14 +4,19 @@ import { z } from "zod";
 import { storage } from "./storage";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import { authStorage } from "./replit_integrations/auth/storage";
 
-const ADMIN_USER_IDS = (process.env.ADMIN_USER_IDS || "").split(",").filter(Boolean);
+function getUserId(req: any): string {
+  return (req.session as any)?.userId;
+}
 
-function isAdmin(req: any, res: Response, next: NextFunction) {
-  if (!req.user?.claims?.sub) {
+async function isAdmin(req: any, res: Response, next: NextFunction) {
+  const userId = getUserId(req);
+  if (!userId) {
     return res.status(401).json({ message: "Unauthorized" });
   }
-  if (ADMIN_USER_IDS.length > 0 && !ADMIN_USER_IDS.includes(req.user.claims.sub)) {
+  const user = await authStorage.getUser(userId);
+  if (!user?.isAdmin) {
     return res.status(403).json({ message: "Forbidden" });
   }
   next();
@@ -102,7 +107,7 @@ export async function registerRoutes(
 
   app.get("/api/cart", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
       const items = await storage.getCartItems(userId);
       res.json(items);
     } catch (error) {
@@ -116,7 +121,7 @@ export async function registerRoutes(
       if (!parsed.success) {
         return res.status(400).json({ message: "Invalid request", errors: parsed.error.flatten() });
       }
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
       const { productId, quantity, size, color } = parsed.data;
       const item = await storage.addCartItem({
         userId,
@@ -137,7 +142,7 @@ export async function registerRoutes(
       if (!parsed.success) {
         return res.status(400).json({ message: "Invalid request", errors: parsed.error.flatten() });
       }
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
       const id = parseInt(req.params.id);
       const item = await storage.updateCartItem(id, userId, parsed.data.quantity);
       if (!item) {
@@ -151,7 +156,7 @@ export async function registerRoutes(
 
   app.delete("/api/cart/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
       const id = parseInt(req.params.id);
       await storage.removeCartItem(id, userId);
       res.json({ success: true });
@@ -162,7 +167,7 @@ export async function registerRoutes(
 
   app.get("/api/orders", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
       const userOrders = await storage.getOrders(userId);
       res.json(userOrders);
     } catch (error) {
@@ -176,7 +181,7 @@ export async function registerRoutes(
       if (!parsed.success) {
         return res.status(400).json({ message: "Invalid shipping address", errors: parsed.error.flatten() });
       }
-      const userId = req.user.claims.sub;
+      const userId = getUserId(req);
 
       const cartItemsData = await storage.getCartItems(userId);
       if (cartItemsData.length === 0) {
@@ -246,7 +251,7 @@ export async function registerRoutes(
       if (!parsed.success) {
         return res.status(400).json({ message: "Invalid product data", errors: parsed.error.flatten() });
       }
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       const product = await storage.updateProduct(id, parsed.data);
       if (!product) {
         return res.status(404).json({ message: "Product not found" });
@@ -259,7 +264,7 @@ export async function registerRoutes(
 
   app.delete("/api/admin/products/:id", isAuthenticated, isAdmin, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       await storage.deleteProduct(id);
       res.json({ success: true });
     } catch (error) {
@@ -282,7 +287,7 @@ export async function registerRoutes(
       if (!parsed.success) {
         return res.status(400).json({ message: "Invalid status", errors: parsed.error.flatten() });
       }
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       const order = await storage.updateOrderStatus(id, parsed.data.status);
       if (!order) {
         return res.status(404).json({ message: "Order not found" });
