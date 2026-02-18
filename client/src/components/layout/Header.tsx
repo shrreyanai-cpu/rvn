@@ -167,16 +167,27 @@ export default function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => (window.location.href = "/login")}
-                data-testid="button-login"
-                className="bg-[#2C3E50] hover:bg-[#2C3E50]/90 dark:bg-[#C9A961] dark:text-[#1A1A1A]"
-              >
-                <User className="mr-1.5 h-3.5 w-3.5" />
-                Sign In
-              </Button>
+              <div className="flex items-center gap-2">
+                <Link href="/login">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    data-testid="button-login"
+                  >
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/login?mode=register">
+                  <Button
+                    size="sm"
+                    data-testid="button-create-account"
+                    className="bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A]"
+                  >
+                    <User className="mr-1.5 h-3.5 w-3.5" />
+                    Create Account
+                  </Button>
+                </Link>
+              </div>
             )}
           </div>
         </div>
