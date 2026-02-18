@@ -326,6 +326,32 @@ export async function registerRoutes(
     }
   });
 
+  // Admin create customer
+  app.post("/api/admin/customers", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const schema = z.object({
+        email: z.string().email(),
+        password: z.string().min(6),
+        firstName: z.string().min(1),
+        lastName: z.string().min(1),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid customer data", errors: parsed.error.flatten() });
+      const { email, password, firstName, lastName } = parsed.data;
+      const { authStorage } = await import("./replit_integrations/auth/storage");
+      const existing = await authStorage.getUserByEmail(email);
+      if (existing) return res.status(409).json({ message: "An account with this email already exists" });
+      const bcrypt = await import("bcryptjs");
+      const hashedPassword = await bcrypt.hash(password, 12);
+      const user = await authStorage.upsertUser({ email, password: hashedPassword, firstName, lastName });
+      const { password: _, ...safeUser } = user;
+      res.json(safeUser);
+    } catch (error) {
+      console.error("Admin create customer error:", error);
+      res.status(500).json({ message: "Failed to create customer" });
+    }
+  });
+
   // Admin categories
   app.post("/api/admin/categories", isAuthenticated, isAdmin, async (req, res) => {
     try {

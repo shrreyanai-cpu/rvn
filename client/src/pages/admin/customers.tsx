@@ -1,14 +1,21 @@
 import { useState } from "react";
-import { Search, Users, ShoppingBag, Shield } from "lucide-react";
+import { Search, ShoppingBag, Shield, Plus, Loader2, Eye, EyeOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 type Customer = {
   id: string;
@@ -20,8 +27,96 @@ type Customer = {
   orderCount: number;
 };
 
+function CreateCustomerForm({ onClose }: { onClose: () => void }) {
+  const { toast } = useToast();
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+  });
+  const [showPassword, setShowPassword] = useState(false);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/admin/customers", form);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      toast({ title: "Customer account created successfully" });
+      onClose();
+    },
+    onError: (err: any) => {
+      let description = "Failed to create customer account.";
+      try {
+        const parsed = JSON.parse(err?.message?.split(": ").slice(1).join(": ") || "{}");
+        description = parsed.message || description;
+      } catch {
+        if (err?.message?.includes("409")) description = "An account with this email already exists.";
+      }
+      toast({ title: "Error", description, variant: "destructive" });
+    },
+  });
+
+  const canSubmit = form.firstName && form.lastName && form.email && form.password.length >= 6;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>First Name</Label>
+          <Input value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} placeholder="First name" data-testid="input-customer-first-name" />
+        </div>
+        <div>
+          <Label>Last Name</Label>
+          <Input value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} placeholder="Last name" data-testid="input-customer-last-name" />
+        </div>
+      </div>
+      <div>
+        <Label>Email</Label>
+        <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="customer@example.com" data-testid="input-customer-email" />
+      </div>
+      <div>
+        <Label>Password</Label>
+        <div className="relative">
+          <Input
+            type={showPassword ? "text" : "password"}
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            placeholder="Min 6 characters"
+            className="pr-10"
+            data-testid="input-customer-password"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">The customer will use this password to sign in</p>
+      </div>
+      <div className="flex gap-2 pt-2">
+        <Button variant="outline" onClick={onClose}>Cancel</Button>
+        <Button
+          onClick={() => mutation.mutate()}
+          disabled={mutation.isPending || !canSubmit}
+          className="bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A]"
+          data-testid="button-save-customer"
+        >
+          {mutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          Create Customer
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminCustomers() {
   const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { data: customers, isLoading } = useQuery<Customer[]>({ queryKey: ["/api/admin/customers"] });
 
   const filtered = customers?.filter((c) => {
@@ -36,9 +131,24 @@ export default function AdminCustomers() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="font-serif text-2xl sm:text-3xl font-bold" data-testid="text-admin-customers-title">Customers</h1>
-        <p className="text-sm text-muted-foreground mt-1">{customers?.length || 0} registered customers</p>
+      <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+        <div>
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold" data-testid="text-admin-customers-title">Customers</h1>
+          <p className="text-sm text-muted-foreground mt-1">{customers?.length || 0} registered customers</p>
+        </div>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A]" data-testid="button-add-customer">
+              <Plus className="mr-1.5 h-4 w-4" /> Create Customer
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="font-serif">Create Customer Account</DialogTitle>
+            </DialogHeader>
+            <CreateCustomerForm onClose={() => setDialogOpen(false)} />
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="relative mb-4 max-w-sm">
