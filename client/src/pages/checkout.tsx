@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation, Link } from "wouter";
-import { ArrowLeft, Check, Loader2, CreditCard, Shield } from "lucide-react";
+import { ArrowLeft, Loader2, CreditCard, Shield, Tag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,7 @@ declare global {
   }
 }
 
-function loadCashfreeScript(mode: string): Promise<void> {
+function loadCashfreeScript(): Promise<void> {
   return new Promise((resolve, reject) => {
     if (window.Cashfree) return resolve();
     const script = document.createElement("script");
@@ -34,6 +34,10 @@ export default function CheckoutPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
+  const [couponError, setCouponError] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
 
   const [form, setForm] = useState({
     fullName: "",
@@ -53,12 +57,42 @@ export default function CheckoutPage() {
     0
   ) || 0;
   const shipping = subtotal > 2999 ? 0 : 199;
-  const total = subtotal + shipping;
+  const discount = appliedCoupon?.discount || 0;
+  const total = Math.max(0, subtotal + shipping - discount);
+
+  async function applyCoupon() {
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    setCouponError("");
+    try {
+      const res = await apiRequest("POST", "/api/coupons/apply", {
+        code: couponCode.trim(),
+        subtotal,
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setAppliedCoupon({ code: data.code, discount: data.discount });
+        setCouponCode("");
+      } else {
+        setCouponError(data.message || "Invalid coupon code");
+      }
+    } catch {
+      setCouponError("Could not apply coupon");
+    } finally {
+      setCouponLoading(false);
+    }
+  }
+
+  function removeCoupon() {
+    setAppliedCoupon(null);
+    setCouponError("");
+  }
 
   const placeOrderMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/orders", {
         shippingAddress: form,
+        couponCode: appliedCoupon?.code || null,
       });
       return res.json();
     },
@@ -69,7 +103,7 @@ export default function CheckoutPage() {
       if (data.paymentSessionId) {
         setPaymentLoading(true);
         try {
-          await loadCashfreeScript("sandbox");
+          await loadCashfreeScript();
           const cashfreeMode = import.meta.env.VITE_CASHFREE_ENV === "PRODUCTION" ? "production" : "sandbox";
           const cashfree = window.Cashfree({ mode: cashfreeMode });
           cashfree.checkout({
@@ -89,7 +123,8 @@ export default function CheckoutPage() {
       } else {
         toast({
           title: "Order placed!",
-          description: `Order #${data.id} created. Payment gateway is being configured.`,
+          description: `Order #${data.id} created. Payment could not be initiated, please contact support.`,
+          variant: "destructive",
         });
         navigate("/orders");
       }
@@ -99,7 +134,15 @@ export default function CheckoutPage() {
     },
   });
 
-  const isFormValid = form.fullName && form.address && form.city && form.state && form.pincode && form.phone;
+  const isFormValid =
+    form.fullName &&
+    form.address &&
+    form.city &&
+    form.state &&
+    form.pincode.length >= 5 &&
+    /^\d+$/.test(form.pincode) &&
+    form.phone.length >= 10 &&
+    /^\d+$/.test(form.phone);
 
   if (isLoading) {
     return (
@@ -134,7 +177,7 @@ export default function CheckoutPage() {
       </h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-6">
           <Card className="p-6">
             <h2 className="font-semibold mb-4">Shipping Address</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -182,9 +225,15 @@ export default function CheckoutPage() {
                 <Label htmlFor="pincode">PIN Code</Label>
                 <Input
                   id="pincode"
+                  type="tel"
+                  inputMode="numeric"
                   value={form.pincode}
-                  onChange={(e) => setForm({ ...form, pincode: e.target.value })}
-                  placeholder="PIN Code"
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+                    setForm({ ...form, pincode: val });
+                  }}
+                  placeholder="6-digit PIN code"
+                  maxLength={6}
                   data-testid="input-pincode"
                 />
               </div>
@@ -192,13 +241,71 @@ export default function CheckoutPage() {
                 <Label htmlFor="phone">Phone Number</Label>
                 <Input
                   id="phone"
+                  type="tel"
+                  inputMode="numeric"
                   value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  placeholder="+91 XXXXX XXXXX"
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    setForm({ ...form, phone: val });
+                  }}
+                  placeholder="10-digit mobile number"
+                  maxLength={10}
                   data-testid="input-phone"
                 />
               </div>
             </div>
+          </Card>
+
+          <Card className="p-6">
+            <h2 className="font-semibold mb-4 flex items-center gap-2">
+              <Tag className="h-4 w-4" />
+              Coupon Code
+            </h2>
+            {appliedCoupon ? (
+              <div className="flex items-center justify-between p-3 rounded bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                <div>
+                  <p className="text-sm font-medium text-green-700 dark:text-green-400">
+                    {appliedCoupon.code} applied
+                  </p>
+                  <p className="text-xs text-green-600 dark:text-green-500">
+                    You save Rs. {appliedCoupon.discount.toLocaleString("en-IN")}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={removeCoupon}
+                  data-testid="button-remove-coupon"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div>
+                <div className="flex gap-2">
+                  <Input
+                    value={couponCode}
+                    onChange={(e) => {
+                      setCouponCode(e.target.value.toUpperCase());
+                      setCouponError("");
+                    }}
+                    placeholder="Enter coupon code"
+                    data-testid="input-coupon-code"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={applyCoupon}
+                    disabled={!couponCode.trim() || couponLoading}
+                    data-testid="button-apply-coupon"
+                  >
+                    {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
+                  </Button>
+                </div>
+                {couponError && (
+                  <p className="text-xs text-red-500 mt-2" data-testid="text-coupon-error">{couponError}</p>
+                )}
+              </div>
+            )}
           </Card>
         </div>
 
@@ -235,6 +342,12 @@ export default function CheckoutPage() {
                 <span className="text-muted-foreground">Shipping</span>
                 <span>{shipping === 0 ? <span className="text-green-600 dark:text-green-400">Free</span> : `Rs. ${shipping}`}</span>
               </div>
+              {appliedCoupon && (
+                <div className="flex justify-between text-green-600 dark:text-green-400">
+                  <span>Coupon ({appliedCoupon.code})</span>
+                  <span>- Rs. {appliedCoupon.discount.toLocaleString("en-IN")}</span>
+                </div>
+              )}
               <Separator />
               <div className="flex justify-between font-semibold text-base">
                 <span>Total</span>

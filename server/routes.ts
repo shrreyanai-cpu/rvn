@@ -6,7 +6,13 @@ import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integra
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { authStorage } from "./replit_integrations/auth/storage";
 import { Cashfree as CashfreeSDK, CFEnvironment } from "cashfree-pg";
-const Cashfree = CashfreeSDK as any;
+
+function getCashfreeInstance() {
+  const clientId = process.env.CASHFREE_APP_ID || "";
+  const clientSecret = process.env.CASHFREE_SECRET_KEY || "";
+  const env = process.env.CASHFREE_ENV === "PRODUCTION" ? CFEnvironment.PRODUCTION : CFEnvironment.SANDBOX;
+  return new (CashfreeSDK as any)(env, clientId, clientSecret);
+}
 
 function getUserId(req: any): string {
   return (req.session as any)?.userId;
@@ -230,9 +236,7 @@ export async function registerRoutes(
       }
 
       const user = await authStorage.getUser(userId);
-      Cashfree.XClientId = clientId;
-      Cashfree.XClientSecret = clientSecret;
-      Cashfree.XEnvironment = process.env.CASHFREE_ENV === "PRODUCTION" ? CFEnvironment.PRODUCTION : CFEnvironment.SANDBOX;
+      const cashfree = getCashfreeInstance();
 
       const baseUrl = `${req.protocol}://${req.get("host")}`;
       const cfOrderId = `rvn_${order.id}_${Date.now()}`;
@@ -253,7 +257,7 @@ export async function registerRoutes(
       };
 
       try {
-        const cfResponse = await Cashfree.PGCreateOrder("2023-08-01", cfRequest);
+        const cfResponse = await cashfree.PGCreateOrder("2023-08-01", cfRequest);
         await storage.updateOrderPayment(order.id, { paymentStatus: "pending", cashfreeOrderId: cfOrderId });
         res.json({
           ...order,
@@ -297,11 +301,9 @@ export async function registerRoutes(
         return res.status(500).json({ message: "Payment gateway not configured" });
       }
 
-      Cashfree.XClientId = clientId;
-      Cashfree.XClientSecret = clientSecret;
-      Cashfree.XEnvironment = process.env.CASHFREE_ENV === "PRODUCTION" ? CFEnvironment.PRODUCTION : CFEnvironment.SANDBOX;
+      const cashfree = getCashfreeInstance();
 
-      const cfResponse = await Cashfree.PGFetchOrder("2023-08-01", storedCfOrderId);
+      const cfResponse = await cashfree.PGFetchOrder("2023-08-01", storedCfOrderId);
       const cfStatus = cfResponse.data.order_status;
 
       let paymentStatus = "pending";
@@ -327,6 +329,47 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Payment verify error:", error?.response?.data || error);
       res.status(500).json({ message: "Failed to verify payment" });
+    }
+  });
+
+  app.post("/api/coupons/apply", isAuthenticated, async (req: any, res) => {
+    try {
+      const { code, subtotal } = req.body;
+      if (!code || typeof subtotal !== "number") {
+        return res.status(400).json({ valid: false, message: "Invalid request" });
+      }
+      const coupon = await storage.getCouponByCode(code);
+      if (!coupon) {
+        return res.json({ valid: false, message: "Coupon not found" });
+      }
+      if (!coupon.isActive) {
+        return res.json({ valid: false, message: "This coupon is no longer active" });
+      }
+      if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) {
+        return res.json({ valid: false, message: "This coupon has expired" });
+      }
+      if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
+        return res.json({ valid: false, message: "This coupon has reached its usage limit" });
+      }
+      if (coupon.minOrderAmount && subtotal < Number(coupon.minOrderAmount)) {
+        return res.json({ valid: false, message: `Minimum order amount is Rs. ${Number(coupon.minOrderAmount).toLocaleString("en-IN")}` });
+      }
+
+      let discount = 0;
+      if (coupon.discountType === "percentage") {
+        discount = Math.round((subtotal * Number(coupon.discountValue)) / 100);
+        if (coupon.maxDiscount && discount > Number(coupon.maxDiscount)) {
+          discount = Number(coupon.maxDiscount);
+        }
+      } else {
+        discount = Number(coupon.discountValue);
+      }
+      discount = Math.min(discount, subtotal);
+
+      res.json({ valid: true, code: coupon.code, discount });
+    } catch (error) {
+      console.error("Coupon apply error:", error);
+      res.status(500).json({ valid: false, message: "Failed to apply coupon" });
     }
   });
 
