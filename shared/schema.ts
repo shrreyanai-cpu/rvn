@@ -77,6 +77,9 @@ export const orders = pgTable("orders", {
   totalAmount: numeric("total_amount", { precision: 10, scale: 2 }).notNull(),
   shippingAddress: jsonb("shipping_address").notNull(),
   items: jsonb("items").notNull(),
+  paymentStatus: text("payment_status").notNull().default("pending"),
+  paymentMethod: text("payment_method").default("cashfree"),
+  cashfreeOrderId: text("cashfree_order_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

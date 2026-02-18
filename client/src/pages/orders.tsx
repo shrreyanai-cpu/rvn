@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Package, ArrowLeft, Clock, Truck, CheckCircle, ShoppingBag, XCircle } from "lucide-react";
+import { Package, ArrowLeft, Clock, Truck, CheckCircle, ShoppingBag, XCircle, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -76,6 +76,20 @@ export default function OrdersPage() {
                         <StatusIcon className="mr-1 h-3 w-3" />
                         {status.label}
                       </Badge>
+                      {(order as any).paymentStatus && (
+                        <Badge
+                          className={`text-[10px] font-medium border-0 no-default-hover-elevate no-default-active-elevate ${
+                            (order as any).paymentStatus === "paid"
+                              ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                              : (order as any).paymentStatus === "failed"
+                                ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                          }`}
+                        >
+                          <CreditCard className="mr-1 h-3 w-3" />
+                          {(order as any).paymentStatus === "paid" ? "Paid" : (order as any).paymentStatus === "failed" ? "Payment Failed" : "Payment Pending"}
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Placed on {new Date(order.createdAt!).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" })}

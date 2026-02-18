@@ -4,10 +4,12 @@
 A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium Indian clothing store. Built as a standalone solution with product catalog, shopping cart, checkout, order management, and admin dashboard.
 
 ## Recent Changes
+- 2026-02-18: Cashfree Payment Gateway integration (cashfree-pg SDK)
 - 2026-02-18: Initial MVP build with full e-commerce functionality
 - Auth: Replit Auth (Google, GitHub, email/password login)
 - Object Storage: Replit Object Storage for product image uploads
 - Database: PostgreSQL with Drizzle ORM
+- Payment: Cashfree PG (env vars: CASHFREE_APP_ID, CASHFREE_SECRET_KEY, CASHFREE_ENV)
 
 ## Architecture
 - **Frontend**: React + Vite + Tailwind CSS + Shadcn UI + Wouter (routing) + TanStack Query
@@ -29,8 +31,9 @@ A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium India
 - `/product/:slug` - Product detail page
 - `/search` - Search page
 - `/cart` - Shopping cart
-- `/checkout` - Checkout with shipping form
-- `/orders` - Customer order history
+- `/checkout` - Checkout with Cashfree payment
+- `/payment/callback` - Payment verification after Cashfree redirect
+- `/orders` - Customer order history (shows payment status)
 - `/admin` - Admin dashboard (products + orders management)
 
 ## Design

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
-import { ArrowLeft, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, Loader2, CreditCard, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,9 +13,27 @@ import type { CartItem, Product } from "@shared/schema";
 
 type CartItemWithProduct = CartItem & { product: Product };
 
+declare global {
+  interface Window {
+    Cashfree: any;
+  }
+}
+
+function loadCashfreeScript(mode: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (window.Cashfree) return resolve();
+    const script = document.createElement("script");
+    script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Failed to load Cashfree SDK"));
+    document.head.appendChild(script);
+  });
+}
+
 export default function CheckoutPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
   const [form, setForm] = useState({
     fullName: "",
@@ -44,11 +62,37 @@ export default function CheckoutPage() {
       });
       return res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
-      toast({ title: "Order placed successfully!", description: `Order #${data.id} has been confirmed.` });
-      navigate("/orders");
+
+      if (data.paymentSessionId) {
+        setPaymentLoading(true);
+        try {
+          await loadCashfreeScript("sandbox");
+          const cashfreeMode = import.meta.env.VITE_CASHFREE_ENV === "PRODUCTION" ? "production" : "sandbox";
+          const cashfree = window.Cashfree({ mode: cashfreeMode });
+          cashfree.checkout({
+            paymentSessionId: data.paymentSessionId,
+            returnUrl: `${window.location.origin}/payment/callback?order_id=${data.id}&cf_order_id=${data.cashfreeOrderId}`,
+          });
+        } catch (err) {
+          console.error("Cashfree checkout error:", err);
+          setPaymentLoading(false);
+          toast({
+            title: "Payment Error",
+            description: "Could not open payment page. Your order has been saved.",
+            variant: "destructive",
+          });
+          navigate("/orders");
+        }
+      } else {
+        toast({
+          title: "Order placed!",
+          description: `Order #${data.id} created. Payment gateway is being configured.`,
+        });
+        navigate("/orders");
+      }
     },
     onError: () => {
       toast({ title: "Error", description: "Could not place order. Please try again.", variant: "destructive" });
@@ -197,21 +241,29 @@ export default function CheckoutPage() {
                 <span>Rs. {total.toLocaleString("en-IN")}</span>
               </div>
             </div>
+
+            <div className="mt-4 p-3 rounded bg-muted/50 flex items-start gap-2">
+              <Shield className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-muted-foreground">
+                Secure payment powered by Cashfree. Supports UPI, Cards, Net Banking & Wallets.
+              </p>
+            </div>
+
             <Button
-              className="w-full mt-6 bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A] font-semibold"
-              disabled={!isFormValid || placeOrderMutation.isPending}
+              className="w-full mt-4 bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A] font-semibold"
+              disabled={!isFormValid || placeOrderMutation.isPending || paymentLoading}
               onClick={() => placeOrderMutation.mutate()}
               data-testid="button-place-order"
             >
-              {placeOrderMutation.isPending ? (
+              {placeOrderMutation.isPending || paymentLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Placing Order...
+                  {paymentLoading ? "Redirecting to Payment..." : "Processing..."}
                 </>
               ) : (
                 <>
-                  <Check className="mr-2 h-4 w-4" />
-                  Place Order - Rs. {total.toLocaleString("en-IN")}
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Pay Rs. {total.toLocaleString("en-IN")}
                 </>
               )}
             </Button>

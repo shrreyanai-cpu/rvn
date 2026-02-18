@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { authStorage } from "./replit_integrations/auth/storage";
+import { Cashfree } from "cashfree-pg";
 
 function getUserId(req: any): string {
   return (req.session as any)?.userId;
@@ -214,13 +215,119 @@ export async function registerRoutes(
         totalAmount: finalTotal,
         shippingAddress: parsed.data.shippingAddress,
         items,
+        paymentStatus: "pending",
+        paymentMethod: "cashfree",
       });
 
       await storage.clearCart(userId);
-      res.json(order);
+
+      const clientId = process.env.CASHFREE_APP_ID;
+      const clientSecret = process.env.CASHFREE_SECRET_KEY;
+
+      if (!clientId || !clientSecret) {
+        return res.json({ ...order, paymentSessionId: null });
+      }
+
+      const user = await authStorage.getUser(userId);
+      const cfEnv = process.env.CASHFREE_ENV === "PRODUCTION" ? Cashfree.Environment.PRODUCTION : Cashfree.Environment.SANDBOX;
+      Cashfree.XClientId = clientId;
+      Cashfree.XClientSecret = clientSecret;
+      Cashfree.XEnvironment = cfEnv;
+
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const cfOrderId = `rvn_${order.id}_${Date.now()}`;
+
+      const cfRequest = {
+        order_amount: Number(finalTotal),
+        order_currency: "INR",
+        order_id: cfOrderId,
+        customer_details: {
+          customer_id: String(userId),
+          customer_phone: parsed.data.shippingAddress.phone || "9999999999",
+          customer_email: user?.email || "customer@example.com",
+          customer_name: parsed.data.shippingAddress.fullName,
+        },
+        order_meta: {
+          return_url: `${baseUrl}/payment/callback?order_id=${order.id}&cf_order_id=${cfOrderId}`,
+        },
+      };
+
+      try {
+        const cfResponse = await Cashfree.PGCreateOrder("2023-08-01", cfRequest);
+        await storage.updateOrderPayment(order.id, { paymentStatus: "pending", cashfreeOrderId: cfOrderId });
+        res.json({
+          ...order,
+          cashfreeOrderId: cfOrderId,
+          paymentSessionId: cfResponse.data.payment_session_id,
+        });
+      } catch (cfError: any) {
+        console.error("Cashfree order creation error:", cfError?.response?.data || cfError);
+        res.json({ ...order, paymentSessionId: null, paymentError: "Could not initiate payment" });
+      }
     } catch (error) {
       console.error("Order error:", error);
       res.status(500).json({ message: "Failed to create order" });
+    }
+  });
+
+  app.post("/api/payments/verify", isAuthenticated, async (req: any, res) => {
+    try {
+      const { orderId, cfOrderId } = req.body;
+      if (!orderId || !cfOrderId) {
+        return res.status(400).json({ message: "Missing order information" });
+      }
+
+      const userId = getUserId(req);
+      const order = await storage.getOrderById(Number(orderId));
+      if (!order) return res.status(404).json({ message: "Order not found" });
+
+      if (order.userId !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
+      if (order.cashfreeOrderId && order.cashfreeOrderId !== cfOrderId) {
+        return res.status(400).json({ message: "Order ID mismatch" });
+      }
+
+      const storedCfOrderId = order.cashfreeOrderId || cfOrderId;
+
+      const clientId = process.env.CASHFREE_APP_ID;
+      const clientSecret = process.env.CASHFREE_SECRET_KEY;
+      if (!clientId || !clientSecret) {
+        return res.status(500).json({ message: "Payment gateway not configured" });
+      }
+
+      const cfEnv = process.env.CASHFREE_ENV === "PRODUCTION" ? Cashfree.Environment.PRODUCTION : Cashfree.Environment.SANDBOX;
+      Cashfree.XClientId = clientId;
+      Cashfree.XClientSecret = clientSecret;
+      Cashfree.XEnvironment = cfEnv;
+
+      const cfResponse = await Cashfree.PGFetchOrder("2023-08-01", storedCfOrderId);
+      const cfStatus = cfResponse.data.order_status;
+
+      let paymentStatus = "pending";
+      let orderStatus = "pending";
+
+      if (cfStatus === "PAID") {
+        paymentStatus = "paid";
+        orderStatus = "confirmed";
+      } else if (cfStatus === "ACTIVE") {
+        paymentStatus = "pending";
+        orderStatus = "pending";
+      } else {
+        paymentStatus = "failed";
+        orderStatus = "cancelled";
+      }
+
+      await storage.updateOrderPayment(order.id, { paymentStatus });
+      if (orderStatus !== "pending") {
+        await storage.updateOrderStatus(order.id, orderStatus);
+      }
+
+      res.json({ paymentStatus, orderStatus, cfStatus });
+    } catch (error: any) {
+      console.error("Payment verify error:", error?.response?.data || error);
+      res.status(500).json({ message: "Failed to verify payment" });
     }
   });
 
