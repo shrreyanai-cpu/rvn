@@ -103,3 +103,22 @@ export type ShippingAddress = {
   pincode: string;
   phone: string;
 };
+
+export const coupons = pgTable("coupons", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  description: text("description"),
+  discountType: text("discount_type").notNull().default("percentage"),
+  discountValue: numeric("discount_value", { precision: 10, scale: 2 }).notNull(),
+  minOrderAmount: numeric("min_order_amount", { precision: 10, scale: 2 }),
+  maxDiscount: numeric("max_discount", { precision: 10, scale: 2 }),
+  usageLimit: integer("usage_limit"),
+  usedCount: integer("used_count").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertCouponSchema = createInsertSchema(coupons).omit({ id: true, usedCount: true, createdAt: true });
+export type InsertCoupon = z.infer<typeof insertCouponSchema>;
+export type Coupon = typeof coupons.$inferSelect;

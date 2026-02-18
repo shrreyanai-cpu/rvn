@@ -14,10 +14,16 @@ import CartPage from "@/pages/cart";
 import CheckoutPage from "@/pages/checkout";
 import OrdersPage from "@/pages/orders";
 import SearchPage from "@/pages/search";
-import AdminPage from "@/pages/admin";
 import LoginPage from "@/pages/login";
 import NotFound from "@/pages/not-found";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import AdminLayout from "@/pages/admin/admin-layout";
+import AdminDashboard from "@/pages/admin/dashboard";
+import AdminProducts from "@/pages/admin/products";
+import AdminOrders from "@/pages/admin/orders";
+import AdminCustomers from "@/pages/admin/customers";
+import AdminCategories from "@/pages/admin/categories";
+import AdminCoupons from "@/pages/admin/coupons";
 
 function MainLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -42,11 +48,52 @@ function HomeOrLanding() {
   return isAuthenticated ? <HomePage /> : <LandingPage />;
 }
 
+function AdminRouter() {
+  const { isAuthenticated, user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-2 border-[#C9A961] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !(user as any)?.isAdmin) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-serif font-bold mb-2">Access Denied</h1>
+          <p className="text-muted-foreground">You need admin privileges to access this area.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <AdminLayout>
+      <Switch>
+        <Route path="/admin" component={AdminDashboard} />
+        <Route path="/admin/products" component={AdminProducts} />
+        <Route path="/admin/orders" component={AdminOrders} />
+        <Route path="/admin/customers" component={AdminCustomers} />
+        <Route path="/admin/categories" component={AdminCategories} />
+        <Route path="/admin/coupons" component={AdminCoupons} />
+        <Route component={NotFound} />
+      </Switch>
+    </AdminLayout>
+  );
+}
+
 function AppRouter() {
   const [location] = useLocation();
 
   if (location === "/login") {
     return <LoginPage />;
+  }
+
+  if (location.startsWith("/admin")) {
+    return <AdminRouter />;
   }
 
   return (
@@ -59,7 +106,6 @@ function AppRouter() {
         <Route path="/cart" component={CartPage} />
         <Route path="/checkout" component={CheckoutPage} />
         <Route path="/orders" component={OrdersPage} />
-        <Route path="/admin" component={AdminPage} />
         <Route component={NotFound} />
       </Switch>
     </MainLayout>
