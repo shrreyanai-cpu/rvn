@@ -257,7 +257,7 @@ export async function registerRoutes(
       };
 
       try {
-        const cfResponse = await cashfree.PGCreateOrder("2023-08-01", cfRequest);
+        const cfResponse = await cashfree.PGCreateOrder(cfRequest);
         await storage.updateOrderPayment(order.id, { paymentStatus: "pending", cashfreeOrderId: cfOrderId });
         res.json({
           ...order,
@@ -265,7 +265,10 @@ export async function registerRoutes(
           paymentSessionId: cfResponse.data.payment_session_id,
         });
       } catch (cfError: any) {
-        console.error("Cashfree order creation error:", cfError?.response?.data || cfError);
+        const errorDetails = cfError?.response?.data || cfError?.message || cfError;
+        console.error("Cashfree order creation error:", JSON.stringify(errorDetails, null, 2));
+        console.error("Cashfree env:", process.env.CASHFREE_ENV || "SANDBOX (default)");
+        console.error("Cashfree APP_ID length:", process.env.CASHFREE_APP_ID?.length || 0);
         res.json({ ...order, paymentSessionId: null, paymentError: "Could not initiate payment" });
       }
     } catch (error) {
@@ -303,7 +306,7 @@ export async function registerRoutes(
 
       const cashfree = getCashfreeInstance();
 
-      const cfResponse = await cashfree.PGFetchOrder("2023-08-01", storedCfOrderId);
+      const cfResponse = await cashfree.PGFetchOrder(storedCfOrderId);
       const cfStatus = cfResponse.data.order_status;
 
       let paymentStatus = "pending";
