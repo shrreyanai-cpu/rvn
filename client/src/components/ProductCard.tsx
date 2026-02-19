@@ -1,13 +1,15 @@
 import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Star } from "lucide-react";
 import type { Product } from "@shared/schema";
 
 interface ProductCardProps {
   product: Product;
+  rating?: { average: number; count: number };
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, rating }: ProductCardProps) {
   const mainImage = product.images?.[0] || "/images/products/silk-saree-burgundy.png";
   const hasDiscount = product.compareAtPrice && Number(product.compareAtPrice) > Number(product.price);
   const discountPercent = hasDiscount
@@ -57,6 +59,23 @@ export default function ProductCard({ product }: ProductCardProps) {
           </h3>
           {product.material && (
             <p className="text-xs text-muted-foreground">{product.material}</p>
+          )}
+          {rating && rating.count > 0 && (
+            <div className="flex items-center gap-1" data-testid={`rating-${product.id}`}>
+              <div className="flex items-center gap-0.5">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star
+                    key={s}
+                    className={`h-3 w-3 ${
+                      s <= Math.round(rating.average)
+                        ? "fill-[#C9A961] text-[#C9A961]"
+                        : "fill-none text-muted-foreground/30"
+                    }`}
+                  />
+                ))}
+              </div>
+              <span className="text-[10px] text-muted-foreground">({rating.count})</span>
+            </div>
           )}
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold" data-testid={`text-product-price-${product.id}`}>

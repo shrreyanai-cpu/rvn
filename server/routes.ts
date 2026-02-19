@@ -145,6 +145,18 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/products/ratings/batch", async (req: Request, res: Response) => {
+    try {
+      const ids = (req.query.ids as string || "").split(",").map(Number).filter(n => !isNaN(n));
+      if (ids.length === 0) return res.json({});
+      const ratings = await storage.getProductsAverageRatings(ids);
+      res.json(ratings);
+    } catch (error) {
+      console.error("Batch ratings error:", error);
+      res.status(500).json({ message: "Failed to get ratings" });
+    }
+  });
+
   app.get("/api/products/by-id/:id", async (req, res) => {
     try {
       const product = await storage.getProductById(Number(req.params.id));
@@ -1677,6 +1689,66 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Update return request error:", error);
       res.status(500).json({ message: "Failed to update return request" });
+    }
+  });
+
+  app.get("/api/products/:productId/reviews", async (req: Request, res: Response) => {
+    try {
+      const productId = parseInt(req.params.productId);
+      if (isNaN(productId)) return res.status(400).json({ message: "Invalid product ID" });
+      const reviewsList = await storage.getReviewsByProductId(productId);
+      const rating = await storage.getProductAverageRating(productId);
+      res.json({ reviews: reviewsList, average: rating.average, count: rating.count });
+    } catch (error) {
+      console.error("Get reviews error:", error);
+      res.status(500).json({ message: "Failed to get reviews" });
+    }
+  });
+
+  app.post("/api/products/:productId/reviews", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const productId = parseInt(req.params.productId);
+      if (isNaN(productId)) return res.status(400).json({ message: "Invalid product ID" });
+
+      const product = await storage.getProductById(productId);
+      if (!product) return res.status(404).json({ message: "Product not found" });
+
+      const existing = await storage.getReviewByUserAndProduct(userId, productId);
+      if (existing) return res.status(400).json({ message: "You have already reviewed this product" });
+
+      const schema = z.object({
+        rating: z.number().min(1).max(5),
+        title: z.string().max(200).optional(),
+        comment: z.string().max(2000).optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid review data", errors: parsed.error.flatten() });
+
+      const review = await storage.createReview({
+        productId,
+        userId,
+        rating: parsed.data.rating,
+        title: parsed.data.title || null,
+        comment: parsed.data.comment || null,
+      });
+      res.status(201).json(review);
+    } catch (error) {
+      console.error("Create review error:", error);
+      res.status(500).json({ message: "Failed to create review" });
+    }
+  });
+
+  app.delete("/api/reviews/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = getUserId(req);
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid review ID" });
+      await storage.deleteReview(id, userId);
+      res.json({ message: "Review deleted" });
+    } catch (error) {
+      console.error("Delete review error:", error);
+      res.status(500).json({ message: "Failed to delete review" });
     }
   });
 

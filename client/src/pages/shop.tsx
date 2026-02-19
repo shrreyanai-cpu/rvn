@@ -48,6 +48,18 @@ export default function ShopPage() {
     queryKey: ["/api/categories"],
   });
 
+  const productIds = useMemo(() => products?.map(p => p.id) || [], [products]);
+  const { data: ratingsMap } = useQuery<Record<number, { average: number; count: number }>>({
+    queryKey: ["/api/products/ratings/batch", { ids: productIds.join(",") }],
+    queryFn: async () => {
+      if (productIds.length === 0) return {};
+      const res = await fetch(`/api/products/ratings/batch?ids=${productIds.join(",")}`, { credentials: "include" });
+      if (!res.ok) return {};
+      return res.json();
+    },
+    enabled: productIds.length > 0,
+  });
+
   const mainCategories = useMemo(() => {
     return categories?.filter((c) => !c.parentId) || [];
   }, [categories]);
@@ -288,7 +300,7 @@ export default function ShopPage() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.id} product={product} rating={ratingsMap?.[product.id]} />
             ))}
           </div>
         )}

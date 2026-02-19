@@ -4,6 +4,7 @@
 A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium Indian clothing store. Built as a standalone solution with product catalog, shopping cart, checkout, order management, and admin dashboard.
 
 ## Recent Changes
+- 2026-02-19: Product review and rating system: reviews table, star ratings, customer feedback on product detail page, average ratings on product cards
 - 2026-02-19: Checkout terms & conditions: mandatory acceptance before payment, covers unboxing video requirement, no colour/size exchange, damage-only returns
 - 2026-02-19: Return system uses VIDEO proof (not photo): unboxing video mandatory, uploaded via object storage, admin reviews video before approval
 - 2026-02-19: Return/refund system: damage-only, 2-day window, unboxing video required, no colour/size exchange, admin approve/reject with email notifications

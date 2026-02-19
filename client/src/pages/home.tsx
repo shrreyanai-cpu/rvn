@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Link } from "wouter";
 import { ArrowRight, Truck, Shield, Repeat, Sparkles, Star, Quote, Award, Users, MapPin, Clock, TrendingUp } from "lucide-react";
 import { SiInstagram } from "react-icons/si";
@@ -24,6 +25,25 @@ export default function HomePage() {
 
   const { data: categories, isLoading: loadingCategories } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
+  });
+
+  const allIds = useMemo(() => {
+    const ids = new Set<number>();
+    allProducts?.forEach(p => ids.add(p.id));
+    featuredProducts?.forEach(p => ids.add(p.id));
+    bestSelling?.forEach(p => ids.add(p.id));
+    return Array.from(ids);
+  }, [allProducts, featuredProducts, bestSelling]);
+
+  const { data: ratingsMap } = useQuery<Record<number, { average: number; count: number }>>({
+    queryKey: ["/api/products/ratings/batch", { ids: allIds.join(",") }],
+    queryFn: async () => {
+      if (allIds.length === 0) return {};
+      const res = await fetch(`/api/products/ratings/batch?ids=${allIds.join(",")}`, { credentials: "include" });
+      if (!res.ok) return {};
+      return res.json();
+    },
+    enabled: allIds.length > 0,
   });
 
   const mainCategories = categories?.filter((c) => !c.parentId) || [];
@@ -219,7 +239,7 @@ export default function HomePage() {
                   </div>
                 ))
               : (bestSelling || []).slice(0, 4).map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                  <ProductCard key={product.id} product={product} rating={ratingsMap?.[product.id]} />
                 ))}
           </div>
         </div>
@@ -310,7 +330,7 @@ export default function HomePage() {
                   </div>
                 ))
               : featuredProducts?.slice(0, 4).map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                  <ProductCard key={product.id} product={product} rating={ratingsMap?.[product.id]} />
                 ))}
           </div>
         </div>
@@ -409,7 +429,7 @@ export default function HomePage() {
                   </div>
                 ))
               : newArrivals.map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                  <ProductCard key={product.id} product={product} rating={ratingsMap?.[product.id]} />
                 ))}
           </div>
         </div>
@@ -516,7 +536,7 @@ export default function HomePage() {
                   </div>
                 ))
               : (allProducts || []).slice(0, 8).map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                  <ProductCard key={product.id} product={product} rating={ratingsMap?.[product.id]} />
                 ))}
           </div>
           <div className="text-center mt-10">

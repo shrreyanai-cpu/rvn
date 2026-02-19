@@ -1,5 +1,5 @@
 import {
-  categories, products, cartItems, orders, coupons, deliverySettings, addresses, returnRequests,
+  categories, products, cartItems, orders, coupons, deliverySettings, addresses, returnRequests, reviews,
   type Category, type InsertCategory,
   type Product, type InsertProduct,
   type CartItem, type InsertCartItem,
@@ -8,10 +8,11 @@ import {
   type DeliverySettings,
   type Address, type InsertAddress,
   type ReturnRequest, type InsertReturnRequest,
+  type Review, type InsertReview,
 } from "@shared/schema";
 import { users } from "@shared/models/auth";
 import { db } from "./db";
-import { eq, and, desc, sql, count } from "drizzle-orm";
+import { eq, and, desc, sql, count, inArray } from "drizzle-orm";
 
 export interface IStorage {
   getCategories(): Promise<Category[]>;
@@ -72,6 +73,13 @@ export interface IStorage {
   getReturnRequestByOrderId(orderId: number): Promise<ReturnRequest | undefined>;
   getAllReturnRequests(): Promise<ReturnRequest[]>;
   updateReturnRequest(id: number, data: { status: string; adminNotes?: string }): Promise<ReturnRequest | undefined>;
+
+  getReviewsByProductId(productId: number): Promise<(Review & { userName: string })[]>;
+  getReviewByUserAndProduct(userId: string, productId: number): Promise<Review | undefined>;
+  createReview(data: InsertReview): Promise<Review>;
+  deleteReview(id: number, userId: string): Promise<void>;
+  getProductAverageRating(productId: number): Promise<{ average: number; count: number }>;
+  getProductsAverageRatings(productIds: number[]): Promise<Record<number, { average: number; count: number }>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -383,6 +391,70 @@ export class DatabaseStorage implements IStorage {
   async updateReturnRequest(id: number, data: { status: string; adminNotes?: string }): Promise<ReturnRequest | undefined> {
     const [updated] = await db.update(returnRequests).set({ ...data, updatedAt: new Date() }).where(eq(returnRequests.id, id)).returning();
     return updated;
+  }
+
+  async getReviewsByProductId(productId: number): Promise<(Review & { userName: string })[]> {
+    const result = await db
+      .select({
+        id: reviews.id,
+        productId: reviews.productId,
+        userId: reviews.userId,
+        rating: reviews.rating,
+        title: reviews.title,
+        comment: reviews.comment,
+        createdAt: reviews.createdAt,
+        userName: sql<string>`COALESCE(NULLIF(TRIM(CONCAT(${users.firstName}, ' ', ${users.lastName})), ''), ${users.email}, 'Customer')`,
+      })
+      .from(reviews)
+      .leftJoin(users, eq(reviews.userId, users.id))
+      .where(eq(reviews.productId, productId))
+      .orderBy(desc(reviews.createdAt));
+    return result as (Review & { userName: string })[];
+  }
+
+  async getReviewByUserAndProduct(userId: string, productId: number): Promise<Review | undefined> {
+    const [review] = await db.select().from(reviews)
+      .where(and(eq(reviews.userId, userId), eq(reviews.productId, productId)))
+      .limit(1);
+    return review;
+  }
+
+  async createReview(data: InsertReview): Promise<Review> {
+    const [review] = await db.insert(reviews).values(data).returning();
+    return review;
+  }
+
+  async deleteReview(id: number, userId: string): Promise<void> {
+    await db.delete(reviews).where(and(eq(reviews.id, id), eq(reviews.userId, userId)));
+  }
+
+  async getProductAverageRating(productId: number): Promise<{ average: number; count: number }> {
+    const [result] = await db
+      .select({
+        average: sql<number>`COALESCE(AVG(${reviews.rating}), 0)`,
+        count: sql<number>`COUNT(*)::int`,
+      })
+      .from(reviews)
+      .where(eq(reviews.productId, productId));
+    return { average: Number(result.average), count: Number(result.count) };
+  }
+
+  async getProductsAverageRatings(productIds: number[]): Promise<Record<number, { average: number; count: number }>> {
+    if (productIds.length === 0) return {};
+    const results = await db
+      .select({
+        productId: reviews.productId,
+        average: sql<number>`COALESCE(AVG(${reviews.rating}), 0)`,
+        count: sql<number>`COUNT(*)::int`,
+      })
+      .from(reviews)
+      .where(inArray(reviews.productId, productIds))
+      .groupBy(reviews.productId);
+    const map: Record<number, { average: number; count: number }> = {};
+    for (const r of results) {
+      map[r.productId] = { average: Number(r.average), count: Number(r.count) };
+    }
+    return map;
   }
 }
 

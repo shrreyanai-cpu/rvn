@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { Search as SearchIcon, ArrowLeft, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,18 @@ export default function SearchPage() {
 
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
+  });
+
+  const productIds = useMemo(() => products?.map(p => p.id) || [], [products]);
+  const { data: ratingsMap } = useQuery<Record<number, { average: number; count: number }>>({
+    queryKey: ["/api/products/ratings/batch", { ids: productIds.join(",") }],
+    queryFn: async () => {
+      if (productIds.length === 0) return {};
+      const res = await fetch(`/api/products/ratings/batch?ids=${productIds.join(",")}`, { credentials: "include" });
+      if (!res.ok) return {};
+      return res.json();
+    },
+    enabled: productIds.length > 0,
   });
 
   const results = query.length >= 2
@@ -80,7 +92,7 @@ export default function SearchPage() {
           </p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
             {results.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.id} product={product} rating={ratingsMap?.[product.id]} />
             ))}
           </div>
         </>
