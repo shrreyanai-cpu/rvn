@@ -34,6 +34,9 @@ import AdminEmails from "@/pages/admin/emails";
 import AdminReturns from "@/pages/admin/returns";
 import AdminCustomerDetail from "@/pages/admin/customer-detail";
 import ReturnPolicyPage from "@/pages/return-policy";
+import TermsConditionsPage from "@/pages/terms-conditions";
+import PrivacyPolicyPage from "@/pages/privacy-policy";
+import ShippingDeliveryPage from "@/pages/shipping-delivery";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -133,6 +136,9 @@ function AppRouter() {
         <Route path="/orders" component={OrdersPage} />
         <Route path="/profile" component={ProfilePage} />
         <Route path="/return-policy" component={ReturnPolicyPage} />
+        <Route path="/terms-conditions" component={TermsConditionsPage} />
+        <Route path="/privacy-policy" component={PrivacyPolicyPage} />
+        <Route path="/shipping-delivery" component={ShippingDeliveryPage} />
         <Route component={NotFound} />
       </Switch>
     </MainLayout>

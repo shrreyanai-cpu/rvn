@@ -82,23 +82,35 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="text-sm font-semibold uppercase tracking-wider mb-4">Help</h4>
+            <h4 className="text-sm font-semibold uppercase tracking-wider mb-4">Policies</h4>
             <ul className="space-y-2.5">
               <li>
-                <span className="text-sm text-muted-foreground">Shipping & Delivery</span>
-              </li>
-              <li>
-                <Link href="/return-policy">
-                  <span className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer" data-testid="link-footer-return-policy">
-                    Returns & Exchanges
+                <Link href="/terms-conditions">
+                  <span className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer" data-testid="link-footer-terms">
+                    Terms & Conditions
                   </span>
                 </Link>
               </li>
               <li>
-                <span className="text-sm text-muted-foreground">Size Guide</span>
+                <Link href="/privacy-policy">
+                  <span className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer" data-testid="link-footer-privacy">
+                    Privacy Policy
+                  </span>
+                </Link>
               </li>
               <li>
-                <span className="text-sm text-muted-foreground">Contact Us</span>
+                <Link href="/shipping-delivery">
+                  <span className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer" data-testid="link-footer-shipping">
+                    Shipping & Delivery
+                  </span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/return-policy">
+                  <span className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer" data-testid="link-footer-return-policy">
+                    Return & Refund Policy
+                  </span>
+                </Link>
               </li>
             </ul>
           </div>
@@ -127,9 +139,19 @@ export default function Footer() {
           <p className="text-xs text-muted-foreground">
             &copy; {new Date().getFullYear()} Ravindrra Vastra Niketan. All rights reserved.
           </p>
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <span>Privacy Policy</span>
-            <span>Terms of Service</span>
+          <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+            <Link href="/privacy-policy">
+              <span className="hover:text-foreground transition-colors cursor-pointer" data-testid="link-footer-bottom-privacy">Privacy Policy</span>
+            </Link>
+            <Link href="/terms-conditions">
+              <span className="hover:text-foreground transition-colors cursor-pointer" data-testid="link-footer-bottom-terms">Terms & Conditions</span>
+            </Link>
+            <Link href="/shipping-delivery">
+              <span className="hover:text-foreground transition-colors cursor-pointer" data-testid="link-footer-bottom-shipping">Shipping</span>
+            </Link>
+            <Link href="/return-policy">
+              <span className="hover:text-foreground transition-colors cursor-pointer" data-testid="link-footer-bottom-returns">Returns</span>
+            </Link>
           </div>
         </div>
       </div>
