@@ -17,6 +17,7 @@ import OrdersPage from "@/pages/orders";
 import SearchPage from "@/pages/search";
 import LoginPage from "@/pages/login";
 import PaymentCallbackPage from "@/pages/payment-callback";
+import AddressesPage from "@/pages/addresses";
 import NotFound from "@/pages/not-found";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import AdminLayout from "@/pages/admin/admin-layout";
@@ -119,6 +120,7 @@ function AppRouter() {
         <Route path="/checkout" component={CheckoutPage} />
         <Route path="/payment/callback" component={PaymentCallbackPage} />
         <Route path="/orders" component={OrdersPage} />
+        <Route path="/addresses" component={AddressesPage} />
         <Route component={NotFound} />
       </Switch>
     </MainLayout>

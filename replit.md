@@ -4,6 +4,8 @@
 A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium Indian clothing store. Built as a standalone solution with product catalog, shopping cart, checkout, order management, and admin dashboard.
 
 ## Recent Changes
+- 2026-02-19: Multi-address management system (add/edit/delete/set default), auto-save on checkout, addresses page
+- 2026-02-19: Shipping: Rs. 80 flat below Rs. 1,500, free above; FREESHIP coupon for free shipping
 - 2026-02-19: Delhivery courier integration - delivery settings admin page, shipment creation, tracking, free delivery by default
 - 2026-02-18: Delete order feature, Buy Now button, saved shipping address, state dropdown
 - 2026-02-18: Cashfree Payment Gateway integration (cashfree-pg SDK v5.1.0, PRODUCTION env)
@@ -49,6 +51,7 @@ A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium India
 - `/checkout` - Checkout with Cashfree payment
 - `/payment/callback` - Payment verification after Cashfree redirect
 - `/orders` - Customer order history (shows payment status)
+- `/addresses` - Address management (add/edit/delete/set default)
 - `/admin` - Admin dashboard (products + orders management)
 - `/admin/delivery` - Delivery settings & Delhivery integration
 

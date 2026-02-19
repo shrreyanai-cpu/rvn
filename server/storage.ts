@@ -1,11 +1,12 @@
 import {
-  categories, products, cartItems, orders, coupons, deliverySettings,
+  categories, products, cartItems, orders, coupons, deliverySettings, addresses,
   type Category, type InsertCategory,
   type Product, type InsertProduct,
   type CartItem, type InsertCartItem,
   type Order, type InsertOrder,
   type Coupon, type InsertCoupon,
   type DeliverySettings,
+  type Address, type InsertAddress,
 } from "@shared/schema";
 import { users } from "@shared/models/auth";
 import { db } from "./db";
@@ -54,6 +55,13 @@ export interface IStorage {
   getDeliverySettings(): Promise<DeliverySettings | undefined>;
   upsertDeliverySettings(data: Partial<DeliverySettings>): Promise<DeliverySettings>;
   updateOrderTracking(id: number, data: { delhiveryWaybill?: string; delhiveryStatus?: string; trackingUrl?: string }): Promise<Order | undefined>;
+
+  getAddresses(userId: string): Promise<Address[]>;
+  getAddressById(id: number, userId: string): Promise<Address | undefined>;
+  createAddress(data: InsertAddress): Promise<Address>;
+  updateAddress(id: number, userId: string, data: Partial<InsertAddress>): Promise<Address | undefined>;
+  deleteAddress(id: number, userId: string): Promise<void>;
+  setDefaultAddress(id: number, userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -278,6 +286,45 @@ export class DatabaseStorage implements IStorage {
   async updateOrderTracking(id: number, data: { delhiveryWaybill?: string; delhiveryStatus?: string; trackingUrl?: string }): Promise<Order | undefined> {
     const [updated] = await db.update(orders).set({ ...data, updatedAt: new Date() }).where(eq(orders.id, id)).returning();
     return updated;
+  }
+
+  async getAddresses(userId: string): Promise<Address[]> {
+    return db.select().from(addresses).where(eq(addresses.userId, userId)).orderBy(desc(addresses.isDefault), desc(addresses.createdAt));
+  }
+
+  async getAddressById(id: number, userId: string): Promise<Address | undefined> {
+    const [addr] = await db.select().from(addresses).where(and(eq(addresses.id, id), eq(addresses.userId, userId)));
+    return addr;
+  }
+
+  async createAddress(data: InsertAddress): Promise<Address> {
+    const existing = await this.getAddresses(data.userId);
+    if (existing.length === 0) {
+      data.isDefault = true;
+    }
+    const [addr] = await db.insert(addresses).values(data).returning();
+    return addr;
+  }
+
+  async updateAddress(id: number, userId: string, data: Partial<InsertAddress>): Promise<Address | undefined> {
+    const [updated] = await db.update(addresses).set(data).where(and(eq(addresses.id, id), eq(addresses.userId, userId))).returning();
+    return updated;
+  }
+
+  async deleteAddress(id: number, userId: string): Promise<void> {
+    const addr = await this.getAddressById(id, userId);
+    await db.delete(addresses).where(and(eq(addresses.id, id), eq(addresses.userId, userId)));
+    if (addr?.isDefault) {
+      const remaining = await this.getAddresses(userId);
+      if (remaining.length > 0) {
+        await db.update(addresses).set({ isDefault: true }).where(eq(addresses.id, remaining[0].id));
+      }
+    }
+  }
+
+  async setDefaultAddress(id: number, userId: string): Promise<void> {
+    await db.update(addresses).set({ isDefault: false }).where(eq(addresses.userId, userId));
+    await db.update(addresses).set({ isDefault: true }).where(and(eq(addresses.id, id), eq(addresses.userId, userId)));
   }
 }
 

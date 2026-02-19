@@ -118,6 +118,24 @@ export type ShippingAddress = {
   phone: string;
 };
 
+export const addresses = pgTable("addresses", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  label: text("label").default("Home"),
+  fullName: text("full_name").notNull(),
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
+  pincode: text("pincode").notNull(),
+  phone: text("phone").notNull(),
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertAddressSchema = createInsertSchema(addresses).omit({ id: true, createdAt: true });
+export type InsertAddress = z.infer<typeof insertAddressSchema>;
+export type Address = typeof addresses.$inferSelect;
+
 export const coupons = pgTable("coupons", {
   id: serial("id").primaryKey(),
   code: text("code").notNull().unique(),

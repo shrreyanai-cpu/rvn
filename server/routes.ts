@@ -343,29 +343,92 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/user/saved-address", isAuthenticated, async (req: any, res) => {
+  app.get("/api/user/addresses", isAuthenticated, async (req: any, res) => {
     try {
       const userId = getUserId(req);
-      const user = await authStorage.getUser(userId);
-      res.json({ savedAddress: (user as any)?.savedShippingAddress || null });
+      const addrs = await storage.getAddresses(userId);
+      res.json(addrs);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch saved address" });
+      res.status(500).json({ message: "Failed to fetch addresses" });
     }
   });
 
-  app.post("/api/user/saved-address", isAuthenticated, async (req: any, res) => {
+  app.post("/api/user/addresses", isAuthenticated, async (req: any, res) => {
     try {
       const userId = getUserId(req);
-      const parsed = shippingAddressSchema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ message: "Invalid address data" });
-      const { users } = await import("@shared/models/auth");
-      const { db } = await import("./db");
-      const { eq } = await import("drizzle-orm");
-      await db.update(users).set({ savedShippingAddress: parsed.data, updatedAt: new Date() }).where(eq(users.id, userId));
-      res.json({ message: "Address saved" });
+      const addressSchema = shippingAddressSchema.extend({
+        label: z.string().optional().default("Home"),
+      });
+      const parsed = addressSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid address data", errors: parsed.error.flatten() });
+      const addr = await storage.createAddress({
+        userId,
+        label: parsed.data.label,
+        fullName: parsed.data.fullName,
+        address: parsed.data.address,
+        city: parsed.data.city,
+        state: parsed.data.state,
+        pincode: parsed.data.pincode,
+        phone: parsed.data.phone,
+        isDefault: false,
+      });
+      res.json(addr);
     } catch (error) {
-      console.error("Save address error:", error);
-      res.status(500).json({ message: "Failed to save address" });
+      console.error("Create address error:", error);
+      res.status(500).json({ message: "Failed to create address" });
+    }
+  });
+
+  app.put("/api/user/addresses/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      const id = Number(req.params.id);
+      const addressSchema = shippingAddressSchema.extend({
+        label: z.string().optional(),
+      });
+      const parsed = addressSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid address data" });
+      const updated = await storage.updateAddress(id, userId, parsed.data);
+      if (!updated) return res.status(404).json({ message: "Address not found" });
+      res.json(updated);
+    } catch (error) {
+      console.error("Update address error:", error);
+      res.status(500).json({ message: "Failed to update address" });
+    }
+  });
+
+  app.delete("/api/user/addresses/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      const id = Number(req.params.id);
+      await storage.deleteAddress(id, userId);
+      res.json({ message: "Address deleted" });
+    } catch (error) {
+      console.error("Delete address error:", error);
+      res.status(500).json({ message: "Failed to delete address" });
+    }
+  });
+
+  app.post("/api/user/addresses/:id/default", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      const id = Number(req.params.id);
+      await storage.setDefaultAddress(id, userId);
+      res.json({ message: "Default address updated" });
+    } catch (error) {
+      console.error("Set default address error:", error);
+      res.status(500).json({ message: "Failed to set default address" });
+    }
+  });
+
+  app.get("/api/user/saved-address", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      const addrs = await storage.getAddresses(userId);
+      const defaultAddr = addrs.find(a => a.isDefault) || addrs[0] || null;
+      res.json({ savedAddress: defaultAddr });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch saved address" });
     }
   });
 

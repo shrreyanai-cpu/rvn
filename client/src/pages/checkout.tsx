@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
-import { ArrowLeft, Loader2, CreditCard, Shield, Tag, X } from "lucide-react";
+import { ArrowLeft, Loader2, CreditCard, Shield, Tag, X, MapPin, Plus, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { CartItem, Product } from "@shared/schema";
+import type { CartItem, Product, Address } from "@shared/schema";
 
 type CartItemWithProduct = CartItem & { product: Product };
 
@@ -50,7 +50,8 @@ export default function CheckoutPage() {
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; discountType?: string } | null>(null);
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
-  const [addressLoaded, setAddressLoaded] = useState(false);
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
+  const [showNewAddressForm, setShowNewAddressForm] = useState(false);
 
   const [form, setForm] = useState({
     fullName: "",
@@ -59,6 +60,7 @@ export default function CheckoutPage() {
     state: "",
     pincode: "",
     phone: "",
+    label: "Home",
   });
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -68,24 +70,19 @@ export default function CheckoutPage() {
   const buyNowSize = urlParams.get("size") || undefined;
   const buyNowColor = urlParams.get("color") || undefined;
 
-  const { data: savedAddressData } = useQuery<{ savedAddress: any }>({
-    queryKey: ["/api/user/saved-address"],
+  const { data: savedAddresses, isLoading: addressesLoading } = useQuery<Address[]>({
+    queryKey: ["/api/user/addresses"],
   });
 
   useEffect(() => {
-    if (savedAddressData?.savedAddress && !addressLoaded) {
-      const addr = savedAddressData.savedAddress;
-      setForm({
-        fullName: addr.fullName || "",
-        address: addr.address || "",
-        city: addr.city || "",
-        state: addr.state || "",
-        pincode: addr.pincode || "",
-        phone: addr.phone || "",
-      });
-      setAddressLoaded(true);
+    if (savedAddresses && savedAddresses.length > 0 && selectedAddressId === null && !showNewAddressForm) {
+      const defaultAddr = savedAddresses.find(a => a.isDefault) || savedAddresses[0];
+      setSelectedAddressId(defaultAddr.id);
     }
-  }, [savedAddressData, addressLoaded]);
+    if (savedAddresses && savedAddresses.length === 0) {
+      setShowNewAddressForm(true);
+    }
+  }, [savedAddresses]);
 
   const { data: buyNowProduct, isLoading: buyNowLoading, isError: buyNowError } = useQuery<Product>({
     queryKey: [`/api/products/by-id/${buyNowProductId}`],
@@ -137,19 +134,49 @@ export default function CheckoutPage() {
     setCouponError("");
   }
 
+  function getSelectedAddress() {
+    if (showNewAddressForm) {
+      return form;
+    }
+    const addr = savedAddresses?.find(a => a.id === selectedAddressId);
+    if (addr) {
+      return {
+        fullName: addr.fullName,
+        address: addr.address,
+        city: addr.city,
+        state: addr.state,
+        pincode: addr.pincode,
+        phone: addr.phone,
+      };
+    }
+    return null;
+  }
+
+  async function autoSaveNewAddress() {
+    if (showNewAddressForm && form.fullName && form.address && form.city && form.state && form.pincode && form.phone) {
+      try {
+        await apiRequest("POST", "/api/user/addresses", {
+          fullName: form.fullName,
+          address: form.address,
+          city: form.city,
+          state: form.state,
+          pincode: form.pincode,
+          phone: form.phone,
+          label: form.label || "Home",
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/user/addresses"] });
+      } catch {}
+    }
+  }
+
   async function handlePaymentRedirect(data: any) {
+    if (!data.paymentSessionId) return;
     setPaymentLoading(true);
     try {
       await loadCashfreeScript();
-      const cashfreeMode = import.meta.env.VITE_CASHFREE_ENV === "PRODUCTION" ? "production" : "sandbox";
-      const cashfree = window.Cashfree({ mode: cashfreeMode });
-      cashfree.checkout({
-        paymentSessionId: data.paymentSessionId,
-        returnUrl: `${window.location.origin}/payment/callback?order_id=${data.id}&cf_order_id=${data.cashfreeOrderId}`,
-      });
-    } catch (err) {
-      console.error("Cashfree checkout error:", err);
-      setPaymentLoading(false);
+      const cashfree = window.Cashfree({ mode: "production" });
+      await cashfree.checkout({ paymentSessionId: data.paymentSessionId, redirectTarget: "_self" });
+    } catch {
       toast({
         title: "Payment Error",
         description: "Could not open payment page. Your order has been saved.",
@@ -161,12 +188,15 @@ export default function CheckoutPage() {
 
   const buyNowMutation = useMutation({
     mutationFn: async () => {
+      const addr = getSelectedAddress();
+      if (!addr) throw new Error("No address selected");
+      await autoSaveNewAddress();
       const res = await apiRequest("POST", "/api/orders/buy-now", {
         productId: Number(buyNowProductId),
         quantity: buyNowQuantity,
         size: buyNowSize || null,
         color: buyNowColor || null,
-        shippingAddress: form,
+        shippingAddress: addr,
         couponCode: appliedCoupon?.code || null,
       });
       return res.json();
@@ -191,8 +221,11 @@ export default function CheckoutPage() {
 
   const placeOrderMutation = useMutation({
     mutationFn: async () => {
+      const addr = getSelectedAddress();
+      if (!addr) throw new Error("No address selected");
+      await autoSaveNewAddress();
       const res = await apiRequest("POST", "/api/orders", {
-        shippingAddress: form,
+        shippingAddress: addr,
         couponCode: appliedCoupon?.code || null,
       });
       return res.json();
@@ -205,7 +238,7 @@ export default function CheckoutPage() {
       } else {
         toast({
           title: "Order placed!",
-          description: `Order #${data.id} created. Payment could not be initiated, please contact support.`,
+          description: `Order #${data.id} created. Payment could not be initiated.`,
           variant: "destructive",
         });
         navigate("/orders");
@@ -216,17 +249,11 @@ export default function CheckoutPage() {
     },
   });
 
-  const isFormValid =
-    form.fullName &&
-    form.address &&
-    form.city &&
-    form.state &&
-    form.pincode.length >= 5 &&
-    /^\d+$/.test(form.pincode) &&
-    form.phone.length >= 10 &&
-    /^\d+$/.test(form.phone);
+  const isProcessing = buyNowMutation.isPending || placeOrderMutation.isPending || paymentLoading;
 
-  const isProcessing = placeOrderMutation.isPending || buyNowMutation.isPending || paymentLoading;
+  const isFormValid = showNewAddressForm
+    ? form.fullName && form.address && form.city && form.state && form.pincode.length === 6 && form.phone.length === 10
+    : selectedAddressId !== null;
 
   if (!isBuyNow && isLoading) {
     return (
@@ -282,89 +309,189 @@ export default function CheckoutPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
           <Card className="p-6">
-            <h2 className="font-semibold mb-4">Shipping Address</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  value={form.fullName}
-                  onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-                  placeholder="Enter your full name"
-                  data-testid="input-full-name"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  value={form.address}
-                  onChange={(e) => setForm({ ...form, address: e.target.value })}
-                  placeholder="Street address"
-                  data-testid="input-address"
-                />
-              </div>
-              <div>
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  value={form.city}
-                  onChange={(e) => setForm({ ...form, city: e.target.value })}
-                  placeholder="City"
-                  data-testid="input-city"
-                />
-              </div>
-              <div>
-                <Label htmlFor="state">State</Label>
-                <Select
-                  value={form.state}
-                  onValueChange={(value) => setForm({ ...form, state: value })}
-                >
-                  <SelectTrigger data-testid="select-state">
-                    <SelectValue placeholder="Select state" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {INDIAN_STATES.map((state) => (
-                      <SelectItem key={state} value={state} data-testid={`option-state-${state}`}>
-                        {state}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="pincode">PIN Code</Label>
-                <Input
-                  id="pincode"
-                  type="tel"
-                  inputMode="numeric"
-                  value={form.pincode}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, "").slice(0, 6);
-                    setForm({ ...form, pincode: val });
-                  }}
-                  placeholder="6-digit PIN code"
-                  maxLength={6}
-                  data-testid="input-pincode"
-                />
-              </div>
-              <div>
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  inputMode="numeric"
-                  value={form.phone}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, "").slice(0, 10);
-                    setForm({ ...form, phone: val });
-                  }}
-                  placeholder="10-digit mobile number"
-                  maxLength={10}
-                  data-testid="input-phone"
-                />
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Delivery Address
+              </h2>
+              {savedAddresses && savedAddresses.length > 0 && (
+                <Link href="/addresses">
+                  <Button variant="ghost" size="sm" data-testid="button-manage-addresses">
+                    Manage Addresses
+                  </Button>
+                </Link>
+              )}
             </div>
+
+            {addressesLoading ? (
+              <div className="py-4 text-center">
+                <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
+              </div>
+            ) : savedAddresses && savedAddresses.length > 0 && !showNewAddressForm ? (
+              <div className="space-y-3">
+                {savedAddresses.map((addr) => (
+                  <div
+                    key={addr.id}
+                    onClick={() => setSelectedAddressId(addr.id)}
+                    className={`p-4 rounded-md border cursor-pointer transition-colors ${
+                      selectedAddressId === addr.id
+                        ? "border-[#C9A961] bg-[#C9A961]/5"
+                        : "border-border hover-elevate"
+                    }`}
+                    data-testid={`address-card-${addr.id}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-sm">{addr.fullName}</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                            {addr.label || "Home"}
+                          </span>
+                          {addr.isDefault && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-[#C9A961]/20 text-[#C9A961]">
+                              Default
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {addr.address}, {addr.city}, {addr.state} - {addr.pincode}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{addr.phone}</p>
+                      </div>
+                      {selectedAddressId === addr.id && (
+                        <Check className="h-5 w-5 text-[#C9A961] flex-shrink-0 mt-1" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setShowNewAddressForm(true);
+                    setSelectedAddressId(null);
+                    setForm({ fullName: "", address: "", city: "", state: "", pincode: "", phone: "", label: "Home" });
+                  }}
+                  data-testid="button-add-new-address"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add New Address
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {savedAddresses && savedAddresses.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowNewAddressForm(false);
+                      const defaultAddr = savedAddresses.find(a => a.isDefault) || savedAddresses[0];
+                      setSelectedAddressId(defaultAddr.id);
+                    }}
+                    data-testid="button-use-saved-address"
+                  >
+                    <ArrowLeft className="mr-1.5 h-4 w-4" />
+                    Use saved address
+                  </Button>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <Label>Address Label</Label>
+                    <Select value={form.label} onValueChange={(v) => setForm({ ...form, label: v })}>
+                      <SelectTrigger data-testid="select-address-label">
+                        <SelectValue placeholder="Select label" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Home">Home</SelectItem>
+                        <SelectItem value="Work">Work</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <Input
+                      id="fullName"
+                      value={form.fullName}
+                      onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+                      placeholder="Enter your full name"
+                      data-testid="input-full-name"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="address">Address</Label>
+                    <Input
+                      id="address"
+                      value={form.address}
+                      onChange={(e) => setForm({ ...form, address: e.target.value })}
+                      placeholder="Street address"
+                      data-testid="input-address"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      value={form.city}
+                      onChange={(e) => setForm({ ...form, city: e.target.value })}
+                      placeholder="City"
+                      data-testid="input-city"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="state">State</Label>
+                    <Select
+                      value={form.state}
+                      onValueChange={(value) => setForm({ ...form, state: value })}
+                    >
+                      <SelectTrigger data-testid="select-state">
+                        <SelectValue placeholder="Select state" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {INDIAN_STATES.map((state) => (
+                          <SelectItem key={state} value={state} data-testid={`option-state-${state}`}>
+                            {state}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="pincode">PIN Code</Label>
+                    <Input
+                      id="pincode"
+                      type="tel"
+                      inputMode="numeric"
+                      value={form.pincode}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+                        setForm({ ...form, pincode: val });
+                      }}
+                      placeholder="6-digit PIN code"
+                      maxLength={6}
+                      data-testid="input-pincode"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      inputMode="numeric"
+                      value={form.phone}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                        setForm({ ...form, phone: val });
+                      }}
+                      placeholder="10-digit mobile number"
+                      maxLength={10}
+                      data-testid="input-phone"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </Card>
 
           <Card className="p-6">
@@ -379,7 +506,9 @@ export default function CheckoutPage() {
                     {appliedCoupon.code} applied
                   </p>
                   <p className="text-xs text-green-600 dark:text-green-500">
-                    You save Rs. {appliedCoupon.discount.toLocaleString("en-IN")}
+                    {appliedCoupon.discountType === "free_shipping"
+                      ? "Free shipping on this order"
+                      : `You save Rs. ${appliedCoupon.discount.toLocaleString("en-IN")}`}
                   </p>
                 </div>
                 <Button
@@ -457,7 +586,7 @@ export default function CheckoutPage() {
                   <span>Rs. {shipping}</span>
                 )}
               </div>
-              {shipping > 0 && !appliedCoupon?.discountType?.includes("free_shipping") && (
+              {shipping > 0 && appliedCoupon?.discountType !== "free_shipping" && (
                 <p className="text-xs text-muted-foreground">Add Rs. {(1500 - subtotal).toLocaleString("en-IN")} more for free delivery</p>
               )}
               {appliedCoupon && appliedCoupon.discountType !== "free_shipping" && (

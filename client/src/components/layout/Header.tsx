@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ShoppingBag, Search, Menu, X, User, LogOut, LayoutDashboard, ChevronDown, ChevronRight } from "lucide-react";
+import { ShoppingBag, Search, Menu, X, User, LogOut, LayoutDashboard, ChevronDown, ChevronRight, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
@@ -249,6 +249,12 @@ export default function Header() {
                     <DropdownMenuItem data-testid="link-my-orders">
                       <ShoppingBag className="mr-2 h-4 w-4" />
                       My Orders
+                    </DropdownMenuItem>
+                  </Link>
+                  <Link href="/addresses">
+                    <DropdownMenuItem data-testid="link-my-addresses">
+                      <MapPin className="mr-2 h-4 w-4" />
+                      My Addresses
                     </DropdownMenuItem>
                   </Link>
                   <Link href="/admin">
