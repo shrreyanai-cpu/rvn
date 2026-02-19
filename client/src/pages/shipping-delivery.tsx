@@ -116,7 +116,7 @@ export default function ShippingDeliveryPage() {
               <p className="text-sm text-muted-foreground leading-relaxed">
                 If you have any questions about shipping or need assistance with your delivery, please reach out to us
                 at <a href="mailto:support@ravindrra.com" className="text-[#C9A961] hover:underline">support@ravindrra.com</a> or
-                call us at <a href="tel:+919876543210" className="text-[#C9A961] hover:underline">+91 98765 43210</a>.
+                call us at <a href="tel:+918889777992" className="text-[#C9A961] hover:underline">+91 88897 77992</a>.
               </p>
             </div>
           </div>

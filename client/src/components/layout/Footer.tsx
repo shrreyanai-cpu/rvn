@@ -49,7 +49,7 @@ export default function Footer() {
                 <SiYoutube className="h-4 w-4 text-muted-foreground" />
               </a>
               <a
-                href="https://wa.me/919876543210"
+                href="https://wa.me/918889777992"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover-elevate transition-colors"
@@ -120,10 +120,10 @@ export default function Footer() {
             <ul className="space-y-2.5 text-sm text-muted-foreground">
               <li>Ravindrra Vastra Niketan</li>
               <li>info@ravindrra.com</li>
-              <li>+91 98765 43210</li>
+              <li>+91 88897 77992</li>
             </ul>
             <a
-              href="https://wa.me/919876543210"
+              href="https://wa.me/918889777992"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 mt-4 text-sm font-medium text-green-600 dark:text-green-400 hover:underline"

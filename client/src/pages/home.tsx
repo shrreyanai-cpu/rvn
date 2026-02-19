@@ -749,7 +749,7 @@ export default function HomePage() {
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
-            <a href="https://wa.me/919876543210" target="_blank" rel="noopener noreferrer">
+            <a href="https://wa.me/918889777992" target="_blank" rel="noopener noreferrer">
               <Button
                 variant="outline"
                 className="text-white border-white/25 bg-white/5 px-8 tracking-wide"
