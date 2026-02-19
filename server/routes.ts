@@ -1068,9 +1068,12 @@ export async function registerRoutes(
         ? "https://track.delhivery.com"
         : "https://staging-express.delhivery.com";
 
+      const customerName = shipping.fullName || `${shipping.firstName || ""} ${shipping.lastName || ""}`.trim() || "Customer";
+      const pickupName = settings.delhiveryWarehouseName || "default";
+
       const shipmentData = {
         shipments: [{
-          name: shipping.fullName,
+          name: customerName,
           add: shipping.address,
           pin: shipping.pincode,
           city: shipping.city,
@@ -1096,18 +1099,19 @@ export async function registerRoutes(
           waybill: "",
           shipping_mode: "Surface",
           address_type: "home",
-          pickup_location: { name: settings.delhiveryWarehouseName || "default" },
         }],
-        pickup_location: { name: settings.delhiveryWarehouseName || "default" },
+        pickup_location: { name: pickupName },
       };
+
+      const formBody = `format=json&data=${encodeURIComponent(JSON.stringify(shipmentData))}`;
 
       const response = await fetch(`${baseUrl}/api/cmu/create.json`, {
         method: "POST",
         headers: {
           Authorization: `Token ${settings.delhiveryApiToken}`,
-          "Content-Type": "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: JSON.stringify(shipmentData),
+        body: formBody,
       });
       const result = await response.json();
 
