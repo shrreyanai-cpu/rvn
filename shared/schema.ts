@@ -43,6 +43,7 @@ export const products = pgTable("products", {
   inStock: boolean("in_stock").notNull().default(true),
   stockQuantity: integer("stock_quantity").notNull().default(0),
   featured: boolean("featured").notNull().default(false),
+  weight: integer("weight").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
