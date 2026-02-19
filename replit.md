@@ -4,6 +4,9 @@
 A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium Indian clothing store. Built as a standalone solution with product catalog, shopping cart, checkout, order management, and admin dashboard.
 
 ## Recent Changes
+- 2026-02-19: Role-based access control system with 4 roles (super_admin, manager, staff, customer) and 10 granular permissions
+- 2026-02-19: Admin Roles management page (/admin/roles) with team member list, role assignment, permissions matrix, promote customer dialog
+- 2026-02-19: Sidebar dynamically shows only pages the user's role has permission to access
 - 2026-02-19: Admin customer detail page (/admin/customers/:id) with full order history, stats, edit customer info
 - 2026-02-19: Admin orders table shows customer name (clickable link to customer detail page)
 - 2026-02-19: Customers list page: clickable names + view button linking to detail page

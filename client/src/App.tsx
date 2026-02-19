@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
+import { isAdminRole } from "@shared/models/auth";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import LandingPage from "@/pages/landing";
@@ -28,6 +29,7 @@ import AdminCustomers from "@/pages/admin/customers";
 import AdminCategories from "@/pages/admin/categories";
 import AdminCoupons from "@/pages/admin/coupons";
 import AdminDelivery from "@/pages/admin/delivery";
+import AdminRoles from "@/pages/admin/roles";
 import AdminCustomerDetail from "@/pages/admin/customer-detail";
 
 function ScrollToTop() {
@@ -72,7 +74,8 @@ function AdminRouter() {
     );
   }
 
-  if (!isAuthenticated || !(user as any)?.isAdmin) {
+  const userRole = (user as any)?.role || ((user as any)?.isAdmin ? "super_admin" : "customer");
+  if (!isAuthenticated || !isAdminRole(userRole)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -94,6 +97,7 @@ function AdminRouter() {
         <Route path="/admin/categories" component={AdminCategories} />
         <Route path="/admin/coupons" component={AdminCoupons} />
         <Route path="/admin/delivery" component={AdminDelivery} />
+        <Route path="/admin/roles" component={AdminRoles} />
         <Route component={NotFound} />
       </Switch>
     </AdminLayout>

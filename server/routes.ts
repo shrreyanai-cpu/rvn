@@ -6,6 +6,7 @@ import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integra
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { authStorage } from "./replit_integrations/auth/storage";
 import { Cashfree as CashfreeSDK, CFEnvironment } from "cashfree-pg";
+import { hasPermission, isAdminRole, type Permission } from "@shared/models/auth";
 
 function getCashfreeInstance() {
   const clientId = process.env.CASHFREE_APP_ID || "";
@@ -26,10 +27,25 @@ async function isAdmin(req: any, res: Response, next: NextFunction) {
     return res.status(401).json({ message: "Unauthorized" });
   }
   const user = await authStorage.getUser(userId);
-  if (!user?.isAdmin) {
+  if (!user) return res.status(403).json({ message: "Forbidden" });
+  const role = user.role || (user.isAdmin ? "super_admin" : "customer");
+  if (!isAdminRole(role)) {
     return res.status(403).json({ message: "Forbidden" });
   }
   next();
+}
+
+function requirePermission(...perms: Permission[]) {
+  return async (req: any, res: Response, next: NextFunction) => {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+    const user = await authStorage.getUser(userId);
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    const role = user.role || (user.isAdmin ? "super_admin" : "customer");
+    const allowed = perms.some((p) => hasPermission(role, p));
+    if (!allowed) return res.status(403).json({ message: "Insufficient permissions" });
+    next();
+  };
 }
 
 const addCartSchema = z.object({
@@ -376,7 +392,7 @@ export async function registerRoutes(
   });
 
   // Admin: Delete order
-  app.delete("/api/admin/orders/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.delete("/api/admin/orders/:id", isAuthenticated, requirePermission("manage_orders"), async (req, res) => {
     try {
       const orderId = Number(req.params.id);
       const order = await storage.getOrderById(orderId);
@@ -742,7 +758,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/admin/products", isAuthenticated, isAdmin, async (_req, res) => {
+  app.get("/api/admin/products", isAuthenticated, requirePermission("manage_products"), async (_req, res) => {
     try {
       const prods = await storage.getProducts();
       res.json(prods);
@@ -751,7 +767,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/admin/products", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/products", isAuthenticated, requirePermission("manage_products"), async (req, res) => {
     try {
       const parsed = productSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -765,7 +781,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/admin/products/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.patch("/api/admin/products/:id", isAuthenticated, requirePermission("manage_products"), async (req, res) => {
     try {
       const parsed = productSchema.partial().safeParse(req.body);
       if (!parsed.success) {
@@ -782,7 +798,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/admin/products/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.delete("/api/admin/products/:id", isAuthenticated, requirePermission("manage_products"), async (req, res) => {
     try {
       const id = parseInt(req.params.id as string);
       await storage.deleteProduct(id);
@@ -792,7 +808,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/admin/orders", isAuthenticated, isAdmin, async (_req, res) => {
+  app.get("/api/admin/orders", isAuthenticated, requirePermission("view_orders"), async (_req, res) => {
     try {
       const allOrders = await storage.getAllOrders();
       const allUsers = await storage.getAllUsers();
@@ -811,7 +827,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/admin/orders/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.patch("/api/admin/orders/:id", isAuthenticated, requirePermission("manage_orders"), async (req, res) => {
     try {
       const parsed = updateOrderStatusSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -829,7 +845,7 @@ export async function registerRoutes(
   });
 
   // Admin stats
-  app.get("/api/admin/stats", isAuthenticated, isAdmin, async (_req, res) => {
+  app.get("/api/admin/stats", isAuthenticated, requirePermission("view_dashboard"), async (_req, res) => {
     try {
       const stats = await storage.getAdminStats();
       res.json(stats);
@@ -839,7 +855,7 @@ export async function registerRoutes(
   });
 
   // Admin customers
-  app.get("/api/admin/customers", isAuthenticated, isAdmin, async (_req, res) => {
+  app.get("/api/admin/customers", isAuthenticated, requirePermission("view_customers"), async (_req, res) => {
     try {
       const allUsers = await storage.getAllUsers();
       const usersWithOrders = await Promise.all(
@@ -855,7 +871,7 @@ export async function registerRoutes(
   });
 
   // Admin create customer
-  app.post("/api/admin/customers", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/customers", isAuthenticated, requirePermission("manage_customers"), async (req, res) => {
     try {
       const schema = z.object({
         email: z.string().email(),
@@ -880,7 +896,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/admin/customers/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.get("/api/admin/customers/:id", isAuthenticated, requirePermission("view_customers"), async (req, res) => {
     try {
       const userId = req.params.id as string;
       const user = await storage.getUserById(userId);
@@ -895,7 +911,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/admin/customers/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.patch("/api/admin/customers/:id", isAuthenticated, requirePermission("manage_customers"), async (req, res) => {
     try {
       const userId = req.params.id as string;
       const schema = z.object({
@@ -904,6 +920,7 @@ export async function registerRoutes(
         email: z.string().email().optional(),
         phone: z.string().optional().nullable(),
         isAdmin: z.boolean().optional(),
+        role: z.enum(["super_admin", "manager", "staff", "customer"]).optional(),
       });
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
@@ -919,7 +936,7 @@ export async function registerRoutes(
   });
 
   // Admin categories
-  app.post("/api/admin/categories", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/categories", isAuthenticated, requirePermission("manage_categories"), async (req, res) => {
     try {
       const parsed = insertCategorySchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Invalid category data" });
@@ -930,7 +947,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/admin/categories/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.patch("/api/admin/categories/:id", isAuthenticated, requirePermission("manage_categories"), async (req, res) => {
     try {
       const parsed = insertCategorySchema.partial().safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Invalid category data" });
@@ -943,7 +960,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/admin/categories/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.delete("/api/admin/categories/:id", isAuthenticated, requirePermission("manage_categories"), async (req, res) => {
     try {
       const id = parseInt(req.params.id as string);
       await storage.deleteCategory(id);
@@ -954,7 +971,7 @@ export async function registerRoutes(
   });
 
   // Admin coupons
-  app.get("/api/admin/coupons", isAuthenticated, isAdmin, async (_req, res) => {
+  app.get("/api/admin/coupons", isAuthenticated, requirePermission("manage_coupons"), async (_req, res) => {
     try {
       const allCoupons = await storage.getCoupons();
       res.json(allCoupons);
@@ -963,7 +980,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/admin/coupons", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/coupons", isAuthenticated, requirePermission("manage_coupons"), async (req, res) => {
     try {
       const body = { ...req.body };
       if (body.expiresAt && typeof body.expiresAt === "string") body.expiresAt = new Date(body.expiresAt);
@@ -977,7 +994,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/admin/coupons/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.patch("/api/admin/coupons/:id", isAuthenticated, requirePermission("manage_coupons"), async (req, res) => {
     try {
       const body = { ...req.body };
       if (body.expiresAt && typeof body.expiresAt === "string") body.expiresAt = new Date(body.expiresAt);
@@ -992,7 +1009,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/admin/coupons/:id", isAuthenticated, isAdmin, async (req, res) => {
+  app.delete("/api/admin/coupons/:id", isAuthenticated, requirePermission("manage_coupons"), async (req, res) => {
     try {
       const id = parseInt(req.params.id as string);
       await storage.deleteCoupon(id);
@@ -1003,6 +1020,41 @@ export async function registerRoutes(
   });
 
   // Delivery settings (public read for checkout)
+  app.get("/api/admin/roles", isAuthenticated, requirePermission("manage_roles"), async (_req, res) => {
+    try {
+      const allUsers = await storage.getAllUsers();
+      const staffUsers = allUsers.filter((u: any) => {
+        const role = u.role || (u.isAdmin ? "super_admin" : "customer");
+        return role !== "customer";
+      });
+      res.json(staffUsers.map((u: any) => {
+        const { password: _, ...safe } = u;
+        return { ...safe, role: u.role || (u.isAdmin ? "super_admin" : "customer") };
+      }));
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch roles" });
+    }
+  });
+
+  app.patch("/api/admin/roles/:id", isAuthenticated, requirePermission("manage_roles"), async (req, res) => {
+    try {
+      const userId = req.params.id as string;
+      const schema = z.object({
+        role: z.enum(["super_admin", "manager", "staff", "customer"]),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid role" });
+      const isAdminValue = parsed.data.role !== "customer";
+      const updated = await authStorage.updateUser(userId, { role: parsed.data.role, isAdmin: isAdminValue });
+      if (!updated) return res.status(404).json({ message: "User not found" });
+      const { password: _, ...safeUser } = updated;
+      res.json(safeUser);
+    } catch (error) {
+      console.error("Update role error:", error);
+      res.status(500).json({ message: "Failed to update role" });
+    }
+  });
+
   app.get("/api/delivery-settings", async (_req, res) => {
     try {
       const settings = await storage.getDeliverySettings();
@@ -1020,7 +1072,7 @@ export async function registerRoutes(
   });
 
   // Admin delivery settings
-  app.get("/api/admin/delivery-settings", isAuthenticated, isAdmin, async (_req, res) => {
+  app.get("/api/admin/delivery-settings", isAuthenticated, requirePermission("manage_delivery"), async (_req, res) => {
     try {
       const settings = await storage.getDeliverySettings();
       res.json(settings || {
@@ -1044,7 +1096,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/admin/delivery-settings", isAuthenticated, isAdmin, async (req, res) => {
+  app.put("/api/admin/delivery-settings", isAuthenticated, requirePermission("manage_delivery"), async (req, res) => {
     try {
       const settings = await storage.upsertDeliverySettings(req.body);
       res.json(settings);
@@ -1059,7 +1111,7 @@ export async function registerRoutes(
   }
 
   // Delhivery integration routes
-  app.post("/api/admin/delhivery/check-pincode", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/delhivery/check-pincode", isAuthenticated, requirePermission("manage_delivery"), async (req, res) => {
     try {
       const { pincode } = req.body;
       const settings = await storage.getDeliverySettings();
@@ -1101,7 +1153,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/admin/delhivery/create-shipment", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/delhivery/create-shipment", isAuthenticated, requirePermission("manage_orders"), async (req, res) => {
     try {
       const { orderId } = req.body;
       const order = await storage.getOrderById(orderId);
@@ -1182,7 +1234,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/admin/delhivery/track/:waybill", isAuthenticated, isAdmin, async (req, res) => {
+  app.get("/api/admin/delhivery/track/:waybill", isAuthenticated, requirePermission("view_orders"), async (req, res) => {
     try {
       const settings = await storage.getDeliverySettings();
       if (!settings?.delhiveryApiToken) {
@@ -1265,7 +1317,7 @@ export async function registerRoutes(
   });
 
   // Admin: Calculate shipping cost
-  app.post("/api/admin/delhivery/shipping-cost", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/delhivery/shipping-cost", isAuthenticated, requirePermission("manage_delivery"), async (req, res) => {
     try {
       const { originPincode, destinationPincode, weight, mode, paymentType, codAmount } = req.body;
       const settings = await storage.getDeliverySettings();
@@ -1294,7 +1346,7 @@ export async function registerRoutes(
   });
 
   // Admin: Cancel shipment
-  app.post("/api/admin/delhivery/cancel-shipment", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/delhivery/cancel-shipment", isAuthenticated, requirePermission("manage_orders"), async (req, res) => {
     try {
       const { orderId, waybill } = req.body;
       const settings = await storage.getDeliverySettings();
@@ -1323,7 +1375,7 @@ export async function registerRoutes(
   });
 
   // Admin: Create pickup request
-  app.post("/api/admin/delhivery/pickup-request", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/delhivery/pickup-request", isAuthenticated, requirePermission("manage_delivery"), async (req, res) => {
     try {
       const { pickupDate, pickupTime, packageCount } = req.body;
       const settings = await storage.getDeliverySettings();
@@ -1353,7 +1405,7 @@ export async function registerRoutes(
   });
 
   // Admin: Fetch waybill numbers
-  app.post("/api/admin/delhivery/fetch-waybill", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/delhivery/fetch-waybill", isAuthenticated, requirePermission("manage_delivery"), async (req, res) => {
     try {
       const { count } = req.body;
       const settings = await storage.getDeliverySettings();
@@ -1379,7 +1431,7 @@ export async function registerRoutes(
   });
 
   // Admin: Generate shipping label (packing slip)
-  app.get("/api/admin/delhivery/label/:waybill", isAuthenticated, isAdmin, async (req, res) => {
+  app.get("/api/admin/delhivery/label/:waybill", isAuthenticated, requirePermission("manage_orders"), async (req, res) => {
     try {
       const settings = await storage.getDeliverySettings();
       if (!settings?.delhiveryApiToken) {
@@ -1405,7 +1457,7 @@ export async function registerRoutes(
   });
 
   // Admin: Create/register warehouse
-  app.post("/api/admin/delhivery/create-warehouse", isAuthenticated, isAdmin, async (req, res) => {
+  app.post("/api/admin/delhivery/create-warehouse", isAuthenticated, requirePermission("manage_delivery"), async (req, res) => {
     try {
       const settings = await storage.getDeliverySettings();
       if (!settings?.delhiveryApiToken) {

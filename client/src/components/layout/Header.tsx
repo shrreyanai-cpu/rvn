@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { ShoppingBag, Search, Menu, X, User, LogOut, LayoutDashboard, ChevronDown, ChevronRight } from "lucide-react";
+import { isAdminRole } from "@shared/models/auth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
@@ -257,12 +258,14 @@ export default function Header() {
                       My Orders
                     </DropdownMenuItem>
                   </Link>
-                  <Link href="/admin">
-                    <DropdownMenuItem data-testid="link-admin-dashboard">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      Admin Dashboard
-                    </DropdownMenuItem>
-                  </Link>
+                  {isAdminRole((user as any)?.role || ((user as any)?.isAdmin ? "super_admin" : "customer")) && (
+                    <Link href="/admin">
+                      <DropdownMenuItem data-testid="link-admin-dashboard">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        Admin Dashboard
+                      </DropdownMenuItem>
+                    </Link>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => (window.location.href = "/api/logout")}

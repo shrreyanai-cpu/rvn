@@ -11,8 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -22,6 +24,7 @@ import {
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ROLES, ROLE_LABELS, type Role } from "@shared/models/auth";
 import type { Order, OrderItem } from "@shared/schema";
 
 type CustomerDetail = {
@@ -31,6 +34,7 @@ type CustomerDetail = {
   lastName: string | null;
   phone: string | null;
   isAdmin: boolean;
+  role: string | null;
   createdAt: string;
   savedShippingAddress: any;
   orderCount: number;
@@ -61,14 +65,18 @@ function EditCustomerDialog({
     lastName: customer.lastName || "",
     email: customer.email || "",
     phone: customer.phone || "",
-    isAdmin: customer.isAdmin,
+    role: (customer.role || (customer.isAdmin ? "super_admin" : "customer")) as Role,
   });
 
   const updateMutation = useMutation({
     mutationFn: async () => {
       await apiRequest("PATCH", `/api/admin/customers/${customer.id}`, {
-        ...form,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
         phone: form.phone || null,
+        role: form.role,
+        isAdmin: form.role !== "customer",
       });
     },
     onSuccess: () => {
@@ -125,16 +133,23 @@ function EditCustomerDialog({
               data-testid="input-edit-phone"
             />
           </div>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <Label>Admin Access</Label>
-              <p className="text-xs text-muted-foreground">Grant admin panel access</p>
-            </div>
-            <Switch
-              checked={form.isAdmin}
-              onCheckedChange={(checked) => setForm({ ...form, isAdmin: checked })}
-              data-testid="switch-edit-admin"
-            />
+          <div>
+            <Label>Role</Label>
+            <Select
+              value={form.role}
+              onValueChange={(val) => setForm({ ...form, role: val as Role })}
+            >
+              <SelectTrigger data-testid="select-edit-role">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ROLES.map((r) => (
+                  <SelectItem key={r} value={r} data-testid={`option-edit-role-${r}`}>
+                    {ROLE_LABELS[r]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex gap-2 pt-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
@@ -273,11 +288,14 @@ export default function AdminCustomerDetail() {
             </Avatar>
             <div>
               <p className="font-medium">{fullName}</p>
-              {customer.isAdmin && (
-                <Badge className="text-[10px] bg-[#C9A961]/15 text-[#C9A961] border-0 no-default-hover-elevate no-default-active-elevate mt-0.5">
-                  <Shield className="h-3 w-3 mr-1" /> Admin
-                </Badge>
-              )}
+              {(() => {
+                const role = (customer.role || (customer.isAdmin ? "super_admin" : "customer")) as Role;
+                return role !== "customer" ? (
+                  <Badge className="text-[10px] bg-[#C9A961]/15 text-[#C9A961] border-0 no-default-hover-elevate no-default-active-elevate mt-0.5">
+                    <Shield className="h-3 w-3 mr-1" /> {ROLE_LABELS[role]}
+                  </Badge>
+                ) : null;
+              })()}
             </div>
           </div>
           <Separator className="mb-4" />

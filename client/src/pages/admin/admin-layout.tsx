@@ -1,8 +1,9 @@
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Tag, FolderOpen,
-  LogOut, Store, ChevronLeft, Truck
+  LogOut, Store, ChevronLeft, Truck, Shield
 } from "lucide-react";
+import { hasPermission, isAdminRole, type Permission } from "@shared/models/auth";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -21,23 +22,28 @@ import {
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 
-const navItems = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/products", label: "Products", icon: Package },
-  { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
-  { href: "/admin/customers", label: "Customers", icon: Users },
-  { href: "/admin/categories", label: "Categories", icon: FolderOpen },
-  { href: "/admin/coupons", label: "Coupons", icon: Tag },
-  { href: "/admin/delivery", label: "Delivery", icon: Truck },
+const navItems: { href: string; label: string; icon: any; permission: Permission }[] = [
+  { href: "/admin", label: "Dashboard", icon: LayoutDashboard, permission: "view_dashboard" },
+  { href: "/admin/products", label: "Products", icon: Package, permission: "manage_products" },
+  { href: "/admin/orders", label: "Orders", icon: ShoppingBag, permission: "view_orders" },
+  { href: "/admin/customers", label: "Customers", icon: Users, permission: "view_customers" },
+  { href: "/admin/categories", label: "Categories", icon: FolderOpen, permission: "manage_categories" },
+  { href: "/admin/coupons", label: "Coupons", icon: Tag, permission: "manage_coupons" },
+  { href: "/admin/delivery", label: "Delivery", icon: Truck, permission: "manage_delivery" },
+  { href: "/admin/roles", label: "Roles", icon: Shield, permission: "manage_roles" },
 ];
 
 function AdminSidebar() {
   const [location] = useLocation();
   const { user } = useAuth();
 
+  const userRole = (user as any)?.role || ((user as any)?.isAdmin ? "super_admin" : "customer");
+
   const userInitials = user
     ? `${(user.firstName || "")[0] || ""}${(user.lastName || "")[0] || ""}`.toUpperCase() || "A"
     : "A";
+
+  const visibleNavItems = navItems.filter((item) => hasPermission(userRole, item.permission));
 
   const isActive = (href: string) => {
     if (href === "/admin") return location === "/admin";
@@ -65,7 +71,7 @@ function AdminSidebar() {
           <SidebarGroupLabel>Management</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {visibleNavItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild

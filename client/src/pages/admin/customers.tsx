@@ -17,6 +17,7 @@ import {
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ROLE_LABELS, type Role } from "@shared/models/auth";
 
 type Customer = {
   id: string;
@@ -24,6 +25,7 @@ type Customer = {
   firstName: string | null;
   lastName: string | null;
   isAdmin: boolean;
+  role: string | null;
   createdAt: string;
   orderCount: number;
 };
@@ -205,15 +207,19 @@ export default function AdminCustomers() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      {customer.isAdmin ? (
-                        <Badge className="text-[10px] bg-[#C9A961]/15 text-[#C9A961] border-0 no-default-hover-elevate no-default-active-elevate">
-                          <Shield className="h-3 w-3 mr-1" /> Admin
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-[10px] no-default-hover-elevate no-default-active-elevate border-0">
-                          Customer
-                        </Badge>
-                      )}
+                      {(() => {
+                        const role = (customer.role || (customer.isAdmin ? "super_admin" : "customer")) as Role;
+                        const isStaff = role !== "customer";
+                        return isStaff ? (
+                          <Badge className="text-[10px] bg-[#C9A961]/15 text-[#C9A961] border-0 no-default-hover-elevate no-default-active-elevate">
+                            <Shield className="h-3 w-3 mr-1" /> {ROLE_LABELS[role]}
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-[10px] no-default-hover-elevate no-default-active-elevate border-0">
+                            Customer
+                          </Badge>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className="text-right">
                       <Link href={`/admin/customers/${customer.id}`}>
