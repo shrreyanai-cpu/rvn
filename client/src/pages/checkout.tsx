@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation, Link } from "wouter";
-import { ArrowLeft, Loader2, CreditCard, Shield, Tag, X, MapPin, Plus, Check } from "lucide-react";
+import { ArrowLeft, Loader2, CreditCard, Shield, Tag, X, MapPin, Plus, Check, Truck, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -52,6 +52,7 @@ export default function CheckoutPage() {
   const [couponLoading, setCouponLoading] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
+  const [pincodeCheckResult, setPincodeCheckResult] = useState<{ serviceable: boolean; checked: boolean; loading: boolean; pincode: string } | null>(null);
 
   const [form, setForm] = useState({
     fullName: "",
@@ -105,6 +106,30 @@ export default function CheckoutPage() {
   const shipping = subtotal >= 1500 ? 0 : 80;
   const discount = appliedCoupon?.discount || 0;
   const total = Math.max(0, subtotal + shipping - discount);
+
+  const checkPincodeServiceability = useCallback(async (pincode: string) => {
+    if (!pincode || pincode.length !== 6) {
+      setPincodeCheckResult(null);
+      return;
+    }
+    setPincodeCheckResult({ serviceable: false, checked: false, loading: true, pincode });
+    try {
+      const res = await apiRequest("POST", "/api/delhivery/check-pincode", { pincode });
+      const data = await res.json();
+      setPincodeCheckResult({ serviceable: data.serviceable, checked: true, loading: false, pincode });
+    } catch {
+      setPincodeCheckResult({ serviceable: false, checked: true, loading: false, pincode });
+    }
+  }, []);
+
+  useEffect(() => {
+    const addr = getSelectedAddress();
+    if (addr?.pincode && addr.pincode.length === 6) {
+      if (!pincodeCheckResult || pincodeCheckResult.pincode !== addr.pincode) {
+        checkPincodeServiceability(addr.pincode);
+      }
+    }
+  }, [selectedAddressId, form.pincode]);
 
   async function applyCoupon() {
     if (!couponCode.trim()) return;
@@ -493,6 +518,46 @@ export default function CheckoutPage() {
               </div>
             )}
           </Card>
+
+          {pincodeCheckResult?.checked && (
+            <Card className={`p-4 ${pincodeCheckResult.serviceable ? "border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/10" : "border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/10"}`}>
+              <div className="flex items-center gap-3">
+                {pincodeCheckResult.serviceable ? (
+                  <>
+                    <Truck className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-green-700 dark:text-green-400" data-testid="text-pincode-serviceable">
+                        Delivery available to {pincodeCheckResult.pincode}
+                      </p>
+                      <p className="text-xs text-green-600 dark:text-green-500">
+                        {subtotal >= 1500 ? "Free delivery on this order" : `Delivery charge: Rs. 80 (Free above Rs. 1,500)`}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-red-700 dark:text-red-400" data-testid="text-pincode-not-serviceable">
+                        Delivery not available to {pincodeCheckResult.pincode}
+                      </p>
+                      <p className="text-xs text-red-600 dark:text-red-500">
+                        Please try a different delivery address
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </Card>
+          )}
+          {pincodeCheckResult?.loading && (
+            <Card className="p-4">
+              <div className="flex items-center gap-3">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground flex-shrink-0" />
+                <p className="text-sm text-muted-foreground">Checking delivery availability...</p>
+              </div>
+            </Card>
+          )}
 
           <Card className="p-6">
             <h2 className="font-semibold mb-4 flex items-center gap-2">

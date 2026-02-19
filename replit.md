@@ -7,6 +7,9 @@ A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium India
 - 2026-02-19: Profile management page (/profile) with personal info editing, password change, recent orders, addresses summary
 - 2026-02-19: Multi-address management system (add/edit/delete/set default), auto-save on checkout, addresses page
 - 2026-02-19: Shipping: Rs. 80 flat below Rs. 1,500, free above; FREESHIP coupon for free shipping
+- 2026-02-19: Comprehensive Delhivery integration: shipping cost calculator, cancel shipment, pickup requests, waybill generation, label download, warehouse registration
+- 2026-02-19: Customer-facing pincode serviceability check on checkout with delivery availability indicator
+- 2026-02-19: Admin order table: create shipment, cancel shipment, track, download label actions per order
 - 2026-02-19: Delhivery courier integration - delivery settings admin page, shipment creation, tracking, free delivery by default
 - 2026-02-18: Delete order feature, Buy Now button, saved shipping address, state dropdown
 - 2026-02-18: Cashfree Payment Gateway integration (cashfree-pg SDK v5.1.0, PRODUCTION env)

@@ -960,6 +960,10 @@ export async function registerRoutes(
     }
   });
 
+  function getDelhiveryBaseUrl(env: string | null | undefined) {
+    return env === "production" ? "https://track.delhivery.com" : "https://staging-express.delhivery.com";
+  }
+
   // Delhivery integration routes
   app.post("/api/admin/delhivery/check-pincode", isAuthenticated, isAdmin, async (req, res) => {
     try {
@@ -1130,6 +1134,213 @@ export async function registerRoutes(
       }
     } catch (error) {
       res.status(500).json({ message: "Failed to get tracking info" });
+    }
+  });
+
+  // Calculate shipping cost via Delhivery
+  app.post("/api/delhivery/shipping-cost", isAuthenticated, async (req, res) => {
+    try {
+      const { originPincode, destinationPincode, weight, mode, paymentType, codAmount } = req.body;
+      const settings = await storage.getDeliverySettings();
+      if (!settings?.delhiveryApiToken) {
+        return res.json({ available: false, message: "Shipping cost calculator not configured" });
+      }
+      const baseUrl = getDelhiveryBaseUrl(settings.delhiveryEnvironment);
+      const params = new URLSearchParams({
+        md: mode || "S",
+        cgm: String(weight || 0.5),
+        o_pin: originPincode || settings.delhiveryPickupPincode || "",
+        d_pin: destinationPincode,
+        ss: "Delivered",
+        pt: paymentType || "Pre-paid",
+      });
+      if (codAmount) params.append("cod", String(codAmount));
+      const response = await fetch(`${baseUrl}/api/kinko/v1/invoice/charges/.json?${params.toString()}`, {
+        headers: { Authorization: `Token ${settings.delhiveryApiToken}` },
+      });
+      const data = await response.json();
+      res.json({ available: true, ...data });
+    } catch (error) {
+      console.error("Delhivery shipping cost error:", error);
+      res.status(500).json({ message: "Failed to calculate shipping cost" });
+    }
+  });
+
+  // Admin: Calculate shipping cost
+  app.post("/api/admin/delhivery/shipping-cost", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { originPincode, destinationPincode, weight, mode, paymentType, codAmount } = req.body;
+      const settings = await storage.getDeliverySettings();
+      if (!settings?.delhiveryApiToken) {
+        return res.status(400).json({ message: "Delhivery API token not configured" });
+      }
+      const baseUrl = getDelhiveryBaseUrl(settings.delhiveryEnvironment);
+      const params = new URLSearchParams({
+        md: mode || "S",
+        cgm: String(weight || 0.5),
+        o_pin: originPincode || settings.delhiveryPickupPincode || "",
+        d_pin: destinationPincode,
+        ss: "Delivered",
+        pt: paymentType || "Pre-paid",
+      });
+      if (codAmount) params.append("cod", String(codAmount));
+      const response = await fetch(`${baseUrl}/api/kinko/v1/invoice/charges/.json?${params.toString()}`, {
+        headers: { Authorization: `Token ${settings.delhiveryApiToken}` },
+      });
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error("Delhivery shipping cost error:", error);
+      res.status(500).json({ message: "Failed to calculate shipping cost" });
+    }
+  });
+
+  // Admin: Cancel shipment
+  app.post("/api/admin/delhivery/cancel-shipment", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { orderId, waybill } = req.body;
+      const settings = await storage.getDeliverySettings();
+      if (!settings?.delhiveryApiToken) {
+        return res.status(400).json({ message: "Delhivery API token not configured" });
+      }
+      const baseUrl = getDelhiveryBaseUrl(settings.delhiveryEnvironment);
+      const response = await fetch(`${baseUrl}/api/p/edit`, {
+        method: "POST",
+        headers: {
+          Authorization: `Token ${settings.delhiveryApiToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ waybill, cancellation: true }),
+      });
+      const data = await response.json();
+      if (orderId) {
+        await storage.updateOrderTracking(Number(orderId), { delhiveryStatus: "Cancelled" });
+        await storage.updateOrderStatus(Number(orderId), "cancelled");
+      }
+      res.json({ success: true, data });
+    } catch (error) {
+      console.error("Delhivery cancel shipment error:", error);
+      res.status(500).json({ message: "Failed to cancel shipment" });
+    }
+  });
+
+  // Admin: Create pickup request
+  app.post("/api/admin/delhivery/pickup-request", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { pickupDate, pickupTime, packageCount } = req.body;
+      const settings = await storage.getDeliverySettings();
+      if (!settings?.delhiveryApiToken) {
+        return res.status(400).json({ message: "Delhivery API token not configured" });
+      }
+      const baseUrl = getDelhiveryBaseUrl(settings.delhiveryEnvironment);
+      const response = await fetch(`${baseUrl}/fm/request/new/`, {
+        method: "POST",
+        headers: {
+          Authorization: `Token ${settings.delhiveryApiToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          pickup_time: pickupTime || "12:00:00",
+          pickup_date: pickupDate || new Date().toISOString().split("T")[0],
+          pickup_location: settings.delhiveryWarehouseName || "default",
+          expected_package_count: packageCount || 1,
+        }),
+      });
+      const data = await response.json();
+      res.json({ success: true, data });
+    } catch (error) {
+      console.error("Delhivery pickup request error:", error);
+      res.status(500).json({ message: "Failed to create pickup request" });
+    }
+  });
+
+  // Admin: Fetch waybill numbers
+  app.post("/api/admin/delhivery/fetch-waybill", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { count } = req.body;
+      const settings = await storage.getDeliverySettings();
+      if (!settings?.delhiveryApiToken) {
+        return res.status(400).json({ message: "Delhivery API token not configured" });
+      }
+      const baseUrl = getDelhiveryBaseUrl(settings.delhiveryEnvironment);
+      const clientName = settings.sellerName || "Ravindrra Vastra Niketan";
+      const response = await fetch(`${baseUrl}/waybill/api/bulk/json/?count=${count || 1}&cl=${encodeURIComponent(clientName)}`, {
+        headers: { Authorization: `Token ${settings.delhiveryApiToken}` },
+      });
+      const text = await response.text();
+      try {
+        const data = JSON.parse(text);
+        res.json(data);
+      } catch {
+        res.json({ waybills: text.split(",").map((w: string) => w.trim()).filter(Boolean) });
+      }
+    } catch (error) {
+      console.error("Delhivery waybill fetch error:", error);
+      res.status(500).json({ message: "Failed to fetch waybills" });
+    }
+  });
+
+  // Admin: Generate shipping label (packing slip)
+  app.get("/api/admin/delhivery/label/:waybill", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const settings = await storage.getDeliverySettings();
+      if (!settings?.delhiveryApiToken) {
+        return res.status(400).json({ message: "Delhivery API token not configured" });
+      }
+      const baseUrl = getDelhiveryBaseUrl(settings.delhiveryEnvironment);
+      const response = await fetch(`${baseUrl}/api/p/packing_slip?wbns=${req.params.waybill}&pdf=true`, {
+        headers: { Authorization: `Token ${settings.delhiveryApiToken}` },
+      });
+      if (response.headers.get("content-type")?.includes("application/pdf")) {
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader("Content-Disposition", `inline; filename="label-${req.params.waybill}.pdf"`);
+        const buffer = Buffer.from(await response.arrayBuffer());
+        res.send(buffer);
+      } else {
+        const data = await response.json();
+        res.json(data);
+      }
+    } catch (error) {
+      console.error("Delhivery label error:", error);
+      res.status(500).json({ message: "Failed to generate shipping label" });
+    }
+  });
+
+  // Admin: Create/register warehouse
+  app.post("/api/admin/delhivery/create-warehouse", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const settings = await storage.getDeliverySettings();
+      if (!settings?.delhiveryApiToken) {
+        return res.status(400).json({ message: "Delhivery API token not configured" });
+      }
+      const baseUrl = getDelhiveryBaseUrl(settings.delhiveryEnvironment);
+      const response = await fetch(`${baseUrl}/api/backend/clientwarehouse/create/`, {
+        method: "POST",
+        headers: {
+          Authorization: `Token ${settings.delhiveryApiToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: settings.delhiveryWarehouseName || "default",
+          phone: settings.delhiveryPickupPhone || "",
+          address: settings.delhiveryPickupAddress || "",
+          city: settings.delhiveryPickupCity || "",
+          state: settings.delhiveryPickupState || "",
+          pin: settings.delhiveryPickupPincode || "",
+          country: "India",
+          registered_name: settings.sellerName || "Ravindrra Vastra Niketan",
+          return_address: settings.delhiveryPickupAddress || "",
+          return_pin: settings.delhiveryPickupPincode || "",
+          return_city: settings.delhiveryPickupCity || "",
+          return_state: settings.delhiveryPickupState || "",
+          return_country: "India",
+        }),
+      });
+      const data = await response.json();
+      res.json({ success: true, data });
+    } catch (error) {
+      console.error("Delhivery warehouse creation error:", error);
+      res.status(500).json({ message: "Failed to create warehouse" });
     }
   });
 

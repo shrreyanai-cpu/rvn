@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link } from "wouter";
 import {
   Package, ShoppingBag, Users, BarChart3, Plus, Pencil, Trash2,
-  ArrowLeft, Loader2, ImageIcon, X, Clock, Truck, CheckCircle
+  ArrowLeft, Loader2, ImageIcon, X, Clock, Truck, CheckCircle,
+  FileText, XCircle, ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -303,6 +304,47 @@ export default function AdminPage() {
     },
   });
 
+  const [shippingOrderId, setShippingOrderId] = useState<number | null>(null);
+  const [cancellingOrderId, setCancellingOrderId] = useState<number | null>(null);
+
+  const createShipmentMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      setShippingOrderId(orderId);
+      const res = await apiRequest("POST", "/api/admin/delhivery/create-shipment", { orderId });
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      setShippingOrderId(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
+      if (data.success) {
+        toast({ title: "Shipment Created", description: `Waybill: ${data.waybill}` });
+      } else {
+        toast({ title: "Shipment Issue", description: "Shipment created but no waybill received", variant: "destructive" });
+      }
+    },
+    onError: () => {
+      setShippingOrderId(null);
+      toast({ title: "Error", description: "Failed to create shipment", variant: "destructive" });
+    },
+  });
+
+  const cancelShipmentMutation = useMutation({
+    mutationFn: async ({ orderId, waybill }: { orderId: number; waybill: string }) => {
+      setCancellingOrderId(orderId);
+      const res = await apiRequest("POST", "/api/admin/delhivery/cancel-shipment", { orderId, waybill });
+      return res.json();
+    },
+    onSuccess: () => {
+      setCancellingOrderId(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
+      toast({ title: "Shipment Cancelled", description: "Shipment has been cancelled" });
+    },
+    onError: () => {
+      setCancellingOrderId(null);
+      toast({ title: "Error", description: "Failed to cancel shipment", variant: "destructive" });
+    },
+  });
+
   const totalRevenue = orders?.reduce((sum, o) => sum + Number(o.totalAmount), 0) || 0;
   const totalProducts = products?.length || 0;
   const totalOrders = orders?.length || 0;
@@ -529,6 +571,7 @@ export default function AdminPage() {
                     <TableHead className="hidden sm:table-cell">Date</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="hidden md:table-cell">Shipping</TableHead>
                     <TableHead className="text-right">Update</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -560,6 +603,65 @@ export default function AdminPage() {
                           >
                             {sc.label}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {order.delhiveryWaybill ? (
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <span className="text-xs font-mono text-muted-foreground" data-testid={`text-waybill-${order.id}`}>
+                                {order.delhiveryWaybill}
+                              </span>
+                              <a
+                                href={order.trackingUrl || `https://www.delhivery.com/track/package/${order.delhiveryWaybill}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Button size="icon" variant="ghost" data-testid={`button-track-${order.id}`}>
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </Button>
+                              </a>
+                              <a
+                                href={`/api/admin/delhivery/label/${order.delhiveryWaybill}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Button size="icon" variant="ghost" data-testid={`button-label-${order.id}`}>
+                                  <FileText className="h-3.5 w-3.5" />
+                                </Button>
+                              </a>
+                              {order.status !== "cancelled" && order.status !== "delivered" && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => cancelShipmentMutation.mutate({ orderId: order.id, waybill: order.delhiveryWaybill! })}
+                                  disabled={cancellingOrderId === order.id}
+                                  data-testid={`button-cancel-shipment-${order.id}`}
+                                >
+                                  {cancellingOrderId === order.id ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <XCircle className="h-3.5 w-3.5 text-destructive" />
+                                  )}
+                                </Button>
+                              )}
+                            </div>
+                          ) : (
+                            order.status !== "cancelled" && order.paymentStatus === "paid" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => createShipmentMutation.mutate(order.id)}
+                                disabled={shippingOrderId === order.id}
+                                data-testid={`button-create-shipment-${order.id}`}
+                              >
+                                {shippingOrderId === order.id ? (
+                                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Truck className="mr-1 h-3 w-3" />
+                                )}
+                                Ship
+                              </Button>
+                            )
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <Select
