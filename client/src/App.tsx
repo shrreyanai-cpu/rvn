@@ -31,7 +31,9 @@ import AdminCoupons from "@/pages/admin/coupons";
 import AdminDelivery from "@/pages/admin/delivery";
 import AdminRoles from "@/pages/admin/roles";
 import AdminEmails from "@/pages/admin/emails";
+import AdminReturns from "@/pages/admin/returns";
 import AdminCustomerDetail from "@/pages/admin/customer-detail";
+import ReturnPolicyPage from "@/pages/return-policy";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -99,6 +101,7 @@ function AdminRouter() {
         <Route path="/admin/coupons" component={AdminCoupons} />
         <Route path="/admin/delivery" component={AdminDelivery} />
         <Route path="/admin/emails" component={AdminEmails} />
+        <Route path="/admin/returns" component={AdminReturns} />
         <Route path="/admin/roles" component={AdminRoles} />
         <Route component={NotFound} />
       </Switch>
@@ -129,6 +132,7 @@ function AppRouter() {
         <Route path="/payment/callback" component={PaymentCallbackPage} />
         <Route path="/orders" component={OrdersPage} />
         <Route path="/profile" component={ProfilePage} />
+        <Route path="/return-policy" component={ReturnPolicyPage} />
         <Route component={NotFound} />
       </Switch>
     </MainLayout>

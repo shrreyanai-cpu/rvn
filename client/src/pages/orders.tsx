@@ -1,10 +1,19 @@
 import { Link, useLocation } from "wouter";
-import { Package, ArrowLeft, Clock, Truck, CheckCircle, ShoppingBag, XCircle, CreditCard, Loader2, ExternalLink, RefreshCw } from "lucide-react";
+import { Package, ArrowLeft, Clock, Truck, CheckCircle, ShoppingBag, XCircle, CreditCard, Loader2, ExternalLink, RefreshCw, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -16,12 +25,26 @@ const statusConfig: Record<string, { label: string; icon: any; className: string
   shipped: { label: "Shipped", icon: Truck, className: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400" },
   delivered: { label: "Delivered", icon: Package, className: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" },
   cancelled: { label: "Cancelled", icon: XCircle, className: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" },
+  returned: { label: "Returned", icon: RotateCcw, className: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400" },
 };
+
+const RETURN_WINDOW_DAYS = 2;
+
+function canRequestReturn(order: Order): boolean {
+  if (order.status !== "delivered") return false;
+  const deliveredAt = (order as any).updatedAt || order.createdAt;
+  if (!deliveredAt) return false;
+  const daysSince = (Date.now() - new Date(deliveredAt).getTime()) / (1000 * 60 * 60 * 24);
+  return daysSince <= RETURN_WINDOW_DAYS;
+}
 
 export default function OrdersPage() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [reorderingId, setReorderingId] = useState<number | null>(null);
+  const [returnOrderId, setReturnOrderId] = useState<number | null>(null);
+  const [returnReason, setReturnReason] = useState("");
+  const [returnStatuses, setReturnStatuses] = useState<Record<number, string>>({});
   const { data: orders, isLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
   });
@@ -41,6 +64,23 @@ export default function OrdersPage() {
     onError: () => {
       setReorderingId(null);
       toast({ title: "Error", description: "Could not reorder. Some items may no longer be available.", variant: "destructive" });
+    },
+  });
+
+  const returnMutation = useMutation({
+    mutationFn: async ({ orderId, reason }: { orderId: number; reason: string }) => {
+      const res = await apiRequest("POST", `/api/orders/${orderId}/return`, { reason });
+      return res.json();
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      setReturnStatuses(prev => ({ ...prev, [vars.orderId]: "pending" }));
+      setReturnOrderId(null);
+      setReturnReason("");
+      toast({ title: "Return requested", description: "We'll review your return request and notify you via email." });
+    },
+    onError: (err: any) => {
+      toast({ title: "Cannot request return", description: err?.message || "Failed to submit return request", variant: "destructive" });
     },
   });
 
@@ -137,6 +177,23 @@ export default function OrdersPage() {
                       )}
                       Reorder
                     </Button>
+                    {canRequestReturn(order) && !returnStatuses[order.id] && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { setReturnOrderId(order.id); setReturnReason(""); }}
+                        data-testid={`button-return-${order.id}`}
+                      >
+                        <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                        Return
+                      </Button>
+                    )}
+                    {(returnStatuses[order.id] || order.status === "returned") && (
+                      <Badge className="text-[10px] font-medium border-0 no-default-hover-elevate no-default-active-elevate bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
+                        <RotateCcw className="mr-1 h-3 w-3" />
+                        {order.status === "returned" ? "Returned" : "Return Requested"}
+                      </Badge>
+                    )}
                   </div>
                 </div>
 
@@ -189,6 +246,51 @@ export default function OrdersPage() {
           })}
         </div>
       )}
+
+      <Dialog open={returnOrderId !== null} onOpenChange={() => setReturnOrderId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Request Return</DialogTitle>
+            <DialogDescription>
+              Order #{returnOrderId} &bull; Returns must be within {RETURN_WINDOW_DAYS} days of delivery
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <label className="text-sm font-medium" htmlFor="return-reason">Reason for return</label>
+            <Textarea
+              id="return-reason"
+              value={returnReason}
+              onChange={(e) => setReturnReason(e.target.value)}
+              placeholder="Please tell us why you'd like to return this order..."
+              className="mt-1"
+              data-testid="input-return-reason"
+            />
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Items must be unused, in original packaging with tags intact.{" "}
+              <Link href="/return-policy">
+                <span className="text-[#C9A961] hover:underline cursor-pointer">View return policy</span>
+              </Link>
+            </p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setReturnOrderId(null)} data-testid="button-cancel-return">
+              Cancel
+            </Button>
+            <Button
+              disabled={returnReason.trim().length < 5 || returnMutation.isPending}
+              onClick={() => {
+                if (returnOrderId) {
+                  returnMutation.mutate({ orderId: returnOrderId, reason: returnReason.trim() });
+                }
+              }}
+              data-testid="button-submit-return"
+            >
+              {returnMutation.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              Submit Return Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

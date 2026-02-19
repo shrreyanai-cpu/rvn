@@ -4,6 +4,10 @@
 A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium Indian clothing store. Built as a standalone solution with product catalog, shopping cart, checkout, order management, and admin dashboard.
 
 ## Recent Changes
+- 2026-02-19: Return/refund system: 2-day return window, customer return request from orders page, admin approve/reject with email notifications
+- 2026-02-19: Return policy page (/return-policy) with detailed policy information
+- 2026-02-19: Admin Returns management page (/admin/returns) with pending/resolved sections, approve/reject with notes
+- 2026-02-19: returnRequests table in schema, storage methods, API routes with validation
 - 2026-02-19: Email verification (OTP) for new account registration with 6-digit code, max 5 attempts, cooldown
 - 2026-02-19: Email senders: auth@ravindrra.com (verification), care.customer@ravindrra.com (orders/shipping), no-reply@ravindrra.com (campaigns), reply-to: support@ravindrra.com
 - 2026-02-19: Email notifications via Resend: order confirmation, shipping updates, promotional email campaigns
