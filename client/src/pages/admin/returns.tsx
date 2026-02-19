@@ -22,7 +22,7 @@ interface ReturnRequestEnriched {
   orderId: number;
   userId: string;
   reason: string;
-  damageImageUrl?: string | null;
+  damageVideoUrl?: string | null;
   status: string;
   adminNotes?: string | null;
   createdAt: string;
@@ -144,14 +144,14 @@ export default function AdminReturns() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
-            {selectedReturn?.damageImageUrl && (
+            {selectedReturn?.damageVideoUrl && (
               <div>
-                <p className="text-sm font-medium mb-1">Damage Photo</p>
-                <img
-                  src={selectedReturn.damageImageUrl}
-                  alt="Damage evidence"
-                  className="w-full max-h-64 object-contain rounded-md border bg-muted"
-                  data-testid="img-admin-damage-preview"
+                <p className="text-sm font-medium mb-1">Damage / Unboxing Video</p>
+                <video
+                  src={selectedReturn.damageVideoUrl}
+                  controls
+                  className="w-full max-h-64 rounded-md border bg-muted"
+                  data-testid="video-admin-damage-preview"
                 />
               </div>
             )}
@@ -214,13 +214,14 @@ function ReturnCard({ ret, onAction }: { ret: ReturnRequestEnriched; onAction: (
           <p className="text-xs text-muted-foreground mb-2">
             {ret.customerName} ({ret.customerEmail}) &bull; {new Date(ret.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
           </p>
-          {ret.damageImageUrl && (
+          {ret.damageVideoUrl && (
             <div className="mb-2">
-              <img
-                src={ret.damageImageUrl}
-                alt="Damage evidence"
-                className="w-24 h-24 object-cover rounded-md border"
-                data-testid={`img-damage-${ret.id}`}
+              <video
+                src={ret.damageVideoUrl}
+                className="w-32 h-24 object-cover rounded-md border"
+                data-testid={`video-damage-${ret.id}`}
+                muted
+                preload="metadata"
               />
             </div>
           )}
