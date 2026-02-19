@@ -47,7 +47,7 @@ export default function CheckoutPage() {
   const { toast } = useToast();
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [couponCode, setCouponCode] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; discountType?: string } | null>(null);
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
   const [addressLoaded, setAddressLoaded] = useState(false);
@@ -105,7 +105,7 @@ export default function CheckoutPage() {
     (sum, item) => sum + Number(item.product.price) * item.quantity,
     0
   );
-  const shipping = subtotal >= 1500 ? 0 : 180;
+  const shipping = subtotal >= 1500 ? 0 : 80;
   const discount = appliedCoupon?.discount || 0;
   const total = Math.max(0, subtotal + shipping - discount);
 
@@ -120,7 +120,7 @@ export default function CheckoutPage() {
       });
       const data = await res.json();
       if (data.valid) {
-        setAppliedCoupon({ code: data.code, discount: data.discount });
+        setAppliedCoupon({ code: data.code, discount: data.discount, discountType: data.discountType });
         setCouponCode("");
       } else {
         setCouponError(data.message || "Invalid coupon code");
@@ -451,16 +451,16 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Delivery</span>
-                {shipping === 0 ? (
+                {shipping === 0 || appliedCoupon?.discountType === "free_shipping" ? (
                   <span className="text-green-600 dark:text-green-400">Free</span>
                 ) : (
                   <span>Rs. {shipping}</span>
                 )}
               </div>
-              {shipping > 0 && (
+              {shipping > 0 && !appliedCoupon?.discountType?.includes("free_shipping") && (
                 <p className="text-xs text-muted-foreground">Add Rs. {(1500 - subtotal).toLocaleString("en-IN")} more for free delivery</p>
               )}
-              {appliedCoupon && (
+              {appliedCoupon && appliedCoupon.discountType !== "free_shipping" && (
                 <div className="flex justify-between text-green-600 dark:text-green-400">
                   <span>Coupon ({appliedCoupon.code})</span>
                   <span>- Rs. {appliedCoupon.discount.toLocaleString("en-IN")}</span>

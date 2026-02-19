@@ -54,6 +54,7 @@ const shippingAddressSchema = z.object({
 
 const createOrderSchema = z.object({
   shippingAddress: shippingAddressSchema,
+  couponCode: z.string().nullable().optional(),
 });
 
 const productSchema = z.object({
@@ -247,8 +248,24 @@ export async function registerRoutes(
         .toFixed(2);
 
       const subtotal = Number(totalAmount);
-      const shipping = subtotal >= 1500 ? 0 : 180;
-      const finalTotal = (subtotal + shipping).toFixed(2);
+      const shipping = subtotal >= 1500 ? 0 : 80;
+      let discount = 0;
+
+      if (parsed.data.couponCode) {
+        const coupon = await storage.getCouponByCode(parsed.data.couponCode);
+        if (coupon && coupon.isActive) {
+          if (coupon.discountType === "free_shipping") {
+            discount = shipping;
+          } else if (coupon.discountType === "percentage") {
+            discount = subtotal * Number(coupon.discountValue) / 100;
+            if (coupon.maxDiscount) discount = Math.min(discount, Number(coupon.maxDiscount));
+          } else {
+            discount = Number(coupon.discountValue);
+          }
+        }
+      }
+
+      const finalTotal = Math.max(0, subtotal + shipping - discount).toFixed(2);
 
       const order = await storage.createOrder({
         userId,
@@ -381,13 +398,15 @@ export async function registerRoutes(
       }];
 
       const subtotal = Number(product.price) * parsed.data.quantity;
-      const shipping = subtotal >= 1500 ? 0 : 180;
+      const shipping = subtotal >= 1500 ? 0 : 80;
       let discount = 0;
 
       if (parsed.data.couponCode) {
         const coupon = await storage.getCouponByCode(parsed.data.couponCode);
         if (coupon && coupon.isActive) {
-          if (coupon.discountType === "percentage") {
+          if (coupon.discountType === "free_shipping") {
+            discount = shipping;
+          } else if (coupon.discountType === "percentage") {
             discount = subtotal * Number(coupon.discountValue) / 100;
             if (coupon.maxDiscount) discount = Math.min(discount, Number(coupon.maxDiscount));
           } else {
@@ -534,7 +553,10 @@ export async function registerRoutes(
       }
 
       let discount = 0;
-      if (coupon.discountType === "percentage") {
+      const shippingCharge = subtotal >= 1500 ? 0 : 80;
+      if (coupon.discountType === "free_shipping") {
+        discount = shippingCharge;
+      } else if (coupon.discountType === "percentage") {
         discount = Math.round((subtotal * Number(coupon.discountValue)) / 100);
         if (coupon.maxDiscount && discount > Number(coupon.maxDiscount)) {
           discount = Number(coupon.maxDiscount);
@@ -542,9 +564,9 @@ export async function registerRoutes(
       } else {
         discount = Number(coupon.discountValue);
       }
-      discount = Math.min(discount, subtotal);
+      discount = Math.min(discount, subtotal + shippingCharge);
 
-      res.json({ valid: true, code: coupon.code, discount });
+      res.json({ valid: true, code: coupon.code, discount, discountType: coupon.discountType });
     } catch (error) {
       console.error("Coupon apply error:", error);
       res.status(500).json({ valid: false, message: "Failed to apply coupon" });

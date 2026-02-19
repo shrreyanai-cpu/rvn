@@ -80,6 +80,7 @@ function CouponForm({ coupon, onClose }: { coupon?: Coupon; onClose: () => void 
             <SelectContent>
               <SelectItem value="percentage">Percentage (%)</SelectItem>
               <SelectItem value="fixed">Fixed Amount (Rs.)</SelectItem>
+              <SelectItem value="free_shipping">Free Shipping</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -213,7 +214,9 @@ export default function AdminCoupons() {
                     </TableCell>
                     <TableCell>
                       <span className="text-sm font-medium">
-                        {coupon.discountType === "percentage"
+                        {coupon.discountType === "free_shipping"
+                          ? "Free Shipping"
+                          : coupon.discountType === "percentage"
                           ? `${coupon.discountValue}%`
                           : `Rs. ${Number(coupon.discountValue).toLocaleString("en-IN")}`}
                       </span>

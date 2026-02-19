@@ -42,7 +42,7 @@ export default function CartPage() {
     0
   ) || 0;
 
-  const shipping = subtotal >= 1500 ? 0 : 180;
+  const shipping = subtotal >= 1500 ? 0 : 80;
   const total = subtotal + shipping;
 
   if (isLoading) {
