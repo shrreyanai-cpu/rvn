@@ -42,7 +42,7 @@ export default function CartPage() {
     0
   ) || 0;
 
-  const shipping = subtotal > 2999 ? 0 : 199;
+  const shipping = subtotal >= 1500 ? 0 : 180;
   const total = subtotal + shipping;
 
   if (isLoading) {
@@ -180,7 +180,7 @@ export default function CartPage() {
                 </div>
                 {shipping > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    Free shipping on orders above Rs. 2,999
+                    Add Rs. {(1500 - subtotal).toLocaleString("en-IN")} more for free delivery
                   </p>
                 )}
                 <Separator />

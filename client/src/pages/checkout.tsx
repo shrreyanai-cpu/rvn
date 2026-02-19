@@ -105,7 +105,7 @@ export default function CheckoutPage() {
     (sum, item) => sum + Number(item.product.price) * item.quantity,
     0
   );
-  const shipping = 0;
+  const shipping = subtotal >= 1500 ? 0 : 180;
   const discount = appliedCoupon?.discount || 0;
   const total = Math.max(0, subtotal + shipping - discount);
 
@@ -451,8 +451,15 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Delivery</span>
-                <span className="text-green-600 dark:text-green-400">Free</span>
+                {shipping === 0 ? (
+                  <span className="text-green-600 dark:text-green-400">Free</span>
+                ) : (
+                  <span>Rs. {shipping}</span>
+                )}
               </div>
+              {shipping > 0 && (
+                <p className="text-xs text-muted-foreground">Add Rs. {(1500 - subtotal).toLocaleString("en-IN")} more for free delivery</p>
+              )}
               {appliedCoupon && (
                 <div className="flex justify-between text-green-600 dark:text-green-400">
                   <span>Coupon ({appliedCoupon.code})</span>

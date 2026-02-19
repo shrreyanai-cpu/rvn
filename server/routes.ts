@@ -247,7 +247,7 @@ export async function registerRoutes(
         .toFixed(2);
 
       const subtotal = Number(totalAmount);
-      const shipping = subtotal > 2999 ? 0 : 199;
+      const shipping = subtotal >= 1500 ? 0 : 180;
       const finalTotal = (subtotal + shipping).toFixed(2);
 
       const order = await storage.createOrder({
@@ -381,7 +381,7 @@ export async function registerRoutes(
       }];
 
       const subtotal = Number(product.price) * parsed.data.quantity;
-      const shipping = subtotal > 2999 ? 0 : 199;
+      const shipping = subtotal >= 1500 ? 0 : 180;
       let discount = 0;
 
       if (parsed.data.couponCode) {
