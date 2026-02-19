@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { Link } from "wouter";
-import { Search, Eye, Truck, ExternalLink, Trash2, Loader2 } from "lucide-react";
+import { Search, Eye, Truck, ExternalLink, Trash2, Loader2, ChevronDown, ChevronRight, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,7 @@ export default function AdminOrders() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState<OrderWithCustomer | null>(null);
   const [deletingOrderId, setDeletingOrderId] = useState<number | null>(null);
+  const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
 
   const { data: orders, isLoading } = useQuery<OrderWithCustomer[]>({ queryKey: ["/api/admin/orders"] });
 
@@ -152,9 +153,23 @@ export default function AdminOrders() {
               {filtered.map((order) => {
                 const items = (order.items as OrderItem[]) || [];
                 const sc = statusConfig[order.status] || statusConfig.pending;
+                const isExpanded = expandedOrderId === order.id;
+                const totalQty = items.reduce((s, i) => s + (i.quantity || 1), 0);
+                const totalWeightGrams = items.reduce((s, i) => s + ((i.weight || 0) * (i.quantity || 1)), 0);
                 return (
-                  <TableRow key={order.id} data-testid={`row-order-${order.id}`}>
-                    <TableCell><span className="font-medium text-sm">#{order.id}</span></TableCell>
+                  <Fragment key={order.id}>
+                  <TableRow data-testid={`row-order-${order.id}`}>
+                    <TableCell>
+                      <button
+                        className="flex items-center gap-1 font-medium text-sm text-[#C9A961] hover:underline"
+                        onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+                        data-testid={`button-expand-order-${order.id}`}
+                      >
+                        {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                        #{order.id}
+                        <Badge variant="secondary" className="ml-1 text-[10px] no-default-hover-elevate no-default-active-elevate">{totalQty} {totalQty === 1 ? "item" : "items"}</Badge>
+                      </button>
+                    </TableCell>
                     <TableCell>
                       <Link
                         href={`/admin/customers/${order.userId}`}
@@ -207,6 +222,46 @@ export default function AdminOrders() {
                       </div>
                     </TableCell>
                   </TableRow>
+                  {isExpanded && (
+                    <TableRow data-testid={`row-order-items-${order.id}`}>
+                      <TableCell colSpan={6} className="p-0">
+                        <div className="bg-muted/30 px-4 py-3 border-t">
+                          <div className="flex items-center justify-between gap-4 mb-2">
+                            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                              <Package className="h-3.5 w-3.5" /> Items in Order #{order.id}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Total Weight: <span className="font-medium">{totalWeightGrams > 0 ? (totalWeightGrams >= 1000 ? `${(totalWeightGrams / 1000).toFixed(2)} kg` : `${totalWeightGrams} g`) : "Not set"}</span>
+                            </p>
+                          </div>
+                          <div className="space-y-1.5">
+                            {items.map((item, i) => (
+                              <div key={i} className="flex items-center gap-3 p-2 rounded-md bg-background" data-testid={`row-order-item-${order.id}-${i}`}>
+                                {item.imageUrl && <img src={item.imageUrl} alt={item.name} className="w-8 h-10 rounded object-cover flex-shrink-0" />}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{item.name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Qty: {item.quantity}
+                                    {item.size ? ` | Size: ${item.size}` : ""}
+                                    {item.color ? ` | Color: ${item.color}` : ""}
+                                    {item.weight ? ` | ${item.weight}g each` : ""}
+                                  </p>
+                                </div>
+                                <span className="text-sm font-medium shrink-0">Rs. {(Number(item.price) * item.quantity).toLocaleString("en-IN")}</span>
+                              </div>
+                            ))}
+                          </div>
+                          {Number(order.deliveryCharge) > 0 && (
+                            <div className="flex items-center justify-between mt-2 pt-2 border-t text-xs text-muted-foreground">
+                              <span>Delivery Charge</span>
+                              <span>Rs. {Number(order.deliveryCharge).toLocaleString("en-IN")}</span>
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  </Fragment>
                 );
               })}
             </TableBody>

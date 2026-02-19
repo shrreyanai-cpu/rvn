@@ -108,6 +108,7 @@ export type OrderItem = {
   size?: string;
   color?: string;
   imageUrl?: string;
+  weight?: number;
 };
 
 export type ShippingAddress = {

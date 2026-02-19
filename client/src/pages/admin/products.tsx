@@ -48,6 +48,7 @@ function ProductForm({
     sizes: product?.sizes?.join(", ") || "",
     colors: product?.colors?.join(", ") || "",
     stockQuantity: product?.stockQuantity?.toString() || "0",
+    weight: product?.weight?.toString() || "0",
     inStock: product?.inStock ?? true,
     featured: product?.featured ?? false,
     images: product?.images || [] as string[],
@@ -66,6 +67,7 @@ function ProductForm({
         sizes: form.sizes ? form.sizes.split(",").map((s) => s.trim()).filter(Boolean) : [],
         colors: form.colors ? form.colors.split(",").map((s) => s.trim()).filter(Boolean) : [],
         stockQuantity: parseInt(form.stockQuantity) || 0,
+        weight: parseInt(form.weight) || 0,
         inStock: form.inStock,
         featured: form.featured,
         images: form.images,
@@ -151,6 +153,10 @@ function ProductForm({
         <div>
           <Label>Stock Quantity</Label>
           <Input value={form.stockQuantity} onChange={(e) => setForm({ ...form, stockQuantity: e.target.value })} type="number" data-testid="input-product-stock" />
+        </div>
+        <div>
+          <Label>Weight (grams)</Label>
+          <Input value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} type="number" placeholder="e.g., 500" data-testid="input-product-weight" />
         </div>
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">

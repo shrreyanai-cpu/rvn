@@ -88,6 +88,7 @@ const productSchema = z.object({
   inStock: z.boolean().default(true),
   stockQuantity: z.number().int().min(0).default(0),
   featured: z.boolean().default(false),
+  weight: z.number().int().min(0).default(0),
 });
 
 const updateOrderStatusSchema = z.object({
@@ -270,6 +271,7 @@ export async function registerRoutes(
         size: item.size,
         color: item.color,
         imageUrl: item.product.images?.[0] || null,
+        weight: (item.product as any).weight || 0,
       }));
 
       const totalAmount = cartItemsData
@@ -593,6 +595,7 @@ export async function registerRoutes(
         size: parsed.data.size || undefined,
         color: parsed.data.color || undefined,
         imageUrl: product.images?.[0] || null,
+        weight: product.weight || 0,
       }];
 
       const subtotal = Number(product.price) * parsed.data.quantity;
@@ -1240,6 +1243,9 @@ export async function registerRoutes(
       const customerName = shipping.fullName || `${shipping.firstName || ""} ${shipping.lastName || ""}`.trim() || "Customer";
       const pickupName = settings.delhiveryWarehouseName || "default";
 
+      const totalWeightGrams = items.reduce((sum: number, i: any) => sum + ((i.weight || 0) * (i.quantity || 1)), 0);
+      const totalWeightKg = totalWeightGrams > 0 ? (totalWeightGrams / 1000) : 0.5;
+
       const shipmentData = {
         shipments: [{
           name: customerName,
@@ -1265,6 +1271,7 @@ export async function registerRoutes(
           seller_name: settings.sellerName || "Ravindrra Vastra Niketan",
           seller_inv: `INV-${order.id}`,
           quantity: String(items.reduce((s: number, i: any) => s + (i.quantity || 1), 0)),
+          weight: String(totalWeightKg),
           waybill: "",
           shipping_mode: "Surface",
           address_type: "home",
