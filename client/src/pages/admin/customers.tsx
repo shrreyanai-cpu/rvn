@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Search, ShoppingBag, Shield, Plus, Loader2, Eye, EyeOff } from "lucide-react";
+import { Link } from "wouter";
+import { Search, ShoppingBag, Shield, Plus, Loader2, Eye, EyeOff, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -170,6 +171,7 @@ export default function AdminCustomers() {
                 <TableHead>Orders</TableHead>
                 <TableHead className="hidden md:table-cell">Joined</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead className="text-right"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -178,15 +180,15 @@ export default function AdminCustomers() {
                 return (
                   <TableRow key={customer.id} data-testid={`row-customer-${customer.id}`}>
                     <TableCell>
-                      <div className="flex items-center gap-3">
+                      <Link href={`/admin/customers/${customer.id}`} className="flex items-center gap-3 hover:opacity-80" data-testid={`link-customer-detail-${customer.id}`}>
                         <Avatar className="h-8 w-8">
                           <AvatarFallback className="text-xs bg-[#C9A961]/15 text-[#C9A961]">{initials}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium text-sm">{customer.firstName || ""} {customer.lastName || ""}</p>
+                          <p className="font-medium text-sm text-[#C9A961]">{customer.firstName || ""} {customer.lastName || ""}</p>
                           <p className="text-xs text-muted-foreground sm:hidden">{customer.email}</p>
                         </div>
-                      </div>
+                      </Link>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <span className="text-sm text-muted-foreground">{customer.email}</span>
@@ -212,6 +214,13 @@ export default function AdminCustomers() {
                           Customer
                         </Badge>
                       )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Link href={`/admin/customers/${customer.id}`}>
+                        <Button size="icon" variant="ghost" data-testid={`button-view-customer-${customer.id}`}>
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 );

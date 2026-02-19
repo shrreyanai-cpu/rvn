@@ -4,6 +4,9 @@
 A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium Indian clothing store. Built as a standalone solution with product catalog, shopping cart, checkout, order management, and admin dashboard.
 
 ## Recent Changes
+- 2026-02-19: Admin customer detail page (/admin/customers/:id) with full order history, stats, edit customer info
+- 2026-02-19: Admin orders table shows customer name (clickable link to customer detail page)
+- 2026-02-19: Customers list page: clickable names + view button linking to detail page
 - 2026-02-19: One-click reorder from past orders (adds items to cart, checks availability)
 - 2026-02-19: Removed delete order from customer page; added admin delete with confirmation dialog
 - 2026-02-19: Profile management page (/profile) with personal info editing, password change, recent orders, addresses summary

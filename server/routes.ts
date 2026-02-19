@@ -795,7 +795,17 @@ export async function registerRoutes(
   app.get("/api/admin/orders", isAuthenticated, isAdmin, async (_req, res) => {
     try {
       const allOrders = await storage.getAllOrders();
-      res.json(allOrders);
+      const allUsers = await storage.getAllUsers();
+      const userMap = new Map(allUsers.map((u: any) => [u.id, u]));
+      const ordersWithCustomer = allOrders.map((order) => {
+        const user = userMap.get(order.userId);
+        return {
+          ...order,
+          customerName: user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email : "Unknown",
+          customerEmail: user?.email || "",
+        };
+      });
+      res.json(ordersWithCustomer);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch orders" });
     }
@@ -867,6 +877,44 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Admin create customer error:", error);
       res.status(500).json({ message: "Failed to create customer" });
+    }
+  });
+
+  app.get("/api/admin/customers/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const userId = req.params.id as string;
+      const user = await storage.getUserById(userId);
+      if (!user) return res.status(404).json({ message: "Customer not found" });
+      const orderCount = await storage.getUserOrderCount(userId);
+      const customerOrders = await storage.getOrdersByUserId(userId);
+      const totalSpent = customerOrders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
+      res.json({ ...user, orderCount, totalSpent, orders: customerOrders });
+    } catch (error) {
+      console.error("Admin get customer detail error:", error);
+      res.status(500).json({ message: "Failed to fetch customer details" });
+    }
+  });
+
+  app.patch("/api/admin/customers/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const userId = req.params.id as string;
+      const schema = z.object({
+        firstName: z.string().min(1).optional(),
+        lastName: z.string().min(1).optional(),
+        email: z.string().email().optional(),
+        phone: z.string().optional().nullable(),
+        isAdmin: z.boolean().optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+      const { authStorage } = await import("./replit_integrations/auth/storage");
+      const updated = await authStorage.updateUser(userId, parsed.data);
+      if (!updated) return res.status(404).json({ message: "Customer not found" });
+      const { password: _, ...safeUser } = updated;
+      res.json(safeUser);
+    } catch (error) {
+      console.error("Admin update customer error:", error);
+      res.status(500).json({ message: "Failed to update customer" });
     }
   });
 

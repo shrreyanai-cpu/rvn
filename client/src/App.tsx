@@ -28,6 +28,7 @@ import AdminCustomers from "@/pages/admin/customers";
 import AdminCategories from "@/pages/admin/categories";
 import AdminCoupons from "@/pages/admin/coupons";
 import AdminDelivery from "@/pages/admin/delivery";
+import AdminCustomerDetail from "@/pages/admin/customer-detail";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -88,6 +89,7 @@ function AdminRouter() {
         <Route path="/admin" component={AdminDashboard} />
         <Route path="/admin/products" component={AdminProducts} />
         <Route path="/admin/orders" component={AdminOrders} />
+        <Route path="/admin/customers/:id" component={AdminCustomerDetail} />
         <Route path="/admin/customers" component={AdminCustomers} />
         <Route path="/admin/categories" component={AdminCategories} />
         <Route path="/admin/coupons" component={AdminCoupons} />

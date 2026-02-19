@@ -50,7 +50,9 @@ export interface IStorage {
   deleteCoupon(id: number): Promise<void>;
 
   getAllUsers(): Promise<any[]>;
+  getUserById(userId: string): Promise<any>;
   getUserOrderCount(userId: string): Promise<number>;
+  getOrdersByUserId(userId: string): Promise<Order[]>;
   getAdminStats(): Promise<{ totalCustomers: number; totalRevenue: number; totalOrders: number; totalProducts: number }>;
 
   getDeliverySettings(): Promise<DeliverySettings | undefined>;
@@ -251,13 +253,32 @@ export class DatabaseStorage implements IStorage {
       lastName: users.lastName,
       isAdmin: users.isAdmin,
       createdAt: users.createdAt,
+      phone: users.phone,
     }).from(users).orderBy(desc(users.createdAt));
     return result;
+  }
+
+  async getUserById(userId: string): Promise<any> {
+    const [user] = await db.select({
+      id: users.id,
+      email: users.email,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      isAdmin: users.isAdmin,
+      createdAt: users.createdAt,
+      phone: users.phone,
+      savedShippingAddress: users.savedShippingAddress,
+    }).from(users).where(eq(users.id, userId));
+    return user;
   }
 
   async getUserOrderCount(userId: string): Promise<number> {
     const [result] = await db.select({ value: count() }).from(orders).where(eq(orders.userId, userId));
     return result?.value || 0;
+  }
+
+  async getOrdersByUserId(userId: string): Promise<Order[]> {
+    return await db.select().from(orders).where(eq(orders.userId, userId)).orderBy(desc(orders.createdAt));
   }
 
   async getAdminStats(): Promise<{ totalCustomers: number; totalRevenue: number; totalOrders: number; totalProducts: number }> {

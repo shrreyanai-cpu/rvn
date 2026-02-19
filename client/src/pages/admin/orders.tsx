@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Search, Eye, ChevronDown, Truck, ExternalLink } from "lucide-react";
+import { Link } from "wouter";
+import { Search, Eye, Truck, ExternalLink, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,10 +15,16 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Order, OrderItem, ShippingAddress } from "@shared/schema";
+
+type OrderWithCustomer = Order & { customerName?: string; customerEmail?: string };
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   pending: { label: "Pending", className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" },
@@ -31,9 +38,10 @@ export default function AdminOrders() {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<OrderWithCustomer | null>(null);
+  const [deletingOrderId, setDeletingOrderId] = useState<number | null>(null);
 
-  const { data: orders, isLoading } = useQuery<Order[]>({ queryKey: ["/api/admin/orders"] });
+  const { data: orders, isLoading } = useQuery<OrderWithCustomer[]>({ queryKey: ["/api/admin/orders"] });
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
@@ -64,11 +72,33 @@ export default function AdminOrders() {
     },
   });
 
+  const deleteOrderMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      setDeletingOrderId(orderId);
+      await apiRequest("DELETE", `/api/admin/orders/${orderId}`);
+    },
+    onSuccess: () => {
+      setDeletingOrderId(null);
+      setSelectedOrder(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      toast({ title: "Order deleted" });
+    },
+    onError: () => {
+      setDeletingOrderId(null);
+      toast({ title: "Failed to delete order", variant: "destructive" });
+    },
+  });
+
   const filtered = orders?.filter((o) => {
     if (statusFilter !== "all" && o.status !== statusFilter) return false;
     if (search) {
       const s = search.toLowerCase();
-      return o.id.toString().includes(s);
+      return (
+        o.id.toString().includes(s) ||
+        (o.customerName || "").toLowerCase().includes(s) ||
+        (o.customerEmail || "").toLowerCase().includes(s)
+      );
     }
     return true;
   }) || [];
@@ -83,7 +113,7 @@ export default function AdminOrders() {
       <div className="flex flex-wrap gap-3 mb-4">
         <div className="relative max-w-xs flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search by order #..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" data-testid="input-search-orders" />
+          <Input placeholder="Search by order #, customer..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" data-testid="input-search-orders" />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[160px]" data-testid="select-order-status-filter">
@@ -110,8 +140,8 @@ export default function AdminOrders() {
             <TableHeader>
               <TableRow>
                 <TableHead>Order</TableHead>
+                <TableHead>Customer</TableHead>
                 <TableHead className="hidden sm:table-cell">Date</TableHead>
-                <TableHead className="hidden md:table-cell">Items</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -124,10 +154,18 @@ export default function AdminOrders() {
                 return (
                   <TableRow key={order.id} data-testid={`row-order-${order.id}`}>
                     <TableCell><span className="font-medium text-sm">#{order.id}</span></TableCell>
+                    <TableCell>
+                      <Link
+                        href={`/admin/customers/${order.userId}`}
+                        className="text-sm font-medium text-[#C9A961] hover:underline"
+                        data-testid={`link-order-customer-${order.id}`}
+                      >
+                        {order.customerName || "Unknown"}
+                      </Link>
+                    </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <span className="text-sm text-muted-foreground">{new Date(order.createdAt!).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell"><span className="text-sm">{items.length} items</span></TableCell>
                     <TableCell><span className="text-sm font-medium">Rs. {Number(order.totalAmount).toLocaleString("en-IN")}</span></TableCell>
                     <TableCell>
                       <Select value={order.status} onValueChange={(status) => updateStatusMutation.mutate({ id: order.id, status })} >
@@ -144,9 +182,28 @@ export default function AdminOrders() {
                       </Select>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button size="icon" variant="ghost" onClick={() => setSelectedOrder(order)} data-testid={`button-view-order-${order.id}`}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button size="icon" variant="ghost" onClick={() => setSelectedOrder(order)} data-testid={`button-view-order-${order.id}`}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="icon" variant="ghost" disabled={deletingOrderId === order.id} data-testid={`button-admin-delete-order-${order.id}`}>
+                              {deletingOrderId === order.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-destructive" />}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Order #{order.id}?</AlertDialogTitle>
+                              <AlertDialogDescription>This will permanently delete this order. This action cannot be undone.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteOrderMutation.mutate(order.id)} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -164,6 +221,12 @@ export default function AdminOrders() {
           {selectedOrder && (
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-4">
+                <span className="text-sm text-muted-foreground">Customer</span>
+                <Link href={`/admin/customers/${selectedOrder.userId}`} className="text-sm font-medium text-[#C9A961] hover:underline" data-testid="link-order-detail-customer">
+                  {selectedOrder.customerName || "Unknown"}
+                </Link>
+              </div>
+              <div className="flex items-center justify-between gap-4">
                 <span className="text-sm text-muted-foreground">Status</span>
                 <Badge className={`text-xs border-0 no-default-hover-elevate no-default-active-elevate ${(statusConfig[selectedOrder.status] || statusConfig.pending).className}`}>
                   {(statusConfig[selectedOrder.status] || statusConfig.pending).label}
@@ -172,6 +235,12 @@ export default function AdminOrders() {
               <div className="flex items-center justify-between gap-4">
                 <span className="text-sm text-muted-foreground">Date</span>
                 <span className="text-sm">{new Date(selectedOrder.createdAt!).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-sm text-muted-foreground">Payment</span>
+                <Badge className={`text-[10px] border-0 no-default-hover-elevate no-default-active-elevate ${selectedOrder.paymentStatus === "paid" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"}`}>
+                  {selectedOrder.paymentStatus === "paid" ? "Paid" : "Pending"}
+                </Badge>
               </div>
               <div className="flex items-center justify-between gap-4">
                 <span className="text-sm text-muted-foreground">Total</span>
@@ -194,24 +263,21 @@ export default function AdminOrders() {
                   ))}
                 </div>
               </div>
-              {selectedOrder.shippingAddress && (
-                <div>
-                  <p className="text-sm font-medium mb-2">Shipping Address</p>
-                  <div className="p-3 rounded-md bg-muted/30 text-sm">
-                    {(() => {
-                      const addr = selectedOrder.shippingAddress as ShippingAddress;
-                      return (
-                        <>
-                          <p className="font-medium">{addr.fullName}</p>
-                          <p className="text-muted-foreground">{addr.address}</p>
-                          <p className="text-muted-foreground">{addr.city}, {addr.state} - {addr.pincode}</p>
-                          <p className="text-muted-foreground">Phone: {addr.phone}</p>
-                        </>
-                      );
-                    })()}
+              {selectedOrder.shippingAddress ? (() => {
+                const addr = selectedOrder.shippingAddress as any;
+                const addrName = addr.fullName || `${addr.firstName || ""} ${addr.lastName || ""}`.trim();
+                return (
+                  <div>
+                    <p className="text-sm font-medium mb-2">Shipping Address</p>
+                    <div className="p-3 rounded-md bg-muted/30 text-sm">
+                      <p className="font-medium">{addrName}</p>
+                      <p className="text-muted-foreground">{addr.address}</p>
+                      <p className="text-muted-foreground">{addr.city}, {addr.state} - {addr.pincode}</p>
+                      <p className="text-muted-foreground">Phone: {addr.phone}</p>
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })() : null}
               {(selectedOrder as any).delhiveryWaybill ? (
                 <div>
                   <p className="text-sm font-medium mb-2">Tracking</p>
