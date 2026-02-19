@@ -21,9 +21,19 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   isAdmin: boolean("is_admin").default(false),
   role: varchar("role").default("customer"),
+  emailVerified: boolean("email_verified").default(false),
   savedShippingAddress: jsonb("saved_shipping_address"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const emailVerifications = pgTable("email_verifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email").notNull(),
+  otp: varchar("otp").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: boolean("used").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export type UpsertUser = typeof users.$inferInsert;
