@@ -176,3 +176,18 @@ export const deliverySettings = pgTable("delivery_settings", {
 
 export type DeliverySettings = typeof deliverySettings.$inferSelect;
 export type InsertDeliverySettings = typeof deliverySettings.$inferInsert;
+
+export const returnRequests = pgTable("return_requests", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").references(() => orders.id).notNull(),
+  userId: varchar("user_id").notNull(),
+  reason: text("reason").notNull(),
+  status: text("status").notNull().default("pending"),
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertReturnRequestSchema = createInsertSchema(returnRequests).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertReturnRequest = z.infer<typeof insertReturnRequestSchema>;
+export type ReturnRequest = typeof returnRequests.$inferSelect;

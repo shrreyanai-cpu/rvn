@@ -1,5 +1,5 @@
 import {
-  categories, products, cartItems, orders, coupons, deliverySettings, addresses,
+  categories, products, cartItems, orders, coupons, deliverySettings, addresses, returnRequests,
   type Category, type InsertCategory,
   type Product, type InsertProduct,
   type CartItem, type InsertCartItem,
@@ -7,6 +7,7 @@ import {
   type Coupon, type InsertCoupon,
   type DeliverySettings,
   type Address, type InsertAddress,
+  type ReturnRequest, type InsertReturnRequest,
 } from "@shared/schema";
 import { users } from "@shared/models/auth";
 import { db } from "./db";
@@ -65,6 +66,12 @@ export interface IStorage {
   updateAddress(id: number, userId: string, data: Partial<InsertAddress>): Promise<Address | undefined>;
   deleteAddress(id: number, userId: string): Promise<void>;
   setDefaultAddress(id: number, userId: string): Promise<void>;
+
+  createReturnRequest(data: InsertReturnRequest): Promise<ReturnRequest>;
+  getReturnRequestsByUser(userId: string): Promise<ReturnRequest[]>;
+  getReturnRequestByOrderId(orderId: number): Promise<ReturnRequest | undefined>;
+  getAllReturnRequests(): Promise<ReturnRequest[]>;
+  updateReturnRequest(id: number, data: { status: string; adminNotes?: string }): Promise<ReturnRequest | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -353,6 +360,29 @@ export class DatabaseStorage implements IStorage {
   async setDefaultAddress(id: number, userId: string): Promise<void> {
     await db.update(addresses).set({ isDefault: false }).where(eq(addresses.userId, userId));
     await db.update(addresses).set({ isDefault: true }).where(and(eq(addresses.id, id), eq(addresses.userId, userId)));
+  }
+
+  async createReturnRequest(data: InsertReturnRequest): Promise<ReturnRequest> {
+    const [req] = await db.insert(returnRequests).values(data).returning();
+    return req;
+  }
+
+  async getReturnRequestsByUser(userId: string): Promise<ReturnRequest[]> {
+    return db.select().from(returnRequests).where(eq(returnRequests.userId, userId)).orderBy(desc(returnRequests.createdAt));
+  }
+
+  async getReturnRequestByOrderId(orderId: number): Promise<ReturnRequest | undefined> {
+    const [req] = await db.select().from(returnRequests).where(eq(returnRequests.orderId, orderId)).limit(1);
+    return req;
+  }
+
+  async getAllReturnRequests(): Promise<ReturnRequest[]> {
+    return db.select().from(returnRequests).orderBy(desc(returnRequests.createdAt));
+  }
+
+  async updateReturnRequest(id: number, data: { status: string; adminNotes?: string }): Promise<ReturnRequest | undefined> {
+    const [updated] = await db.update(returnRequests).set({ ...data, updatedAt: new Date() }).where(eq(returnRequests.id, id)).returning();
+    return updated;
   }
 }
 
