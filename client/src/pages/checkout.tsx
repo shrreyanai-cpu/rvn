@@ -315,7 +315,7 @@ export default function CheckoutPage() {
                 Delivery Address
               </h2>
               {savedAddresses && savedAddresses.length > 0 && (
-                <Link href="/addresses">
+                <Link href="/profile">
                   <Button variant="ghost" size="sm" data-testid="button-manage-addresses">
                     Manage Addresses
                   </Button>

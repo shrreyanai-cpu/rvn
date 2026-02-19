@@ -52,8 +52,7 @@ A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium India
 - `/checkout` - Checkout with Cashfree payment
 - `/payment/callback` - Payment verification after Cashfree redirect
 - `/orders` - Customer order history (shows payment status)
-- `/profile` - Profile management (personal info, password, orders, addresses)
-- `/addresses` - Address management (add/edit/delete/set default)
+- `/profile` - My Account (personal info, password, addresses management, recent orders)
 - `/admin` - Admin dashboard (products + orders management)
 - `/admin/delivery` - Delivery settings & Delhivery integration
 

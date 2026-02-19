@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { User as UserIcon, Lock, MapPin, Package, ArrowLeft, Loader2, Eye, EyeOff, Clock, CheckCircle, Truck, XCircle, CreditCard, ExternalLink, Phone, Mail, Calendar } from "lucide-react";
+import {
+  User as UserIcon, Lock, MapPin, Package, ArrowLeft, Loader2, Eye, EyeOff,
+  Clock, CheckCircle, Truck, XCircle, CreditCard, ExternalLink, Phone, Mail,
+  Calendar, Plus, Trash2, Pencil, Star, Check, Home, Briefcase, X
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,10 +12,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Order, OrderItem, Address } from "@shared/schema";
+
+const INDIAN_STATES = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
+  "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
+  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
+  "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
+  "Uttar Pradesh", "Uttarakhand", "West Bengal",
+  "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu",
+  "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry",
+];
+
+const emptyAddressForm = {
+  fullName: "", address: "", city: "", state: "", pincode: "", phone: "", label: "Home",
+};
 
 const statusConfig: Record<string, { label: string; icon: any; className: string }> = {
   pending: { label: "Pending", icon: Clock, className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" },
@@ -31,11 +51,15 @@ export default function ProfilePage() {
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [profilePhone, setProfilePhone] = useState("");
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState<number | null>(null);
+  const [addressForm, setAddressForm] = useState(emptyAddressForm);
 
   const { data: profile, isLoading: profileLoading } = useQuery<any>({
     queryKey: ["/api/user/profile"],
@@ -45,7 +69,7 @@ export default function ProfilePage() {
     queryKey: ["/api/orders"],
   });
 
-  const { data: addresses } = useQuery<Address[]>({
+  const { data: addresses, isLoading: addressesLoading } = useQuery<Address[]>({
     queryKey: ["/api/user/addresses"],
   });
 
@@ -82,10 +106,67 @@ export default function ProfilePage() {
     },
   });
 
+  const createAddressMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/user/addresses", addressForm);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/addresses"] });
+      toast({ title: "Address added" });
+      setShowAddressForm(false);
+      setAddressForm(emptyAddressForm);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Could not save address", variant: "destructive" });
+    },
+  });
+
+  const updateAddressMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("PUT", `/api/user/addresses/${editingAddressId}`, addressForm);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/addresses"] });
+      toast({ title: "Address updated" });
+      setEditingAddressId(null);
+      setShowAddressForm(false);
+      setAddressForm(emptyAddressForm);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Could not update address", variant: "destructive" });
+    },
+  });
+
+  const deleteAddressMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/user/addresses/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/addresses"] });
+      toast({ title: "Address deleted" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Could not delete address", variant: "destructive" });
+    },
+  });
+
+  const setDefaultMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("POST", `/api/user/addresses/${id}/default`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/addresses"] });
+      toast({ title: "Default address updated" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Could not set default", variant: "destructive" });
+    },
+  });
+
   const handleEditProfile = () => {
     setFirstName(profile?.firstName || "");
     setLastName(profile?.lastName || "");
-    setPhone(profile?.phone || "");
+    setProfilePhone(profile?.phone || "");
     setIsEditingProfile(true);
   };
 
@@ -94,7 +175,7 @@ export default function ProfilePage() {
       toast({ title: "Error", description: "First name is required.", variant: "destructive" });
       return;
     }
-    updateProfileMutation.mutate({ firstName: firstName.trim(), lastName: lastName.trim(), phone: phone.trim() });
+    updateProfileMutation.mutate({ firstName: firstName.trim(), lastName: lastName.trim(), phone: profilePhone.trim() });
   };
 
   const handleChangePassword = () => {
@@ -113,8 +194,34 @@ export default function ProfilePage() {
     changePasswordMutation.mutate({ currentPassword, newPassword });
   };
 
+  function startEditAddress(addr: Address) {
+    setEditingAddressId(addr.id);
+    setAddressForm({
+      fullName: addr.fullName,
+      address: addr.address,
+      city: addr.city,
+      state: addr.state,
+      pincode: addr.pincode,
+      phone: addr.phone,
+      label: addr.label || "Home",
+    });
+    setShowAddressForm(true);
+  }
+
+  function cancelAddressForm() {
+    setShowAddressForm(false);
+    setEditingAddressId(null);
+    setAddressForm(emptyAddressForm);
+  }
+
+  const isAddressFormValid = addressForm.fullName && addressForm.address && addressForm.city && addressForm.state && addressForm.pincode.length === 6 && addressForm.phone.length === 10;
+
+  const labelIcon = (label: string) => {
+    if (label === "Work") return <Briefcase className="h-3.5 w-3.5" />;
+    return <Home className="h-3.5 w-3.5" />;
+  };
+
   const recentOrders = orders?.slice(0, 3) || [];
-  const defaultAddress = addresses?.find((a) => a.isDefault) || addresses?.[0];
 
   if (profileLoading) {
     return (
@@ -139,7 +246,7 @@ export default function ProfilePage() {
       </Link>
 
       <h1 className="font-serif text-2xl sm:text-3xl font-bold mb-6" data-testid="text-profile-title">
-        My Profile
+        My Account
       </h1>
 
       <div className="space-y-6">
@@ -181,11 +288,11 @@ export default function ProfilePage() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="profilePhone">Phone Number</Label>
                 <Input
-                  id="phone"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  id="profilePhone"
+                  value={profilePhone}
+                  onChange={(e) => setProfilePhone(e.target.value)}
                   placeholder="Phone number"
                   data-testid="input-phone"
                 />
@@ -370,44 +477,174 @@ export default function ProfilePage() {
               <MapPin className="h-5 w-5 text-[#C9A961]" />
               <h2 className="font-serif text-lg font-semibold">Saved Addresses</h2>
             </div>
-            <Link href="/addresses">
-              <Button variant="outline" size="sm" data-testid="button-manage-addresses">
-                Manage
+            {!showAddressForm && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  setAddressForm(emptyAddressForm);
+                  setEditingAddressId(null);
+                  setShowAddressForm(true);
+                }}
+                data-testid="button-add-address"
+              >
+                <Plus className="mr-1.5 h-4 w-4" />
+                Add Address
               </Button>
-            </Link>
+            )}
           </div>
 
-          {!addresses || addresses.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No saved addresses yet. Add one from the addresses page.</p>
+          {showAddressForm && (
+            <div className="mb-5 p-4 rounded-md border bg-muted/30">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <h3 className="font-semibold text-sm">{editingAddressId ? "Edit Address" : "New Address"}</h3>
+                <Button variant="ghost" size="icon" onClick={cancelAddressForm} data-testid="button-cancel-address-form">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <Label>Address Label</Label>
+                  <Select value={addressForm.label} onValueChange={(v) => setAddressForm({ ...addressForm, label: v })}>
+                    <SelectTrigger data-testid="select-label">
+                      <SelectValue placeholder="Select label" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Home">Home</SelectItem>
+                      <SelectItem value="Work">Work</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Full Name</Label>
+                  <Input value={addressForm.fullName} onChange={(e) => setAddressForm({ ...addressForm, fullName: e.target.value })} placeholder="Enter your full name" data-testid="input-addr-full-name" />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Address</Label>
+                  <Input value={addressForm.address} onChange={(e) => setAddressForm({ ...addressForm, address: e.target.value })} placeholder="Street address" data-testid="input-addr-address" />
+                </div>
+                <div>
+                  <Label>City</Label>
+                  <Input value={addressForm.city} onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })} placeholder="City" data-testid="input-addr-city" />
+                </div>
+                <div>
+                  <Label>State</Label>
+                  <Select value={addressForm.state} onValueChange={(value) => setAddressForm({ ...addressForm, state: value })}>
+                    <SelectTrigger data-testid="select-addr-state">
+                      <SelectValue placeholder="Select state" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INDIAN_STATES.map((state) => (
+                        <SelectItem key={state} value={state}>{state}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>PIN Code</Label>
+                  <Input
+                    type="tel" inputMode="numeric" value={addressForm.pincode}
+                    onChange={(e) => setAddressForm({ ...addressForm, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) })}
+                    placeholder="6-digit PIN code" maxLength={6} data-testid="input-addr-pincode"
+                  />
+                </div>
+                <div>
+                  <Label>Phone Number</Label>
+                  <Input
+                    type="tel" inputMode="numeric" value={addressForm.phone}
+                    onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                    placeholder="10-digit mobile number" maxLength={10} data-testid="input-addr-phone"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-4">
+                <Button
+                  disabled={!isAddressFormValid || createAddressMutation.isPending || updateAddressMutation.isPending}
+                  onClick={() => editingAddressId ? updateAddressMutation.mutate() : createAddressMutation.mutate()}
+                  className="bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A]"
+                  data-testid="button-save-address"
+                >
+                  {(createAddressMutation.isPending || updateAddressMutation.isPending) ? "Saving..." : editingAddressId ? "Update Address" : "Save Address"}
+                </Button>
+                <Button variant="ghost" onClick={cancelAddressForm} data-testid="button-cancel-address">Cancel</Button>
+              </div>
+            </div>
+          )}
+
+          {addressesLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full rounded-md" />
+              ))}
+            </div>
+          ) : !addresses || addresses.length === 0 ? (
+            <div className="text-center py-6">
+              <MapPin className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">No saved addresses yet. Add one to speed up checkout.</p>
+            </div>
           ) : (
             <div className="space-y-3">
-              {defaultAddress && (
-                <div className="flex items-start gap-3 text-sm">
-                  <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                  <div>
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="font-medium">{defaultAddress.fullName}</span>
-                      {defaultAddress.isDefault && (
-                        <Badge className="text-[10px] border-0 no-default-hover-elevate no-default-active-elevate bg-[#C9A961]/15 text-[#C9A961]">
-                          Default
-                        </Badge>
-                      )}
-                      <Badge variant="outline" className="text-[10px] no-default-hover-elevate no-default-active-elevate">
-                        {defaultAddress.label}
-                      </Badge>
+              {addresses.map((addr) => (
+                <div key={addr.id} className="p-4 rounded-md border" data-testid={`address-item-${addr.id}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="font-medium text-sm">{addr.fullName}</span>
+                        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                          {labelIcon(addr.label || "Home")}
+                          {addr.label || "Home"}
+                        </span>
+                        {addr.isDefault && (
+                          <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-[#C9A961]/20 text-[#C9A961]">
+                            <Check className="h-3 w-3" />
+                            Default
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{addr.address}</p>
+                      <p className="text-sm text-muted-foreground">{addr.city}, {addr.state} - {addr.pincode}</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">Phone: {addr.phone}</p>
                     </div>
-                    <p className="text-muted-foreground">
-                      {defaultAddress.address}, {defaultAddress.city}, {defaultAddress.state} - {defaultAddress.pincode}
-                    </p>
-                    <p className="text-muted-foreground">{defaultAddress.phone}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap mt-3 pt-3 border-t">
+                    {!addr.isDefault && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDefaultMutation.mutate(addr.id)}
+                        disabled={setDefaultMutation.isPending}
+                        data-testid={`button-set-default-${addr.id}`}
+                      >
+                        <Star className="mr-1.5 h-3.5 w-3.5" />
+                        Set as Default
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => startEditAddress(addr)}
+                      data-testid={`button-edit-addr-${addr.id}`}
+                    >
+                      <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (confirm("Are you sure you want to delete this address?")) {
+                          deleteAddressMutation.mutate(addr.id);
+                        }
+                      }}
+                      disabled={deleteAddressMutation.isPending}
+                      data-testid={`button-delete-addr-${addr.id}`}
+                    >
+                      <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                      Delete
+                    </Button>
                   </div>
                 </div>
-              )}
-              {addresses.length > 1 && (
-                <p className="text-xs text-muted-foreground">
-                  + {addresses.length - 1} more address{addresses.length > 2 ? "es" : ""}
-                </p>
-              )}
+              ))}
             </div>
           )}
         </Card>
