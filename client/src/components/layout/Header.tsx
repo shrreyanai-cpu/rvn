@@ -245,6 +245,12 @@ export default function Header() {
                     </p>
                   </div>
                   <DropdownMenuSeparator />
+                  <Link href="/profile">
+                    <DropdownMenuItem data-testid="link-my-profile">
+                      <User className="mr-2 h-4 w-4" />
+                      My Profile
+                    </DropdownMenuItem>
+                  </Link>
                   <Link href="/orders">
                     <DropdownMenuItem data-testid="link-my-orders">
                       <ShoppingBag className="mr-2 h-4 w-4" />
