@@ -1,8 +1,9 @@
 import { Link } from "wouter";
-import { ArrowRight, Truck, Shield, Repeat, Sparkles, Star, Quote, Award, Users, MapPin, Clock } from "lucide-react";
+import { ArrowRight, Truck, Shield, Repeat, Sparkles, Star, Quote, Award, Users, MapPin, Clock, TrendingUp } from "lucide-react";
 import { SiInstagram } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Product, Category } from "@shared/schema";
@@ -17,11 +18,24 @@ export default function HomePage() {
     queryKey: ["/api/products"],
   });
 
+  const { data: bestSelling, isLoading: loadingBest } = useQuery<Product[]>({
+    queryKey: ["/api/products/best-selling"],
+  });
+
   const { data: categories, isLoading: loadingCategories } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
   });
 
+  const mainCategories = categories?.filter((c) => !c.parentId) || [];
+  const getSubcategories = (parentId: number) => categories?.filter((c) => c.parentId === parentId) || [];
   const newArrivals = allProducts?.filter((p) => !p.featured).slice(0, 4) || [];
+
+  const collectionImages: Record<string, string> = {
+    "sarees": "/images/products/silk-saree-burgundy.png",
+    "mens-wear": "/images/products/navy-kurta-set.png",
+    "womens-wear": "/images/products/emerald-lehenga.png",
+    "kids-wear": "/images/products/cream-sherwani.png",
+  };
 
   return (
     <div className="min-h-screen">
@@ -120,84 +134,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-20 sm:py-24 max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <p className="text-[#C9A961] text-xs font-medium tracking-[0.2em] uppercase mb-3">
-              Our Heritage
-            </p>
-            <div className="w-10 h-[2px] bg-[#C9A961] mb-6" />
-            <h2
-              className="font-serif text-3xl sm:text-4xl font-bold leading-tight mb-5"
-              data-testid="text-our-story-title"
-            >
-              A Legacy of{" "}
-              <span className="text-[#C9A961] italic">Craftsmanship</span>
-            </h2>
-            <p className="text-muted-foreground leading-relaxed mb-4">
-              For over three decades, Ravindrra Vastra Niketan has been a trusted name in Indian fashion.
-              Founded in 1985, we began as a small family-run textile shop with a vision to bring the finest
-              Indian fabrics and traditional artistry to discerning customers.
-            </p>
-            <p className="text-muted-foreground leading-relaxed mb-8">
-              Today, we continue that legacy by working directly with master weavers and artisans from
-              Varanasi, Jaipur, and Lucknow, ensuring every piece that carries our name is a testament
-              to India's unparalleled textile heritage.
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-              {[
-                { icon: Clock, value: "38+", label: "Years" },
-                { icon: Users, value: "10K+", label: "Customers" },
-                { icon: Award, value: "500+", label: "Products" },
-                { icon: MapPin, value: "Pan India", label: "Delivery" },
-              ].map((stat) => (
-                <div key={stat.label} className="text-center" data-testid={`stat-${stat.label.toLowerCase()}`}>
-                  <div className="w-10 h-10 mx-auto rounded-full bg-[#C9A961]/10 flex items-center justify-center mb-2">
-                    <stat.icon className="h-4.5 w-4.5 text-[#C9A961]" />
-                  </div>
-                  <p className="text-lg font-serif font-bold">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-3">
-              <div className="relative aspect-[3/4] rounded-md overflow-hidden">
-                <img
-                  src="/images/products/silk-saree-burgundy.png"
-                  alt="Handcrafted Silk Saree"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              </div>
-              <div className="relative aspect-square rounded-md overflow-hidden">
-                <img
-                  src="/images/products/pink-banarasi-dupatta.png"
-                  alt="Banarasi Dupatta"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              </div>
-            </div>
-            <div className="space-y-3 pt-8">
-              <div className="relative aspect-square rounded-md overflow-hidden">
-                <img
-                  src="/images/products/cream-sherwani.png"
-                  alt="Designer Sherwani"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              </div>
-              <div className="relative aspect-[3/4] rounded-md overflow-hidden">
-                <img
-                  src="/images/products/emerald-lehenga.png"
-                  alt="Lehenga Choli"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section className="py-20 sm:py-24 bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 mb-8 sm:mb-12">
@@ -223,15 +159,15 @@ export default function HomePage() {
               ? Array.from({ length: 4 }).map((_, i) => (
                   <Skeleton key={i} className="aspect-[3/4] rounded-md" />
                 ))
-              : categories?.filter((cat) => !cat.parentId).map((cat) => (
+              : mainCategories.map((cat) => (
                   <Link key={cat.id} href={`/shop?category=${cat.slug}`}>
                     <div
                       className="group relative aspect-[3/4] overflow-hidden rounded-md cursor-pointer"
                       data-testid={`card-category-${cat.id}`}
                     >
-                      {cat.imageUrl && (
+                      {(cat.imageUrl || collectionImages[cat.slug]) && (
                         <img
-                          src={cat.imageUrl}
+                          src={cat.imageUrl || collectionImages[cat.slug]}
                           alt={cat.name}
                           className="absolute inset-0 w-full h-full object-cover"
                         />
@@ -240,6 +176,7 @@ export default function HomePage() {
                       <div className="absolute inset-0 border border-white/0 group-hover:border-[#C9A961]/50 rounded-md transition-all duration-300" />
                       <div className="absolute bottom-0 left-0 right-0 p-4">
                         <h3 className="font-serif text-white text-lg font-semibold mb-1">{cat.name}</h3>
+                        <p className="text-white/60 text-xs mb-1">{getSubcategories(cat.id).length} subcategories</p>
                         <span className="text-white/0 group-hover:text-white/80 text-xs font-medium tracking-wider uppercase transition-all duration-300 flex items-center gap-1" data-testid={`link-shop-now-${cat.slug}`}>
                           Shop Now <ArrowRight className="h-3 w-3" />
                         </span>
@@ -247,6 +184,98 @@ export default function HomePage() {
                     </div>
                   </Link>
                 ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-20 sm:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 mb-8 sm:mb-12">
+            <div>
+              <p className="text-[#C9A961] text-xs font-medium tracking-[0.2em] uppercase mb-2">
+                <TrendingUp className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
+                Most Popular
+              </p>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold" data-testid="text-bestselling-title">
+                Best Selling
+              </h2>
+              <p className="text-muted-foreground text-sm mt-2 max-w-md">
+                Our customers' favorites - the most loved pieces from our collection
+              </p>
+            </div>
+            <Link href="/shop">
+              <Button variant="ghost" size="sm" data-testid="link-view-all-bestselling">
+                View All <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            {loadingBest
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="space-y-3">
+                    <Skeleton className="aspect-[3/4] rounded-md" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
+                ))
+              : (bestSelling || []).slice(0, 4).map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16 sm:py-20 bg-[#2C3E50] dark:bg-[#1a2530]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10 sm:mb-14">
+            <p className="text-[#C9A961] text-xs font-medium tracking-[0.2em] uppercase mb-2">
+              Browse
+            </p>
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white" data-testid="text-collections-title">
+              Our Collections
+            </h2>
+            <p className="text-white/50 text-sm mt-2 max-w-md mx-auto">
+              Explore our curated collections across every category
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            {loadingCategories
+              ? Array.from({ length: 8 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16 rounded-md bg-white/10" />
+                ))
+              : mainCategories.flatMap((main) => 
+                  getSubcategories(main.id).slice(0, 3).map((sub) => (
+                    <Link key={sub.id} href={`/shop?category=${sub.slug}`}>
+                      <div
+                        className="group flex items-center gap-3 p-3 sm:p-4 rounded-md bg-white/5 border border-white/10 hover:border-[#C9A961]/40 hover:bg-white/10 transition-all cursor-pointer"
+                        data-testid={`card-collection-${sub.id}`}
+                      >
+                        <div className="w-10 h-10 rounded-full bg-[#C9A961]/15 flex items-center justify-center shrink-0">
+                          <Sparkles className="h-4 w-4 text-[#C9A961]" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-white text-sm font-medium truncate group-hover:text-[#C9A961] transition-colors">
+                            {sub.name}
+                          </h3>
+                          <p className="text-white/40 text-[11px]">
+                            {mainCategories.find((m) => m.id === sub.parentId)?.name}
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  ))
+                )}
+          </div>
+          <div className="text-center mt-8">
+            <Link href="/shop">
+              <Button
+                variant="outline"
+                className="text-white border-white/25 bg-white/5 tracking-wide"
+                data-testid="link-view-all-collections"
+              >
+                View All Collections <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -382,6 +411,124 @@ export default function HomePage() {
               : newArrivals.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-20 sm:py-24 max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <p className="text-[#C9A961] text-xs font-medium tracking-[0.2em] uppercase mb-3">
+              Our Heritage
+            </p>
+            <div className="w-10 h-[2px] bg-[#C9A961] mb-6" />
+            <h2
+              className="font-serif text-3xl sm:text-4xl font-bold leading-tight mb-5"
+              data-testid="text-our-story-title"
+            >
+              A Legacy of{" "}
+              <span className="text-[#C9A961] italic">Craftsmanship</span>
+            </h2>
+            <p className="text-muted-foreground leading-relaxed mb-4">
+              For over three decades, Ravindrra Vastra Niketan has been a trusted name in Indian fashion.
+              Founded in 1985, we began as a small family-run textile shop with a vision to bring the finest
+              Indian fabrics and traditional artistry to discerning customers.
+            </p>
+            <p className="text-muted-foreground leading-relaxed mb-8">
+              Today, we continue that legacy by working directly with master weavers and artisans from
+              Varanasi, Jaipur, and Lucknow, ensuring every piece that carries our name is a testament
+              to India's unparalleled textile heritage.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+              {[
+                { icon: Clock, value: "38+", label: "Years" },
+                { icon: Users, value: "10K+", label: "Customers" },
+                { icon: Award, value: "500+", label: "Products" },
+                { icon: MapPin, value: "Pan India", label: "Delivery" },
+              ].map((stat) => (
+                <div key={stat.label} className="text-center" data-testid={`stat-${stat.label.toLowerCase()}`}>
+                  <div className="w-10 h-10 mx-auto rounded-full bg-[#C9A961]/10 flex items-center justify-center mb-2">
+                    <stat.icon className="h-4.5 w-4.5 text-[#C9A961]" />
+                  </div>
+                  <p className="text-lg font-serif font-bold">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-3">
+              <div className="relative aspect-[3/4] rounded-md overflow-hidden">
+                <img
+                  src="/images/products/silk-saree-burgundy.png"
+                  alt="Handcrafted Silk Saree"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              </div>
+              <div className="relative aspect-square rounded-md overflow-hidden">
+                <img
+                  src="/images/products/pink-banarasi-dupatta.png"
+                  alt="Banarasi Dupatta"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              </div>
+            </div>
+            <div className="space-y-3 pt-8">
+              <div className="relative aspect-square rounded-md overflow-hidden">
+                <img
+                  src="/images/products/cream-sherwani.png"
+                  alt="Designer Sherwani"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              </div>
+              <div className="relative aspect-[3/4] rounded-md overflow-hidden">
+                <img
+                  src="/images/products/emerald-lehenga.png"
+                  alt="Lehenga Choli"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-20 sm:py-24 bg-card">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10 sm:mb-14">
+            <p className="text-[#C9A961] text-xs font-medium tracking-[0.2em] uppercase mb-2">
+              All Products
+            </p>
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold" data-testid="text-all-products-title">
+              Our Complete Range
+            </h2>
+            <p className="text-muted-foreground text-sm mt-2 max-w-md mx-auto">
+              Browse through our entire collection of premium Indian clothing
+            </p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            {loadingAll
+              ? Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="space-y-3">
+                    <Skeleton className="aspect-[3/4] rounded-md" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
+                ))
+              : (allProducts || []).slice(0, 8).map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+          </div>
+          <div className="text-center mt-10">
+            <Link href="/shop">
+              <Button
+                className="bg-[#C9A961] text-[#1A1A1A] border-[#C9A961] font-semibold px-8 tracking-wide"
+                data-testid="button-view-all-products"
+              >
+                View All Products
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

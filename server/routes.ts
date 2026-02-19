@@ -103,6 +103,28 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/products/best-selling", async (req, res) => {
+    try {
+      const allOrders = await storage.getAllOrders();
+      const productCounts: Record<number, number> = {};
+      for (const order of allOrders) {
+        const items = order.items as any[];
+        if (Array.isArray(items)) {
+          for (const item of items) {
+            productCounts[item.productId] = (productCounts[item.productId] || 0) + (item.quantity || 1);
+          }
+        }
+      }
+      const allProducts = await storage.getProducts();
+      const sorted = allProducts
+        .map((p) => ({ ...p, soldCount: productCounts[p.id] || 0 }))
+        .sort((a, b) => b.soldCount - a.soldCount || (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+      res.json(sorted.slice(0, 8));
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch best-selling products" });
+    }
+  });
+
   app.get("/api/products/by-id/:id", async (req, res) => {
     try {
       const product = await storage.getProductById(Number(req.params.id));
