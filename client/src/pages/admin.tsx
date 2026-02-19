@@ -360,6 +360,8 @@ export default function AdminPage() {
     onSuccess: () => {
       setDeletingOrderId(null);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
       toast({ title: "Order deleted", description: "The order has been permanently removed." });
     },
     onError: () => {

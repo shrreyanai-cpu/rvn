@@ -82,6 +82,7 @@ export default function AdminOrders() {
       setSelectedOrder(null);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
       toast({ title: "Order deleted" });
     },
     onError: () => {
