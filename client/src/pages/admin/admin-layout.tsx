@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Tag, FolderOpen,
-  LogOut, Store, ChevronLeft
+  LogOut, Store, ChevronLeft, Truck
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -28,6 +28,7 @@ const navItems = [
   { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/categories", label: "Categories", icon: FolderOpen },
   { href: "/admin/coupons", label: "Coupons", icon: Tag },
+  { href: "/admin/delivery", label: "Delivery", icon: Truck },
 ];
 
 function AdminSidebar() {

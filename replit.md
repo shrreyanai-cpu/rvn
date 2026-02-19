@@ -4,6 +4,7 @@
 A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium Indian clothing store. Built as a standalone solution with product catalog, shopping cart, checkout, order management, and admin dashboard.
 
 ## Recent Changes
+- 2026-02-19: Delhivery courier integration - delivery settings admin page, shipment creation, tracking, free delivery by default
 - 2026-02-18: Delete order feature, Buy Now button, saved shipping address, state dropdown
 - 2026-02-18: Cashfree Payment Gateway integration (cashfree-pg SDK v5.1.0, PRODUCTION env)
 - 2026-02-18: Initial MVP build with full e-commerce functionality
@@ -11,6 +12,7 @@ A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium India
 - Object Storage: Replit Object Storage for product image uploads
 - Database: PostgreSQL with Drizzle ORM
 - Payment: Cashfree PG (env vars: CASHFREE_APP_ID, CASHFREE_SECRET_KEY, CASHFREE_ENV)
+- Delivery: Delhivery.com integration (API token stored in deliverySettings table, staging/production env)
 
 ## Features
 - Delete orders from order history
@@ -18,6 +20,10 @@ A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium India
 - Save shipping address after first successful payment, auto-fill on future orders
 - State dropdown with all 28 Indian states + 8 UTs
 - Users table has `savedShippingAddress` JSONB column
+- Delhivery delivery integration with shipment creation, pincode serviceability check, tracking
+- Admin delivery settings page (charges, Delhivery credentials, warehouse config)
+- Free delivery enabled by default, configurable via admin panel
+- Order tracking with Delhivery waybill and tracking URL for customers
 
 ## Architecture
 - **Frontend**: React + Vite + Tailwind CSS + Shadcn UI + Wouter (routing) + TanStack Query
@@ -26,12 +32,13 @@ A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium India
 - **Storage**: Replit Object Storage for product images
 
 ## Key Files
-- `shared/schema.ts` - All data models (categories, products, cart, orders)
+- `shared/schema.ts` - All data models (categories, products, cart, orders, deliverySettings)
 - `shared/models/auth.ts` - Auth-related models (users, sessions)
-- `server/routes.ts` - All API endpoints
+- `server/routes.ts` - All API endpoints (including Delhivery integration routes)
 - `server/storage.ts` - Database storage layer (DatabaseStorage)
 - `server/seed.ts` - Seed data for products and categories
 - `client/src/App.tsx` - Main app with routing
+- `client/src/pages/admin/delivery.tsx` - Admin delivery settings page
 
 ## Pages
 - `/` - Landing page (logged out) / Home page (logged in)
@@ -43,6 +50,7 @@ A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium India
 - `/payment/callback` - Payment verification after Cashfree redirect
 - `/orders` - Customer order history (shows payment status)
 - `/admin` - Admin dashboard (products + orders management)
+- `/admin/delivery` - Delivery settings & Delhivery integration
 
 ## Design
 - Inspired by Net-a-Porter and Zara

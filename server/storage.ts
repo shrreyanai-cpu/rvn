@@ -1,10 +1,11 @@
 import {
-  categories, products, cartItems, orders, coupons,
+  categories, products, cartItems, orders, coupons, deliverySettings,
   type Category, type InsertCategory,
   type Product, type InsertProduct,
   type CartItem, type InsertCartItem,
   type Order, type InsertOrder,
   type Coupon, type InsertCoupon,
+  type DeliverySettings,
 } from "@shared/schema";
 import { users } from "@shared/models/auth";
 import { db } from "./db";
@@ -49,6 +50,10 @@ export interface IStorage {
   getAllUsers(): Promise<any[]>;
   getUserOrderCount(userId: string): Promise<number>;
   getAdminStats(): Promise<{ totalCustomers: number; totalRevenue: number; totalOrders: number; totalProducts: number }>;
+
+  getDeliverySettings(): Promise<DeliverySettings | undefined>;
+  upsertDeliverySettings(data: Partial<DeliverySettings>): Promise<DeliverySettings>;
+  updateOrderTracking(id: number, data: { delhiveryWaybill?: string; delhiveryStatus?: string; trackingUrl?: string }): Promise<Order | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -253,6 +258,26 @@ export class DatabaseStorage implements IStorage {
       totalOrders: orderCount?.value || 0,
       totalRevenue: Number(revenueResult[0]?.total) || 0,
     };
+  }
+
+  async getDeliverySettings(): Promise<DeliverySettings | undefined> {
+    const [settings] = await db.select().from(deliverySettings).limit(1);
+    return settings;
+  }
+
+  async upsertDeliverySettings(data: Partial<DeliverySettings>): Promise<DeliverySettings> {
+    const existing = await this.getDeliverySettings();
+    if (existing) {
+      const [updated] = await db.update(deliverySettings).set({ ...data, updatedAt: new Date() }).where(eq(deliverySettings.id, existing.id)).returning();
+      return updated;
+    }
+    const [created] = await db.insert(deliverySettings).values(data as any).returning();
+    return created;
+  }
+
+  async updateOrderTracking(id: number, data: { delhiveryWaybill?: string; delhiveryStatus?: string; trackingUrl?: string }): Promise<Order | undefined> {
+    const [updated] = await db.update(orders).set({ ...data, updatedAt: new Date() }).where(eq(orders.id, id)).returning();
+    return updated;
   }
 }
 

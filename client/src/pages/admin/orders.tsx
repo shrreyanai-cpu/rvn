@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Eye, ChevronDown } from "lucide-react";
+import { Search, Eye, ChevronDown, Truck, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +43,24 @@ export default function AdminOrders() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
       toast({ title: "Order status updated" });
+    },
+  });
+
+  const shipMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      const res = await apiRequest("POST", "/api/admin/delhivery/create-shipment", { orderId });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
+      if (data.success) {
+        toast({ title: "Shipment created", description: `Waybill: ${data.waybill}` });
+      } else {
+        toast({ title: "Shipment failed", description: "Check Delhivery settings", variant: "destructive" });
+      }
+    },
+    onError: () => {
+      toast({ title: "Failed to create shipment", variant: "destructive" });
     },
   });
 
@@ -193,6 +211,41 @@ export default function AdminOrders() {
                     })()}
                   </div>
                 </div>
+              )}
+              {(selectedOrder as any).delhiveryWaybill ? (
+                <div>
+                  <p className="text-sm font-medium mb-2">Tracking</p>
+                  <div className="p-3 rounded-md bg-muted/30 text-sm space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground">Waybill</span>
+                      <span className="font-mono text-xs">{(selectedOrder as any).delhiveryWaybill}</span>
+                    </div>
+                    {(selectedOrder as any).delhiveryStatus && (
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-muted-foreground">Status</span>
+                        <span>{(selectedOrder as any).delhiveryStatus}</span>
+                      </div>
+                    )}
+                    {(selectedOrder as any).trackingUrl && (
+                      <a href={(selectedOrder as any).trackingUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-[#C9A961] hover:underline mt-1" data-testid="link-tracking">
+                        Track on Delhivery <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                selectedOrder.paymentStatus === "paid" && selectedOrder.status !== "cancelled" && selectedOrder.status !== "delivered" && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => shipMutation.mutate(selectedOrder.id)}
+                    disabled={shipMutation.isPending}
+                    data-testid="button-ship-delhivery"
+                  >
+                    <Truck className="h-4 w-4 mr-2" />
+                    {shipMutation.isPending ? "Creating Shipment..." : "Ship with Delhivery"}
+                  </Button>
+                )
               )}
             </div>
           )}

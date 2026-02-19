@@ -1,0 +1,155 @@
+{
+  "colorScheme": "light",
+  "fonts": [
+    {
+      "family": "Archivo",
+      "role": "body"
+    }
+  ],
+  "colors": {
+    "primary": "#FF3131",
+    "accent": "#101218",
+    "background": "#101218",
+    "textPrimary": "#101218",
+    "link": "#2563EB"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "Archivo",
+      "heading": "Archivo"
+    },
+    "fontStacks": {
+      "heading": [
+        "Archivo",
+        "sans-serif"
+      ],
+      "body": [
+        "IBM Plex Sans",
+        "ui-sans-serif",
+        "system-ui",
+        "-apple-system",
+        "Segoe UI",
+        "Roboto",
+        "Ubuntu",
+        "Cantarell",
+        "Noto Sans",
+        "sans-serif",
+        "BlinkMacSystemFont",
+        "Helvetica Neue",
+        "Arial",
+        "Apple Color Emoji",
+        "Segoe UI Emoji",
+        "Segoe UI Symbol",
+        "Noto Color Emoji"
+      ],
+      "paragraph": [
+        "Archivo",
+        "sans-serif"
+      ]
+    },
+    "fontSizes": {
+      "h1": "40px",
+      "h2": "32px",
+      "body": "14px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 4,
+    "borderRadius": "6px"
+  },
+  "components": {
+    "input": {
+      "background": "#FFFFFF",
+      "textColor": "#101218",
+      "borderColor": "#E0E3EB",
+      "borderRadius": "6px",
+      "borderRadiusCorners": {
+        "topLeft": "6px",
+        "topRight": "6px",
+        "bottomRight": "6px",
+        "bottomLeft": "6px"
+      },
+      "shadow": "none"
+    },
+    "buttonPrimary": {
+      "background": "#101218",
+      "textColor": "#000000",
+      "borderRadius": "0px",
+      "borderRadiusCorners": {
+        "topLeft": "0px",
+        "topRight": "0px",
+        "bottomRight": "0px",
+        "bottomLeft": "0px"
+      },
+      "shadow": "none"
+    },
+    "buttonSecondary": {
+      "background": "#FFFFFF",
+      "textColor": "#1F2937",
+      "borderRadius": "4px",
+      "borderRadiusCorners": {
+        "topLeft": "4px",
+        "topRight": "4px",
+        "bottomRight": "4px",
+        "bottomLeft": "4px"
+      },
+      "shadow": "none"
+    }
+  },
+  "images": {
+    "logo": "https://www.delhivery.com/_nuxt/img/Delhivery_logo.634bf46.webp",
+    "favicon": "https://www.delhivery.com/favicon.png",
+    "ogImage": "https://www.delhivery.com/banner/homepage.webp",
+    "logoHref": "File saved at: attached_assets/logoHref.html",
+    "logoAlt": "Delhivery"
+  },
+  "__llm_logo_reasoning": {
+    "selectedIndex": 1,
+    "reasoning": "Selected #0 because it is visible, medium-sized, and links to the homepage, matching the brand name 'Delhivery'.",
+    "confidence": 0.95,
+    "source": "llm"
+  },
+  "__llm_button_reasoning": {
+    "primary": {
+      "index": 2,
+      "text": "Ship Now",
+      "reasoning": "Button #2 'Ship Now' is likely the primary CTA due to its action-oriented text and dark background, which stands out against the light background of the page."
+    },
+    "secondary": {
+      "index": 3,
+      "text": "Business Shipments",
+      "reasoning": "Button #3 'Business Shipments' is selected as secondary due to its lighter background and less prominent action compared to the primary button."
+    },
+    "confidence": 0.9
+  },
+  "personality": {
+    "tone": "professional",
+    "energy": "medium",
+    "targetAudience": "businesses and eCommerce companies"
+  },
+  "designSystem": {
+    "framework": "tailwind",
+    "componentLibrary": ""
+  },
+  "confidence": {
+    "buttons": 0.9,
+    "colors": 0.9,
+    "overall": 0.9
+  },
+  "__llm_metadata": {
+    "logoSelection": {
+      "llmCalled": true,
+      "llmSucceeded": true,
+      "finalSource": "llm",
+      "rawLogoSelection": {
+        "selectedLogoIndex": 0,
+        "selectedLogoReasoning": "Selected #0 because it is visible, medium-sized, and links to the homepage, matching the brand name 'Delhivery'.",
+        "confidence": 0.95
+      }
+    },
+    "buttonClassification": {
+      "llmCalled": true,
+      "llmSucceeded": true
+    }
+  }
+}

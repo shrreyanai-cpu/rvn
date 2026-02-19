@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Package, ArrowLeft, Clock, Truck, CheckCircle, ShoppingBag, XCircle, CreditCard, Trash2, Loader2 } from "lucide-react";
+import { Package, ArrowLeft, Clock, Truck, CheckCircle, ShoppingBag, XCircle, CreditCard, Trash2, Loader2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -162,6 +162,24 @@ export default function OrdersPage() {
                     <p className="text-xs text-muted-foreground">+ {items.length - 3} more items</p>
                   )}
                 </div>
+
+                {(order as any).trackingUrl && (
+                  <div className="mt-3 pt-3 border-t flex items-center gap-2">
+                    <Truck className="h-4 w-4 text-[#C9A961]" />
+                    <span className="text-sm text-muted-foreground">
+                      {(order as any).delhiveryStatus || "Shipped"}
+                    </span>
+                    <a
+                      href={(order as any).trackingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-auto inline-flex items-center gap-1 text-sm text-[#C9A961] hover:underline"
+                      data-testid={`link-track-order-${order.id}`}
+                    >
+                      Track Order <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                )}
               </Card>
             );
           })}

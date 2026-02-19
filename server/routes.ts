@@ -761,5 +761,230 @@ export async function registerRoutes(
     }
   });
 
+  // Delivery settings (public read for checkout)
+  app.get("/api/delivery-settings", async (_req, res) => {
+    try {
+      const settings = await storage.getDeliverySettings();
+      if (!settings) {
+        return res.json({ freeDeliveryEnabled: true, flatDeliveryCharge: "0", freeDeliveryThreshold: null });
+      }
+      res.json({
+        freeDeliveryEnabled: settings.freeDeliveryEnabled,
+        flatDeliveryCharge: settings.flatDeliveryCharge,
+        freeDeliveryThreshold: settings.freeDeliveryThreshold,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch delivery settings" });
+    }
+  });
+
+  // Admin delivery settings
+  app.get("/api/admin/delivery-settings", isAuthenticated, isAdmin, async (_req, res) => {
+    try {
+      const settings = await storage.getDeliverySettings();
+      res.json(settings || {
+        freeDeliveryEnabled: true,
+        flatDeliveryCharge: "0",
+        freeDeliveryThreshold: null,
+        perKgCharge: "0",
+        delhiveryApiToken: "",
+        delhiveryWarehouseName: "",
+        delhiveryPickupPincode: "",
+        delhiveryPickupAddress: "",
+        delhiveryPickupCity: "",
+        delhiveryPickupState: "",
+        delhiveryPickupPhone: "",
+        delhiveryEnvironment: "staging",
+        sellerName: "",
+        sellerGstTin: "",
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch delivery settings" });
+    }
+  });
+
+  app.put("/api/admin/delivery-settings", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const settings = await storage.upsertDeliverySettings(req.body);
+      res.json(settings);
+    } catch (error) {
+      console.error("Update delivery settings error:", error);
+      res.status(500).json({ message: "Failed to update delivery settings" });
+    }
+  });
+
+  // Delhivery integration routes
+  app.post("/api/admin/delhivery/check-pincode", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { pincode } = req.body;
+      const settings = await storage.getDeliverySettings();
+      if (!settings?.delhiveryApiToken) {
+        return res.status(400).json({ message: "Delhivery API token not configured" });
+      }
+      const baseUrl = settings.delhiveryEnvironment === "production"
+        ? "https://track.delhivery.com"
+        : "https://staging-express.delhivery.com";
+      const response = await fetch(`${baseUrl}/c/api/pin-codes/json/?filter_codes=${pincode}`, {
+        headers: { Authorization: `Token ${settings.delhiveryApiToken}`, "Content-Type": "application/json" },
+      });
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error("Delhivery pincode check error:", error);
+      res.status(500).json({ message: "Failed to check pincode serviceability" });
+    }
+  });
+
+  app.post("/api/delhivery/check-pincode", isAuthenticated, async (req, res) => {
+    try {
+      const { pincode } = req.body;
+      const settings = await storage.getDeliverySettings();
+      if (!settings?.delhiveryApiToken) {
+        return res.json({ serviceable: true });
+      }
+      const baseUrl = settings.delhiveryEnvironment === "production"
+        ? "https://track.delhivery.com"
+        : "https://staging-express.delhivery.com";
+      const response = await fetch(`${baseUrl}/c/api/pin-codes/json/?filter_codes=${pincode}`, {
+        headers: { Authorization: `Token ${settings.delhiveryApiToken}`, "Content-Type": "application/json" },
+      });
+      const data = await response.json();
+      const serviceable = data?.delivery_codes?.length > 0;
+      res.json({ serviceable, data: data?.delivery_codes?.[0]?.postal_code || null });
+    } catch (error) {
+      res.json({ serviceable: true });
+    }
+  });
+
+  app.post("/api/admin/delhivery/create-shipment", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { orderId } = req.body;
+      const order = await storage.getOrderById(orderId);
+      if (!order) return res.status(404).json({ message: "Order not found" });
+      const settings = await storage.getDeliverySettings();
+      if (!settings?.delhiveryApiToken) {
+        return res.status(400).json({ message: "Delhivery API token not configured" });
+      }
+      const shipping = order.shippingAddress as any;
+      const items = order.items as any[];
+      const baseUrl = settings.delhiveryEnvironment === "production"
+        ? "https://track.delhivery.com"
+        : "https://staging-express.delhivery.com";
+
+      const shipmentData = {
+        shipments: [{
+          name: shipping.fullName,
+          add: shipping.address,
+          pin: shipping.pincode,
+          city: shipping.city,
+          state: shipping.state,
+          country: "India",
+          phone: shipping.phone,
+          order: `RVN-${order.id}`,
+          payment_mode: "Prepaid",
+          return_pin: settings.delhiveryPickupPincode || "",
+          return_city: settings.delhiveryPickupCity || "",
+          return_phone: settings.delhiveryPickupPhone || "",
+          return_add: settings.delhiveryPickupAddress || "",
+          return_state: settings.delhiveryPickupState || "",
+          return_country: "India",
+          products_desc: items.map((i: any) => i.name).join(", "),
+          cod_amount: "0",
+          order_date: new Date().toISOString().split("T")[0],
+          total_amount: String(order.totalAmount),
+          seller_add: settings.delhiveryPickupAddress || "",
+          seller_name: settings.sellerName || "Ravindrra Vastra Niketan",
+          seller_inv: `INV-${order.id}`,
+          quantity: String(items.reduce((s: number, i: any) => s + (i.quantity || 1), 0)),
+          waybill: "",
+          shipping_mode: "Surface",
+          address_type: "home",
+          pickup_location: { name: settings.delhiveryWarehouseName || "default" },
+        }],
+        pickup_location: { name: settings.delhiveryWarehouseName || "default" },
+      };
+
+      const response = await fetch(`${baseUrl}/api/cmu/create.json`, {
+        method: "POST",
+        headers: {
+          Authorization: `Token ${settings.delhiveryApiToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(shipmentData),
+      });
+      const result = await response.json();
+
+      if (result?.packages?.[0]?.waybill) {
+        const waybill = result.packages[0].waybill;
+        const trackingUrl = `https://www.delhivery.com/track/package/${waybill}`;
+        await storage.updateOrderTracking(order.id, {
+          delhiveryWaybill: waybill,
+          delhiveryStatus: "Manifested",
+          trackingUrl,
+        });
+        await storage.updateOrderStatus(order.id, "shipped");
+        res.json({ success: true, waybill, trackingUrl, result });
+      } else {
+        res.json({ success: false, result });
+      }
+    } catch (error) {
+      console.error("Delhivery shipment creation error:", error);
+      res.status(500).json({ message: "Failed to create shipment" });
+    }
+  });
+
+  app.get("/api/admin/delhivery/track/:waybill", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const settings = await storage.getDeliverySettings();
+      if (!settings?.delhiveryApiToken) {
+        return res.status(400).json({ message: "Delhivery API token not configured" });
+      }
+      const baseUrl = settings.delhiveryEnvironment === "production"
+        ? "https://track.delhivery.com"
+        : "https://staging-express.delhivery.com";
+      const response = await fetch(`${baseUrl}/api/v1/packages/json/?waybill=${req.params.waybill}`, {
+        headers: { Authorization: `Token ${settings.delhiveryApiToken}`, "Content-Type": "application/json" },
+      });
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error("Delhivery tracking error:", error);
+      res.status(500).json({ message: "Failed to track shipment" });
+    }
+  });
+
+  app.get("/api/orders/:id/track", isAuthenticated, async (req, res) => {
+    try {
+      const order = await storage.getOrderById(Number(req.params.id));
+      if (!order) return res.status(404).json({ message: "Order not found" });
+      if (order.userId !== (req as any).userId) return res.status(403).json({ message: "Forbidden" });
+      if (!order.delhiveryWaybill) {
+        return res.json({ tracking: null, message: "No tracking info available yet" });
+      }
+      const settings = await storage.getDeliverySettings();
+      if (!settings?.delhiveryApiToken) {
+        return res.json({ waybill: order.delhiveryWaybill, trackingUrl: order.trackingUrl, status: order.delhiveryStatus });
+      }
+      const baseUrl = settings.delhiveryEnvironment === "production"
+        ? "https://track.delhivery.com"
+        : "https://staging-express.delhivery.com";
+      try {
+        const response = await fetch(`${baseUrl}/api/v1/packages/json/?waybill=${order.delhiveryWaybill}`, {
+          headers: { Authorization: `Token ${settings.delhiveryApiToken}`, "Content-Type": "application/json" },
+        });
+        const data = await response.json();
+        const latestStatus = data?.ShipmentData?.[0]?.Shipment?.Status?.Status || order.delhiveryStatus;
+        if (latestStatus && latestStatus !== order.delhiveryStatus) {
+          await storage.updateOrderTracking(order.id, { delhiveryStatus: latestStatus });
+        }
+        res.json({ waybill: order.delhiveryWaybill, trackingUrl: order.trackingUrl, status: latestStatus, details: data });
+      } catch {
+        res.json({ waybill: order.delhiveryWaybill, trackingUrl: order.trackingUrl, status: order.delhiveryStatus });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get tracking info" });
+    }
+  });
+
   return httpServer;
 }

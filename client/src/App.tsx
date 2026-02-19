@@ -25,6 +25,7 @@ import AdminOrders from "@/pages/admin/orders";
 import AdminCustomers from "@/pages/admin/customers";
 import AdminCategories from "@/pages/admin/categories";
 import AdminCoupons from "@/pages/admin/coupons";
+import AdminDelivery from "@/pages/admin/delivery";
 
 function MainLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -80,6 +81,7 @@ function AdminRouter() {
         <Route path="/admin/customers" component={AdminCustomers} />
         <Route path="/admin/categories" component={AdminCategories} />
         <Route path="/admin/coupons" component={AdminCoupons} />
+        <Route path="/admin/delivery" component={AdminDelivery} />
         <Route component={NotFound} />
       </Switch>
     </AdminLayout>

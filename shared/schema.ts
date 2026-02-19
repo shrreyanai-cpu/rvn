@@ -87,6 +87,10 @@ export const orders = pgTable("orders", {
   paymentStatus: text("payment_status").notNull().default("pending"),
   paymentMethod: text("payment_method").default("cashfree"),
   cashfreeOrderId: text("cashfree_order_id"),
+  deliveryCharge: numeric("delivery_charge", { precision: 10, scale: 2 }).default("0"),
+  delhiveryWaybill: text("delhivery_waybill"),
+  delhiveryStatus: text("delhivery_status"),
+  trackingUrl: text("tracking_url"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -132,3 +136,25 @@ export const coupons = pgTable("coupons", {
 export const insertCouponSchema = createInsertSchema(coupons).omit({ id: true, usedCount: true, createdAt: true });
 export type InsertCoupon = z.infer<typeof insertCouponSchema>;
 export type Coupon = typeof coupons.$inferSelect;
+
+export const deliverySettings = pgTable("delivery_settings", {
+  id: serial("id").primaryKey(),
+  freeDeliveryEnabled: boolean("free_delivery_enabled").notNull().default(true),
+  freeDeliveryThreshold: numeric("free_delivery_threshold", { precision: 10, scale: 2 }),
+  flatDeliveryCharge: numeric("flat_delivery_charge", { precision: 10, scale: 2 }).default("0"),
+  perKgCharge: numeric("per_kg_charge", { precision: 10, scale: 2 }).default("0"),
+  delhiveryApiToken: text("delhivery_api_token"),
+  delhiveryWarehouseName: text("delhivery_warehouse_name"),
+  delhiveryPickupPincode: text("delhivery_pickup_pincode"),
+  delhiveryPickupAddress: text("delhivery_pickup_address"),
+  delhiveryPickupCity: text("delhivery_pickup_city"),
+  delhiveryPickupState: text("delhivery_pickup_state"),
+  delhiveryPickupPhone: text("delhivery_pickup_phone"),
+  delhiveryEnvironment: text("delhivery_environment").default("staging"),
+  sellerName: text("seller_name"),
+  sellerGstTin: text("seller_gst_tin"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type DeliverySettings = typeof deliverySettings.$inferSelect;
+export type InsertDeliverySettings = typeof deliverySettings.$inferInsert;
