@@ -11,7 +11,9 @@ function getCashfreeInstance() {
   const clientId = process.env.CASHFREE_APP_ID || "";
   const clientSecret = process.env.CASHFREE_SECRET_KEY || "";
   const env = process.env.CASHFREE_ENV === "PRODUCTION" ? CFEnvironment.PRODUCTION : CFEnvironment.SANDBOX;
-  return new (CashfreeSDK as any)(env, clientId, clientSecret);
+  const instance = new (CashfreeSDK as any)(env, clientId, clientSecret);
+  instance.XApiVersion = "2023-08-01";
+  return instance;
 }
 
 function getUserId(req: any): string {
