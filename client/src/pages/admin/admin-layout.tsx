@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Tag, FolderOpen,
-  LogOut, Store, ChevronLeft, Truck, Shield
+  LogOut, Store, ChevronLeft, Truck, Shield, Mail
 } from "lucide-react";
 import { hasPermission, isAdminRole, type Permission } from "@shared/models/auth";
 import { useAuth } from "@/hooks/use-auth";
@@ -30,6 +30,7 @@ const navItems: { href: string; label: string; icon: any; permission: Permission
   { href: "/admin/categories", label: "Categories", icon: FolderOpen, permission: "manage_categories" },
   { href: "/admin/coupons", label: "Coupons", icon: Tag, permission: "manage_coupons" },
   { href: "/admin/delivery", label: "Delivery", icon: Truck, permission: "manage_delivery" },
+  { href: "/admin/emails", label: "Emails", icon: Mail, permission: "manage_customers" },
   { href: "/admin/roles", label: "Roles", icon: Shield, permission: "manage_roles" },
 ];
 

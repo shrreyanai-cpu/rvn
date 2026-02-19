@@ -4,6 +4,8 @@
 A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium Indian clothing store. Built as a standalone solution with product catalog, shopping cart, checkout, order management, and admin dashboard.
 
 ## Recent Changes
+- 2026-02-19: Email notifications via Resend: order confirmation, shipping updates, promotional email campaigns
+- 2026-02-19: Admin Email Campaigns page (/admin/emails) with compose UI, customer targeting, templates, preview
 - 2026-02-19: Role-based access control system with 4 roles (super_admin, manager, staff, customer) and 10 granular permissions
 - 2026-02-19: Admin Roles management page (/admin/roles) with team member list, role assignment, permissions matrix, promote customer dialog
 - 2026-02-19: Sidebar dynamically shows only pages the user's role has permission to access
@@ -52,7 +54,9 @@ A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium India
 - `server/storage.ts` - Database storage layer (DatabaseStorage)
 - `server/seed.ts` - Seed data for products and categories
 - `client/src/App.tsx` - Main app with routing
+- `server/email.ts` - Email templates and Resend integration
 - `client/src/pages/admin/delivery.tsx` - Admin delivery settings page
+- `client/src/pages/admin/emails.tsx` - Admin email campaigns page
 
 ## Pages
 - `/` - Landing page (logged out) / Home page (logged in)

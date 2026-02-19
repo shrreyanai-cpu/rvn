@@ -7,6 +7,7 @@ import { registerObjectStorageRoutes } from "./replit_integrations/object_storag
 import { authStorage } from "./replit_integrations/auth/storage";
 import { Cashfree as CashfreeSDK, CFEnvironment } from "cashfree-pg";
 import { hasPermission, isAdminRole, type Permission } from "@shared/models/auth";
+import { sendOrderConfirmation, sendShippingUpdate, sendPromotionalEmail } from "./email";
 
 function getCashfreeInstance() {
   const clientId = process.env.CASHFREE_APP_ID || "";
@@ -707,6 +708,13 @@ export async function registerRoutes(
         await storage.updateOrderStatus(order.id, orderStatus);
       }
 
+      if (paymentStatus === "paid" && orderStatus === "confirmed") {
+        const user = await authStorage.getUser(order.userId);
+        if (user?.email) {
+          sendOrderConfirmation(user.email, order as any).catch(err => console.error("Order confirmation email error:", err));
+        }
+      }
+
       res.json({ paymentStatus, orderStatus, cfStatus });
     } catch (error: any) {
       console.error("Payment verify error:", error?.response?.data || error);
@@ -838,6 +846,16 @@ export async function registerRoutes(
       if (!order) {
         return res.status(404).json({ message: "Order not found" });
       }
+
+      const newStatus = parsed.data.status;
+      if (["shipped", "delivered", "cancelled"].includes(newStatus)) {
+        const user = await authStorage.getUser(order.userId);
+        if (user?.email) {
+          sendShippingUpdate(user.email, order as any, newStatus, order.trackingUrl, order.delhiveryWaybill)
+            .catch(err => console.error("Shipping update email error:", err));
+        }
+      }
+
       res.json(order);
     } catch (error) {
       res.status(500).json({ message: "Failed to update order" });
@@ -1055,6 +1073,45 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/admin/email/send", isAuthenticated, requirePermission("manage_customers"), async (req, res) => {
+    try {
+      const schema = z.object({
+        subject: z.string().min(1),
+        heading: z.string().min(1),
+        body: z.string().min(1),
+        ctaText: z.string().optional(),
+        ctaUrl: z.string().url().optional(),
+        recipients: z.enum(["all", "selected"]),
+        selectedEmails: z.array(z.string().email()).optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid email data", errors: parsed.error.flatten() });
+
+      let emails: string[] = [];
+      if (parsed.data.recipients === "all") {
+        const allUsers = await storage.getAllUsers();
+        emails = allUsers.map((u: any) => u.email).filter((e: string) => e && e.includes("@"));
+      } else {
+        emails = (parsed.data.selectedEmails || []).filter((e: string) => e && e.includes("@"));
+      }
+
+      if (emails.length === 0) return res.status(400).json({ message: "No recipients found" });
+
+      const results = await sendPromotionalEmail(
+        emails,
+        parsed.data.subject,
+        parsed.data.heading,
+        parsed.data.body,
+        parsed.data.ctaText,
+        parsed.data.ctaUrl,
+      );
+      res.json({ sent: results.length, results });
+    } catch (error) {
+      console.error("Send promotional email error:", error);
+      res.status(500).json({ message: "Failed to send emails" });
+    }
+  });
+
   app.get("/api/delivery-settings", async (_req, res) => {
     try {
       const settings = await storage.getDeliverySettings();
@@ -1224,6 +1281,13 @@ export async function registerRoutes(
           trackingUrl,
         });
         await storage.updateOrderStatus(order.id, "shipped");
+
+        const user = await authStorage.getUser(order.userId);
+        if (user?.email) {
+          sendShippingUpdate(user.email, order as any, "shipped", trackingUrl, waybill)
+            .catch(err => console.error("Shipping email error:", err));
+        }
+
         res.json({ success: true, waybill, trackingUrl, result });
       } else {
         res.json({ success: false, result });

@@ -30,6 +30,7 @@ import AdminCategories from "@/pages/admin/categories";
 import AdminCoupons from "@/pages/admin/coupons";
 import AdminDelivery from "@/pages/admin/delivery";
 import AdminRoles from "@/pages/admin/roles";
+import AdminEmails from "@/pages/admin/emails";
 import AdminCustomerDetail from "@/pages/admin/customer-detail";
 
 function ScrollToTop() {
@@ -97,6 +98,7 @@ function AdminRouter() {
         <Route path="/admin/categories" component={AdminCategories} />
         <Route path="/admin/coupons" component={AdminCoupons} />
         <Route path="/admin/delivery" component={AdminDelivery} />
+        <Route path="/admin/emails" component={AdminEmails} />
         <Route path="/admin/roles" component={AdminRoles} />
         <Route component={NotFound} />
       </Switch>
