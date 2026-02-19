@@ -1566,9 +1566,12 @@ export async function registerRoutes(
     try {
       const userId = getUserId(req);
       const orderId = Number(req.params.id);
-      const schema = z.object({ reason: z.string().min(5, "Please provide a reason (at least 5 characters)") });
+      const schema = z.object({
+        reason: z.string().min(5, "Please provide a reason (at least 5 characters)"),
+        damageImageUrl: z.string().min(1, "Please upload a photo of the damaged item"),
+      });
       const parsed = schema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ message: "Please provide a valid reason for the return", errors: parsed.error.flatten() });
+      if (!parsed.success) return res.status(400).json({ message: "Please provide a reason and upload a damage photo", errors: parsed.error.flatten() });
 
       const order = await storage.getOrderById(orderId);
       if (!order) return res.status(404).json({ message: "Order not found" });
@@ -1590,6 +1593,7 @@ export async function registerRoutes(
         orderId,
         userId,
         reason: parsed.data.reason,
+        damageImageUrl: parsed.data.damageImageUrl,
         status: "pending",
       });
 

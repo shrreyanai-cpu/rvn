@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
-import { Package, ArrowLeft, Clock, Truck, CheckCircle, ShoppingBag, XCircle, CreditCard, Loader2, ExternalLink, RefreshCw, RotateCcw } from "lucide-react";
-import { useState } from "react";
+import { Package, ArrowLeft, Clock, Truck, CheckCircle, ShoppingBag, XCircle, CreditCard, Loader2, ExternalLink, RefreshCw, RotateCcw, Upload, ImageIcon } from "lucide-react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +44,11 @@ export default function OrdersPage() {
   const [reorderingId, setReorderingId] = useState<number | null>(null);
   const [returnOrderId, setReturnOrderId] = useState<number | null>(null);
   const [returnReason, setReturnReason] = useState("");
+  const [damageImageUrl, setDamageImageUrl] = useState("");
+  const [damageImagePreview, setDamageImagePreview] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const [returnStatuses, setReturnStatuses] = useState<Record<number, string>>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: orders, isLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
   });
@@ -67,9 +71,38 @@ export default function OrdersPage() {
     },
   });
 
+  const handleDamageImageUpload = async (file: File) => {
+    setIsUploading(true);
+    try {
+      const preview = URL.createObjectURL(file);
+      setDamageImagePreview(preview);
+
+      const urlRes = await apiRequest("POST", "/api/uploads/request-url", {
+        name: file.name,
+        size: file.size,
+        contentType: file.type,
+      });
+      const { uploadURL, objectPath } = await urlRes.json();
+
+      await fetch(uploadURL, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type },
+      });
+
+      setDamageImageUrl(objectPath);
+    } catch {
+      toast({ title: "Upload failed", description: "Could not upload the image. Please try again.", variant: "destructive" });
+      setDamageImagePreview("");
+      setDamageImageUrl("");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const returnMutation = useMutation({
-    mutationFn: async ({ orderId, reason }: { orderId: number; reason: string }) => {
-      const res = await apiRequest("POST", `/api/orders/${orderId}/return`, { reason });
+    mutationFn: async ({ orderId, reason, damageImageUrl }: { orderId: number; reason: string; damageImageUrl: string }) => {
+      const res = await apiRequest("POST", `/api/orders/${orderId}/return`, { reason, damageImageUrl });
       return res.json();
     },
     onSuccess: (_, vars) => {
@@ -77,7 +110,9 @@ export default function OrdersPage() {
       setReturnStatuses(prev => ({ ...prev, [vars.orderId]: "pending" }));
       setReturnOrderId(null);
       setReturnReason("");
-      toast({ title: "Return requested", description: "We'll review your return request and notify you via email." });
+      setDamageImageUrl("");
+      setDamageImagePreview("");
+      toast({ title: "Return requested", description: "We'll review the damage photo and notify you via email." });
     },
     onError: (err: any) => {
       toast({ title: "Cannot request return", description: err?.message || "Failed to submit return request", variant: "destructive" });
@@ -247,26 +282,93 @@ export default function OrdersPage() {
         </div>
       )}
 
-      <Dialog open={returnOrderId !== null} onOpenChange={() => setReturnOrderId(null)}>
+      <Dialog open={returnOrderId !== null} onOpenChange={(open) => {
+        if (!open) {
+          setReturnOrderId(null);
+          setReturnReason("");
+          setDamageImageUrl("");
+          setDamageImagePreview("");
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Request Return</DialogTitle>
+            <DialogTitle>Request Return - Damaged Item</DialogTitle>
             <DialogDescription>
-              Order #{returnOrderId} &bull; Returns must be within {RETURN_WINDOW_DAYS} days of delivery
+              Order #{returnOrderId} &bull; Upload a photo of the damage to proceed
             </DialogDescription>
           </DialogHeader>
-          <div className="py-2">
-            <label className="text-sm font-medium" htmlFor="return-reason">Reason for return</label>
-            <Textarea
-              id="return-reason"
-              value={returnReason}
-              onChange={(e) => setReturnReason(e.target.value)}
-              placeholder="Please tell us why you'd like to return this order..."
-              className="mt-1"
-              data-testid="input-return-reason"
-            />
-            <p className="text-xs text-muted-foreground mt-1.5">
-              Items must be unused, in original packaging with tags intact.{" "}
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium">Photo of damaged item *</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleDamageImageUpload(file);
+                }}
+                data-testid="input-damage-image"
+              />
+              {damageImagePreview ? (
+                <div className="mt-2 relative">
+                  <img
+                    src={damageImagePreview}
+                    alt="Damage photo"
+                    className="w-full max-h-48 object-contain rounded-md border bg-muted"
+                    data-testid="img-damage-preview"
+                  />
+                  {isUploading && (
+                    <div className="absolute inset-0 bg-background/60 flex items-center justify-center rounded-md">
+                      <Loader2 className="h-6 w-6 animate-spin text-[#C9A961]" />
+                    </div>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    data-testid="button-change-damage-image"
+                  >
+                    <Upload className="mr-1.5 h-3.5 w-3.5" />
+                    Change Photo
+                  </Button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="mt-2 w-full border-2 border-dashed rounded-md p-6 flex flex-col items-center gap-2 hover-elevate transition-colors cursor-pointer"
+                  disabled={isUploading}
+                  data-testid="button-upload-damage-image"
+                >
+                  {isUploading ? (
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  ) : (
+                    <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                  )}
+                  <span className="text-sm text-muted-foreground">
+                    {isUploading ? "Uploading..." : "Click to upload damage photo"}
+                  </span>
+                  <span className="text-xs text-muted-foreground">JPG, PNG supported</span>
+                </button>
+              )}
+            </div>
+            <div>
+              <label className="text-sm font-medium" htmlFor="return-reason">Describe the damage *</label>
+              <Textarea
+                id="return-reason"
+                value={returnReason}
+                onChange={(e) => setReturnReason(e.target.value)}
+                placeholder="Please describe what is damaged..."
+                className="mt-1"
+                data-testid="input-return-reason"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Returns are only accepted for damaged items. Our team will review the photo before processing.{" "}
               <Link href="/return-policy">
                 <span className="text-[#C9A961] hover:underline cursor-pointer">View return policy</span>
               </Link>
@@ -277,10 +379,10 @@ export default function OrdersPage() {
               Cancel
             </Button>
             <Button
-              disabled={returnReason.trim().length < 5 || returnMutation.isPending}
+              disabled={returnReason.trim().length < 5 || !damageImageUrl || isUploading || returnMutation.isPending}
               onClick={() => {
-                if (returnOrderId) {
-                  returnMutation.mutate({ orderId: returnOrderId, reason: returnReason.trim() });
+                if (returnOrderId && damageImageUrl) {
+                  returnMutation.mutate({ orderId: returnOrderId, reason: returnReason.trim(), damageImageUrl });
                 }
               }}
               data-testid="button-submit-return"

@@ -22,6 +22,7 @@ interface ReturnRequestEnriched {
   orderId: number;
   userId: string;
   reason: string;
+  damageImageUrl?: string | null;
   status: string;
   adminNotes?: string | null;
   createdAt: string;
@@ -143,8 +144,19 @@ export default function AdminReturns() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
+            {selectedReturn?.damageImageUrl && (
+              <div>
+                <p className="text-sm font-medium mb-1">Damage Photo</p>
+                <img
+                  src={selectedReturn.damageImageUrl}
+                  alt="Damage evidence"
+                  className="w-full max-h-64 object-contain rounded-md border bg-muted"
+                  data-testid="img-admin-damage-preview"
+                />
+              </div>
+            )}
             <div>
-              <p className="text-sm font-medium mb-1">Customer's Reason</p>
+              <p className="text-sm font-medium mb-1">Damage Description</p>
               <p className="text-sm text-muted-foreground bg-muted rounded-md p-3">{selectedReturn?.reason}</p>
             </div>
             <div>
@@ -202,6 +214,16 @@ function ReturnCard({ ret, onAction }: { ret: ReturnRequestEnriched; onAction: (
           <p className="text-xs text-muted-foreground mb-2">
             {ret.customerName} ({ret.customerEmail}) &bull; {new Date(ret.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
           </p>
+          {ret.damageImageUrl && (
+            <div className="mb-2">
+              <img
+                src={ret.damageImageUrl}
+                alt="Damage evidence"
+                className="w-24 h-24 object-cover rounded-md border"
+                data-testid={`img-damage-${ret.id}`}
+              />
+            </div>
+          )}
           <div className="bg-muted rounded-md p-3 mb-2">
             <p className="text-sm text-muted-foreground">{ret.reason}</p>
           </div>
