@@ -48,7 +48,12 @@ export default function HomePage() {
 
   const mainCategories = categories?.filter((c) => !c.parentId) || [];
   const getSubcategories = (parentId: number) => categories?.filter((c) => c.parentId === parentId) || [];
-  const newArrivals = allProducts?.filter((p) => !p.featured).slice(0, 4) || [];
+  const newArrivals = useMemo(() => {
+    if (!allProducts) return [];
+    return [...allProducts]
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+      .slice(0, 8);
+  }, [allProducts]);
 
   const collectionImages: Record<string, string> = {
     "sarees": "/images/products/silk-saree-burgundy.png",
@@ -151,6 +156,42 @@ export default function HomePage() {
               ))}
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="py-20 sm:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 mb-8 sm:mb-12">
+            <div>
+              <p className="text-[#C9A961] text-xs font-medium tracking-[0.2em] uppercase mb-2">
+                Just In
+              </p>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold" data-testid="text-new-arrivals-title">
+                New Arrivals
+              </h2>
+              <p className="text-muted-foreground text-sm mt-2 max-w-md">
+                The latest additions to our collection, fresh from our artisan workshops
+              </p>
+            </div>
+            <Link href="/shop">
+              <Button variant="ghost" size="sm" data-testid="link-view-all-new-arrivals">
+                View All <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            {loadingAll
+              ? Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="space-y-3">
+                    <Skeleton className="aspect-[3/4] rounded-md" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
+                ))
+              : newArrivals.map((product) => (
+                  <ProductCard key={product.id} product={product} rating={ratingsMap?.[product.id]} />
+                ))}
+          </div>
         </div>
       </section>
 
@@ -395,42 +436,6 @@ export default function HomePage() {
                 </Button>
               </Link>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-20 sm:py-24 bg-card">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 mb-8 sm:mb-12">
-            <div>
-              <p className="text-[#C9A961] text-xs font-medium tracking-[0.2em] uppercase mb-2">
-                Just In
-              </p>
-              <h2 className="font-serif text-2xl sm:text-3xl font-bold" data-testid="text-new-arrivals-title">
-                New Arrivals
-              </h2>
-              <p className="text-muted-foreground text-sm mt-2 max-w-md">
-                The latest additions to our collection, fresh from our artisan workshops
-              </p>
-            </div>
-            <Link href="/shop">
-              <Button variant="ghost" size="sm" data-testid="link-view-all-products">
-                View All <ArrowRight className="ml-1 h-3.5 w-3.5" />
-              </Button>
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-            {loadingAll
-              ? Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="space-y-3">
-                    <Skeleton className="aspect-[3/4] rounded-md" />
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                  </div>
-                ))
-              : newArrivals.map((product) => (
-                  <ProductCard key={product.id} product={product} rating={ratingsMap?.[product.id]} />
-                ))}
           </div>
         </div>
       </section>
