@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLocation, Link } from "wouter";
-import { ArrowLeft, Loader2, CreditCard, Shield, Tag, X, MapPin, Plus, Check, Truck, AlertCircle } from "lucide-react";
+import { ArrowLeft, Loader2, CreditCard, Shield, Tag, X, MapPin, Plus, Check, Truck, AlertCircle, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -53,6 +54,7 @@ export default function CheckoutPage() {
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   const [pincodeCheckResult, setPincodeCheckResult] = useState<{ serviceable: boolean; checked: boolean; loading: boolean; pincode: string } | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const [form, setForm] = useState({
     fullName: "",
@@ -276,9 +278,9 @@ export default function CheckoutPage() {
 
   const isProcessing = buyNowMutation.isPending || placeOrderMutation.isPending || paymentLoading;
 
-  const isFormValid = showNewAddressForm
+  const isFormValid = termsAccepted && (showNewAddressForm
     ? form.fullName && form.address && form.city && form.state && form.pincode.length === 6 && form.phone.length === 10
-    : selectedAddressId !== null;
+    : selectedAddressId !== null);
 
   if (!isBuyNow && isLoading) {
     return (
@@ -672,6 +674,38 @@ export default function CheckoutPage() {
               <p className="text-xs text-muted-foreground">
                 Secure payment powered by Cashfree. Supports UPI, Cards, Net Banking & Wallets.
               </p>
+            </div>
+
+            <div className="mt-4 p-4 rounded-md border bg-muted/30 space-y-3" data-testid="section-terms">
+              <p className="text-xs font-semibold flex items-center gap-1.5">
+                <Video className="h-3.5 w-3.5 text-[#C9A961]" />
+                Terms & Conditions
+              </p>
+              <ul className="text-xs text-muted-foreground space-y-1.5 pl-4 list-disc leading-relaxed">
+                <li>You must <strong className="text-foreground">record an unboxing video</strong> while opening your parcel. Without a valid unboxing video, no return request will be processed.</li>
+                <li><strong className="text-foreground">Colour/shade changes are not eligible</strong> for return or exchange. Slight colour variations may occur due to screen settings.</li>
+                <li><strong className="text-foreground">Size exchanges are not available.</strong> Please check the size guide before ordering.</li>
+                <li>Returns are accepted <strong className="text-foreground">only for damaged or defective items</strong> within 2 days of delivery.</li>
+                <li>Change of mind, wrong selection, or personal preference is <strong className="text-foreground">not a valid reason</strong> for return.</li>
+                <li>Innerwear, undergarments, customized, and tailored products are <strong className="text-foreground">non-returnable</strong>.</li>
+                <li>Items must be unused with <strong className="text-foreground">original tags and packaging intact</strong>.</li>
+                <li>Shipping charges are <strong className="text-foreground">non-refundable</strong>.</li>
+              </ul>
+              <div className="flex items-start gap-2 pt-1">
+                <Checkbox
+                  id="terms-accept"
+                  checked={termsAccepted}
+                  onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+                  data-testid="checkbox-terms-accept"
+                />
+                <label htmlFor="terms-accept" className="text-xs text-muted-foreground leading-snug cursor-pointer select-none">
+                  I have read and agree to the{" "}
+                  <Link href="/return-policy">
+                    <span className="text-[#C9A961] hover:underline">return & refund policy</span>
+                  </Link>
+                  . I understand that I must record an unboxing video and that colour/size changes are not eligible for return.
+                </label>
+              </div>
             </div>
 
             <Button
