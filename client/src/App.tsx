@@ -46,7 +46,7 @@ function HomeOrLanding() {
       </div>
     );
   }
-  return isAuthenticated ? <HomePage /> : <LandingPage />;
+  return <HomePage />;
 }
 
 function AdminRouter() {
