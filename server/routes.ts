@@ -343,6 +343,52 @@ export async function registerRoutes(
     }
   });
 
+  // One-click reorder: add all items from a past order back to cart
+  app.post("/api/orders/:id/reorder", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      const orderId = Number(req.params.id);
+      const order = await storage.getOrderById(orderId);
+      if (!order) return res.status(404).json({ message: "Order not found" });
+      if (order.userId !== userId) return res.status(403).json({ message: "Forbidden" });
+      const items = (order.items as any[]) || [];
+      let addedCount = 0;
+      for (const item of items) {
+        try {
+          const product = await storage.getProductById(item.productId);
+          if (product && product.inStock !== false) {
+            await storage.addCartItem({
+              userId,
+              productId: item.productId,
+              quantity: item.quantity || 1,
+              size: item.size || null,
+              color: item.color || null,
+            });
+            addedCount++;
+          }
+        } catch {}
+      }
+      res.json({ message: "Items added to cart", addedCount });
+    } catch (error) {
+      console.error("Reorder error:", error);
+      res.status(500).json({ message: "Failed to reorder" });
+    }
+  });
+
+  // Admin: Delete order
+  app.delete("/api/admin/orders/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const orderId = Number(req.params.id);
+      const order = await storage.getOrderById(orderId);
+      if (!order) return res.status(404).json({ message: "Order not found" });
+      await storage.adminDeleteOrder(orderId);
+      res.json({ message: "Order deleted" });
+    } catch (error) {
+      console.error("Admin delete order error:", error);
+      res.status(500).json({ message: "Failed to delete order" });
+    }
+  });
+
   app.get("/api/user/profile", isAuthenticated, async (req: any, res) => {
     try {
       const userId = getUserId(req);

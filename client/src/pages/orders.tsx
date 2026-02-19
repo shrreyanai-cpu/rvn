@@ -1,5 +1,6 @@
-import { Link } from "wouter";
-import { Package, ArrowLeft, Clock, Truck, CheckCircle, ShoppingBag, XCircle, CreditCard, Trash2, Loader2, ExternalLink } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { Package, ArrowLeft, Clock, Truck, CheckCircle, ShoppingBag, XCircle, CreditCard, Loader2, ExternalLink, RefreshCw } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,20 +20,27 @@ const statusConfig: Record<string, { label: string; icon: any; className: string
 
 export default function OrdersPage() {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
+  const [reorderingId, setReorderingId] = useState<number | null>(null);
   const { data: orders, isLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
   });
 
-  const deleteOrderMutation = useMutation({
+  const reorderMutation = useMutation({
     mutationFn: async (orderId: number) => {
-      await apiRequest("DELETE", `/api/orders/${orderId}`);
+      setReorderingId(orderId);
+      const res = await apiRequest("POST", `/api/orders/${orderId}/reorder`);
+      return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
-      toast({ title: "Order deleted", description: "The order has been removed from your history." });
+    onSuccess: (data: any) => {
+      setReorderingId(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+      toast({ title: "Items added to cart", description: `${data.addedCount || 0} item(s) added to your cart` });
+      navigate("/cart");
     },
     onError: () => {
-      toast({ title: "Error", description: "Could not delete order. Please try again.", variant: "destructive" });
+      setReorderingId(null);
+      toast({ title: "Error", description: "Could not reorder. Some items may no longer be available.", variant: "destructive" });
     },
   });
 
@@ -116,22 +124,18 @@ export default function OrdersPage() {
                       Rs. {Number(order.totalAmount).toLocaleString("en-IN")}
                     </span>
                     <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-muted-foreground"
-                      disabled={deleteOrderMutation.isPending}
-                      onClick={() => {
-                        if (confirm("Are you sure you want to delete this order?")) {
-                          deleteOrderMutation.mutate(order.id);
-                        }
-                      }}
-                      data-testid={`button-delete-order-${order.id}`}
+                      variant="outline"
+                      size="sm"
+                      disabled={reorderingId === order.id}
+                      onClick={() => reorderMutation.mutate(order.id)}
+                      data-testid={`button-reorder-${order.id}`}
                     >
-                      {deleteOrderMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                      {reorderingId === order.id ? (
+                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                       ) : (
-                        <Trash2 className="h-4 w-4" />
+                        <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
                       )}
+                      Reorder
                     </Button>
                   </div>
                 </div>

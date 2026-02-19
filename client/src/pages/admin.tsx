@@ -15,8 +15,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -345,6 +350,24 @@ export default function AdminPage() {
     },
   });
 
+  const [deletingOrderId, setDeletingOrderId] = useState<number | null>(null);
+
+  const deleteOrderMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      setDeletingOrderId(orderId);
+      await apiRequest("DELETE", `/api/admin/orders/${orderId}`);
+    },
+    onSuccess: () => {
+      setDeletingOrderId(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
+      toast({ title: "Order deleted", description: "The order has been permanently removed." });
+    },
+    onError: () => {
+      setDeletingOrderId(null);
+      toast({ title: "Error", description: "Failed to delete order", variant: "destructive" });
+    },
+  });
+
   const totalRevenue = orders?.reduce((sum, o) => sum + Number(o.totalAmount), 0) || 0;
   const totalProducts = products?.length || 0;
   const totalOrders = orders?.length || 0;
@@ -664,23 +687,59 @@ export default function AdminPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Select
-                            value={order.status}
-                            onValueChange={(status) =>
-                              updateOrderMutation.mutate({ id: order.id, status })
-                            }
-                          >
-                            <SelectTrigger className="w-32" data-testid={`select-order-status-${order.id}`}>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="pending">Pending</SelectItem>
-                              <SelectItem value="confirmed">Confirmed</SelectItem>
-                              <SelectItem value="shipped">Shipped</SelectItem>
-                              <SelectItem value="delivered">Delivered</SelectItem>
-                              <SelectItem value="cancelled">Cancelled</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <div className="flex items-center justify-end gap-1">
+                            <Select
+                              value={order.status}
+                              onValueChange={(status) =>
+                                updateOrderMutation.mutate({ id: order.id, status })
+                              }
+                            >
+                              <SelectTrigger className="w-28" data-testid={`select-order-status-${order.id}`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pending">Pending</SelectItem>
+                                <SelectItem value="confirmed">Confirmed</SelectItem>
+                                <SelectItem value="shipped">Shipped</SelectItem>
+                                <SelectItem value="delivered">Delivered</SelectItem>
+                                <SelectItem value="cancelled">Cancelled</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  disabled={deletingOrderId === order.id}
+                                  data-testid={`button-admin-delete-order-${order.id}`}
+                                >
+                                  {deletingOrderId === order.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  )}
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Order #{order.id}?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will permanently delete this order and all its data. This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel data-testid={`button-cancel-delete-order-${order.id}`}>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteOrderMutation.mutate(order.id)}
+                                    className="bg-destructive text-destructive-foreground"
+                                    data-testid={`button-confirm-delete-order-${order.id}`}
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );

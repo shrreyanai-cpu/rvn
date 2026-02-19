@@ -4,6 +4,8 @@
 A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium Indian clothing store. Built as a standalone solution with product catalog, shopping cart, checkout, order management, and admin dashboard.
 
 ## Recent Changes
+- 2026-02-19: One-click reorder from past orders (adds items to cart, checks availability)
+- 2026-02-19: Removed delete order from customer page; added admin delete with confirmation dialog
 - 2026-02-19: Profile management page (/profile) with personal info editing, password change, recent orders, addresses summary
 - 2026-02-19: Multi-address management system (add/edit/delete/set default), auto-save on checkout, addresses page
 - 2026-02-19: Shipping: Rs. 80 flat below Rs. 1,500, free above; FREESHIP coupon for free shipping
