@@ -182,7 +182,7 @@ export const returnRequests = pgTable("return_requests", {
   orderId: integer("order_id").references(() => orders.id).notNull(),
   userId: varchar("user_id").notNull(),
   reason: text("reason").notNull(),
-  damageImageUrl: text("damage_image_url").notNull(),
+  damageVideoUrl: text("damage_video_url").notNull(),
   status: text("status").notNull().default("pending"),
   adminNotes: text("admin_notes"),
   createdAt: timestamp("created_at").defaultNow(),

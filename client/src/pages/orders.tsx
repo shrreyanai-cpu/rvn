@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Package, ArrowLeft, Clock, Truck, CheckCircle, ShoppingBag, XCircle, CreditCard, Loader2, ExternalLink, RefreshCw, RotateCcw, Upload, ImageIcon } from "lucide-react";
+import { Package, ArrowLeft, Clock, Truck, CheckCircle, ShoppingBag, XCircle, CreditCard, Loader2, ExternalLink, RefreshCw, RotateCcw, Upload, Video } from "lucide-react";
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -44,8 +44,8 @@ export default function OrdersPage() {
   const [reorderingId, setReorderingId] = useState<number | null>(null);
   const [returnOrderId, setReturnOrderId] = useState<number | null>(null);
   const [returnReason, setReturnReason] = useState("");
-  const [damageImageUrl, setDamageImageUrl] = useState("");
-  const [damageImagePreview, setDamageImagePreview] = useState("");
+  const [damageVideoUrl, setDamageVideoUrl] = useState("");
+  const [damageVideoPreview, setDamageVideoPreview] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [returnStatuses, setReturnStatuses] = useState<Record<number, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,11 +71,11 @@ export default function OrdersPage() {
     },
   });
 
-  const handleDamageImageUpload = async (file: File) => {
+  const handleDamageVideoUpload = async (file: File) => {
     setIsUploading(true);
     try {
       const preview = URL.createObjectURL(file);
-      setDamageImagePreview(preview);
+      setDamageVideoPreview(preview);
 
       const urlRes = await apiRequest("POST", "/api/uploads/request-url", {
         name: file.name,
@@ -90,19 +90,19 @@ export default function OrdersPage() {
         headers: { "Content-Type": file.type },
       });
 
-      setDamageImageUrl(objectPath);
+      setDamageVideoUrl(objectPath);
     } catch {
-      toast({ title: "Upload failed", description: "Could not upload the image. Please try again.", variant: "destructive" });
-      setDamageImagePreview("");
-      setDamageImageUrl("");
+      toast({ title: "Upload failed", description: "Could not upload the video. Please try again.", variant: "destructive" });
+      setDamageVideoPreview("");
+      setDamageVideoUrl("");
     } finally {
       setIsUploading(false);
     }
   };
 
   const returnMutation = useMutation({
-    mutationFn: async ({ orderId, reason, damageImageUrl }: { orderId: number; reason: string; damageImageUrl: string }) => {
-      const res = await apiRequest("POST", `/api/orders/${orderId}/return`, { reason, damageImageUrl });
+    mutationFn: async ({ orderId, reason, damageVideoUrl }: { orderId: number; reason: string; damageVideoUrl: string }) => {
+      const res = await apiRequest("POST", `/api/orders/${orderId}/return`, { reason, damageVideoUrl });
       return res.json();
     },
     onSuccess: (_, vars) => {
@@ -110,9 +110,9 @@ export default function OrdersPage() {
       setReturnStatuses(prev => ({ ...prev, [vars.orderId]: "pending" }));
       setReturnOrderId(null);
       setReturnReason("");
-      setDamageImageUrl("");
-      setDamageImagePreview("");
-      toast({ title: "Return requested", description: "We'll review the damage photo and notify you via email." });
+      setDamageVideoUrl("");
+      setDamageVideoPreview("");
+      toast({ title: "Return requested", description: "We'll review the damage video and notify you via email." });
     },
     onError: (err: any) => {
       toast({ title: "Cannot request return", description: err?.message || "Failed to submit return request", variant: "destructive" });
@@ -286,38 +286,38 @@ export default function OrdersPage() {
         if (!open) {
           setReturnOrderId(null);
           setReturnReason("");
-          setDamageImageUrl("");
-          setDamageImagePreview("");
+          setDamageVideoUrl("");
+          setDamageVideoPreview("");
         }
       }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Request Return - Damaged Item</DialogTitle>
             <DialogDescription>
-              Order #{returnOrderId} &bull; Upload a photo of the damage to proceed
+              Order #{returnOrderId} &bull; Upload an unboxing/damage video to proceed
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <label className="text-sm font-medium">Photo of damaged item *</label>
+              <label className="text-sm font-medium">Unboxing / Damage video *</label>
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="video/*"
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (file) handleDamageImageUpload(file);
+                  if (file) handleDamageVideoUpload(file);
                 }}
-                data-testid="input-damage-image"
+                data-testid="input-damage-video"
               />
-              {damageImagePreview ? (
+              {damageVideoPreview ? (
                 <div className="mt-2 relative">
-                  <img
-                    src={damageImagePreview}
-                    alt="Damage photo"
-                    className="w-full max-h-48 object-contain rounded-md border bg-muted"
-                    data-testid="img-damage-preview"
+                  <video
+                    src={damageVideoPreview}
+                    controls
+                    className="w-full max-h-48 rounded-md border bg-muted"
+                    data-testid="video-damage-preview"
                   />
                   {isUploading && (
                     <div className="absolute inset-0 bg-background/60 flex items-center justify-center rounded-md">
@@ -330,10 +330,10 @@ export default function OrdersPage() {
                     className="mt-2"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading}
-                    data-testid="button-change-damage-image"
+                    data-testid="button-change-damage-video"
                   >
                     <Upload className="mr-1.5 h-3.5 w-3.5" />
-                    Change Photo
+                    Change Video
                   </Button>
                 </div>
               ) : (
@@ -342,17 +342,17 @@ export default function OrdersPage() {
                   onClick={() => fileInputRef.current?.click()}
                   className="mt-2 w-full border-2 border-dashed rounded-md p-6 flex flex-col items-center gap-2 hover-elevate transition-colors cursor-pointer"
                   disabled={isUploading}
-                  data-testid="button-upload-damage-image"
+                  data-testid="button-upload-damage-video"
                 >
                   {isUploading ? (
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                   ) : (
-                    <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                    <Video className="h-8 w-8 text-muted-foreground" />
                   )}
                   <span className="text-sm text-muted-foreground">
-                    {isUploading ? "Uploading..." : "Click to upload damage photo"}
+                    {isUploading ? "Uploading..." : "Click to upload unboxing/damage video"}
                   </span>
-                  <span className="text-xs text-muted-foreground">JPG, PNG supported</span>
+                  <span className="text-xs text-muted-foreground">MP4, MOV, AVI supported</span>
                 </button>
               )}
             </div>
@@ -368,7 +368,7 @@ export default function OrdersPage() {
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Returns are only accepted for damaged items. Our team will review the photo before processing.{" "}
+              Returns are only accepted for damaged items with a valid unboxing video. Our team will review the video before processing.{" "}
               <Link href="/return-policy">
                 <span className="text-[#C9A961] hover:underline cursor-pointer">View return policy</span>
               </Link>
@@ -379,10 +379,10 @@ export default function OrdersPage() {
               Cancel
             </Button>
             <Button
-              disabled={returnReason.trim().length < 5 || !damageImageUrl || isUploading || returnMutation.isPending}
+              disabled={returnReason.trim().length < 5 || !damageVideoUrl || isUploading || returnMutation.isPending}
               onClick={() => {
-                if (returnOrderId && damageImageUrl) {
-                  returnMutation.mutate({ orderId: returnOrderId, reason: returnReason.trim(), damageImageUrl });
+                if (returnOrderId && damageVideoUrl) {
+                  returnMutation.mutate({ orderId: returnOrderId, reason: returnReason.trim(), damageVideoUrl });
                 }
               }}
               data-testid="button-submit-return"
