@@ -252,6 +252,7 @@ export class DatabaseStorage implements IStorage {
       firstName: users.firstName,
       lastName: users.lastName,
       isAdmin: users.isAdmin,
+      role: users.role,
       createdAt: users.createdAt,
       phone: users.phone,
     }).from(users).orderBy(desc(users.createdAt));
@@ -265,6 +266,7 @@ export class DatabaseStorage implements IStorage {
       firstName: users.firstName,
       lastName: users.lastName,
       isAdmin: users.isAdmin,
+      role: users.role,
       createdAt: users.createdAt,
       phone: users.phone,
       savedShippingAddress: users.savedShippingAddress,
