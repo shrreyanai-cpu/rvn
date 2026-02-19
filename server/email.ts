@@ -275,11 +275,14 @@ export function buildPromotionalEmail(subject: string, heading: string, body: st
   };
 }
 
-export async function sendEmail(to: string, subject: string, html: string) {
+const FROM_TRANSACTIONAL = `${BRAND.name} <care.customer@ravindrra.com>`;
+const FROM_CAMPAIGN = `${BRAND.name} <no-reply@ravindrra.com>`;
+
+export async function sendEmail(to: string, subject: string, html: string, from?: string) {
   try {
-    const { client, fromEmail } = await getResendClient();
+    const { client } = await getResendClient();
     const result = await client.emails.send({
-      from: fromEmail || `${BRAND.name} <onboarding@resend.dev>`,
+      from: from || FROM_TRANSACTIONAL,
       to,
       subject,
       html,
@@ -306,7 +309,7 @@ export async function sendPromotionalEmail(to: string[], subject: string, headin
   const { subject: fullSubject, html } = buildPromotionalEmail(subject, heading, body, ctaText, ctaUrl);
   const results = [];
   for (const email of to) {
-    const result = await sendEmail(email, fullSubject, html);
+    const result = await sendEmail(email, fullSubject, html, FROM_CAMPAIGN);
     results.push({ email, result });
   }
   return results;
