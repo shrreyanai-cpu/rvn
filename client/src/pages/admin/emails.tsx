@@ -145,12 +145,12 @@ export default function AdminEmails() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+        <div className="lg:col-span-2 space-y-4 lg:space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Mail className="h-5 w-5" />
+              <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-2 text-lg">
+                <Mail className="h-5 w-5 flex-shrink-0" />
                 Compose Email
               </CardTitle>
             </CardHeader>
@@ -212,11 +212,11 @@ export default function AdminEmails() {
           </Card>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 lg:space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Users className="h-5 w-5" />
+              <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-2 text-lg">
+                <Users className="h-5 w-5 flex-shrink-0" />
                 Recipients
               </CardTitle>
             </CardHeader>
@@ -291,7 +291,7 @@ export default function AdminEmails() {
 
           <Card>
             <CardContent className="pt-6">
-              <h3 className="font-semibold mb-3 text-sm">Quick Templates</h3>
+              <h3 className="font-semibold mb-3 text-sm text-center sm:text-left">Quick Templates</h3>
               <div className="space-y-2">
                 <Button
                   variant="outline"
@@ -345,7 +345,7 @@ export default function AdminEmails() {
       </div>
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="w-full max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Email Preview</DialogTitle>
             <DialogDescription>This is how your email will look to recipients.</DialogDescription>

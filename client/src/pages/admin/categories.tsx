@@ -83,13 +83,15 @@ function CategoryForm({ category, categories, onClose }: { category?: Category; 
           </SelectContent>
         </Select>
       </div>
-      <div>
-        <Label>Category Name</Label>
-        <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Category name" data-testid="input-category-name" />
-      </div>
-      <div>
-        <Label>Slug</Label>
-        <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="Auto-generated from name" data-testid="input-category-slug" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <Label>Category Name</Label>
+          <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Category name" data-testid="input-category-name" />
+        </div>
+        <div>
+          <Label>Slug</Label>
+          <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="Auto-generated from name" data-testid="input-category-slug" />
+        </div>
       </div>
       <div>
         <Label>Description</Label>
@@ -207,6 +209,7 @@ export default function AdminCategories() {
                       <TableRow>
                         <TableHead className="pl-8">Subcategory</TableHead>
                         <TableHead className="hidden sm:table-cell">Slug</TableHead>
+                        <TableHead className="hidden md:table-cell">Description</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -221,6 +224,9 @@ export default function AdminCategories() {
                           </TableCell>
                           <TableCell className="hidden sm:table-cell">
                             <span className="text-xs text-muted-foreground">{sub.slug}</span>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            <span className="text-xs text-muted-foreground truncate max-w-[200px]">{sub.description || "-"}</span>
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">

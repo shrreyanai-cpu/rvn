@@ -195,6 +195,7 @@ export default function AdminCoupons() {
                 <TableHead>Code</TableHead>
                 <TableHead>Discount</TableHead>
                 <TableHead className="hidden sm:table-cell">Min Order</TableHead>
+                <TableHead className="hidden md:table-cell">Expiry</TableHead>
                 <TableHead className="hidden md:table-cell">Used</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -209,7 +210,7 @@ export default function AdminCoupons() {
                     <TableCell>
                       <div>
                         <p className="font-mono font-bold text-sm">{coupon.code}</p>
-                        {coupon.description && <p className="text-xs text-muted-foreground truncate max-w-[150px]">{coupon.description}</p>}
+                        <p className="text-xs text-muted-foreground hidden sm:block truncate max-w-[150px]">{coupon.description || "-"}</p>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -224,6 +225,11 @@ export default function AdminCoupons() {
                     <TableCell className="hidden sm:table-cell">
                       <span className="text-sm text-muted-foreground">
                         {coupon.minOrderAmount ? `Rs. ${Number(coupon.minOrderAmount).toLocaleString("en-IN")}` : "-"}
+                      </span>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <span className="text-xs text-muted-foreground">
+                        {coupon.expiresAt ? new Date(coupon.expiresAt).toLocaleDateString("en-IN") : "-"}
                       </span>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">

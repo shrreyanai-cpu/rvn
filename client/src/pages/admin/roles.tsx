@@ -149,9 +149,9 @@ export default function AdminRoles() {
       </div>
 
       <Card data-testid="card-team-members">
-        <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-4">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 space-y-0 pb-4">
           <CardTitle className="text-lg">Team Members</CardTitle>
-          <div className="relative w-full max-w-xs">
+          <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search team members..."
@@ -179,8 +179,8 @@ export default function AdminRoles() {
                   <TableRow>
                     <TableHead>Member</TableHead>
                     <TableHead>Current Role</TableHead>
-                    <TableHead>Permissions</TableHead>
-                    <TableHead className="w-[180px]">Change Role</TableHead>
+                    <TableHead className="hidden md:table-cell">Permissions</TableHead>
+                    <TableHead className="w-[120px] sm:w-[180px]">Change Role</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -210,7 +210,7 @@ export default function AdminRoles() {
                             {ROLE_LABELS[role]}
                           </Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden md:table-cell">
                           <div className="flex flex-wrap gap-1">
                             {perms.length === 0 ? (
                               <span className="text-xs text-muted-foreground">No permissions</span>
@@ -265,9 +265,9 @@ export default function AdminRoles() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[160px]">Permission</TableHead>
+                  <TableHead className="min-w-[120px] sm:min-w-[160px]">Permission</TableHead>
                   {(ROLES.filter(r => r !== "customer") as Role[]).map((role) => (
-                    <TableHead key={role} className="text-center min-w-[100px]">{ROLE_LABELS[role]}</TableHead>
+                    <TableHead key={role} className="text-center min-w-[70px] sm:min-w-[100px] text-xs sm:text-sm">{ROLE_LABELS[role]}</TableHead>
                   ))}
                 </TableRow>
               </TableHeader>

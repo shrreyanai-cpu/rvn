@@ -209,7 +209,7 @@ export default function AdminDelivery() {
               <Label>Free Delivery</Label>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <Label>Free Delivery Threshold (Rs.)</Label>
                 <Input
@@ -299,7 +299,7 @@ export default function AdminDelivery() {
                   data-testid="input-pickup-pincode"
                 />
               </div>
-              <div className="sm:col-span-2">
+              <div className="col-span-1 sm:col-span-2">
                 <Label>Pickup Address</Label>
                 <Input
                   value={form.delhiveryPickupAddress}
@@ -364,12 +364,12 @@ export default function AdminDelivery() {
 
             <div>
               <Label className="mb-2 block">Test Pincode Serviceability</Label>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <Input
                   value={testPincode}
                   onChange={(e) => setTestPincode(e.target.value)}
                   placeholder="Enter pincode"
-                  className="max-w-[200px]"
+                  className="flex-1 sm:max-w-[200px]"
                   data-testid="input-test-pincode"
                 />
                 <Button
@@ -386,11 +386,11 @@ export default function AdminDelivery() {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end">
+        <div className="flex flex-col sm:flex-row justify-end">
           <Button
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending}
-            className="bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A]"
+            className="w-full sm:w-auto bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A]"
             data-testid="button-save-settings"
           >
             {saveMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -407,7 +407,7 @@ export default function AdminDelivery() {
             <CardDescription>Calculate Delhivery shipping cost for a destination pincode</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <Label>Destination Pincode</Label>
                 <Input
@@ -480,7 +480,7 @@ export default function AdminDelivery() {
             <CardDescription>Request Delhivery to pick up packages from your warehouse</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <Label>Pickup Date</Label>
                 <Input
@@ -526,7 +526,7 @@ export default function AdminDelivery() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                 <Package className="h-5 w-5 text-[#C9A961]" />
                 <CardTitle className="font-serif text-base" data-testid="text-waybill-title">Fetch Waybills</CardTitle>
               </div>
@@ -548,6 +548,7 @@ export default function AdminDelivery() {
                 variant="outline"
                 onClick={() => waybillMutation.mutate()}
                 disabled={waybillMutation.isPending}
+                className="w-full"
                 data-testid="button-fetch-waybills"
               >
                 {waybillMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
@@ -566,7 +567,7 @@ export default function AdminDelivery() {
 
           <Card>
             <CardHeader>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                 <Warehouse className="h-5 w-5 text-[#C9A961]" />
                 <CardTitle className="font-serif text-base" data-testid="text-warehouse-title">Register Warehouse</CardTitle>
               </div>
@@ -580,6 +581,7 @@ export default function AdminDelivery() {
                 variant="outline"
                 onClick={() => warehouseMutation.mutate()}
                 disabled={warehouseMutation.isPending}
+                className="w-full"
                 data-testid="button-register-warehouse"
               >
                 {warehouseMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Warehouse className="mr-2 h-4 w-4" />}

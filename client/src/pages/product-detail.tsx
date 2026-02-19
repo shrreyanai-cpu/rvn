@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRoute, Link, useLocation } from "wouter";
-import { ArrowLeft, ShoppingBag, Minus, Plus, Check, Zap, Star, Trash2, User } from "lucide-react";
+import { ArrowLeft, ShoppingBag, Minus, Plus, Check, Zap, Star, Trash2, User, ImageIcon, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,6 +12,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useUpload } from "@/hooks/use-upload";
 import type { Product, Review } from "@shared/schema";
 
 function StarRating({ rating, size = "sm", interactive = false, onRate }: { rating: number; size?: "sm" | "md" | "lg"; interactive?: boolean; onRate?: (r: number) => void }) {
@@ -45,6 +46,8 @@ function ReviewSection({ productId, isAuthenticated, userId }: { productId: numb
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewTitle, setReviewTitle] = useState("");
   const [reviewComment, setReviewComment] = useState("");
+  const [reviewImages, setReviewImages] = useState<string[]>([]);
+  const { uploadFile, isUploading: imageUploading } = useUpload({});
 
   const { data: reviewData, isLoading: reviewsLoading } = useQuery<{
     reviews: (Review & { userName: string })[];
@@ -60,6 +63,7 @@ function ReviewSection({ productId, isAuthenticated, userId }: { productId: numb
         rating: reviewRating,
         title: reviewTitle || undefined,
         comment: reviewComment || undefined,
+        images: reviewImages,
       });
     },
     onSuccess: () => {
@@ -67,6 +71,7 @@ function ReviewSection({ productId, isAuthenticated, userId }: { productId: numb
       setReviewRating(0);
       setReviewTitle("");
       setReviewComment("");
+      setReviewImages([]);
       toast({ title: "Review submitted", description: "Thank you for your feedback!" });
     },
     onError: (err: any) => {
@@ -153,6 +158,42 @@ function ReviewSection({ productId, isAuthenticated, userId }: { productId: numb
               rows={4}
               data-testid="input-review-comment"
             />
+            <div>
+              <p className="text-sm text-muted-foreground mb-1.5">Add Photos (optional)</p>
+              <div className="flex flex-wrap gap-2">
+                {reviewImages.map((img, i) => (
+                  <div key={i} className="relative w-16 h-20 rounded-md overflow-hidden bg-muted" data-testid={`review-upload-thumbnail-${i}`}>
+                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setReviewImages(reviewImages.filter((_, idx) => idx !== i))}
+                      className="absolute top-0.5 right-0.5 bg-black/50 rounded-full p-0.5"
+                      data-testid={`button-remove-review-image-${i}`}
+                    >
+                      <X className="h-3 w-3 text-white" />
+                    </button>
+                  </div>
+                ))}
+                <label className="w-16 h-20 rounded-md border-2 border-dashed flex items-center justify-center cursor-pointer hover-elevate" data-testid="label-upload-review-image">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const result = await uploadFile(file);
+                      if (result) {
+                        setReviewImages((prev) => [...prev, result.objectPath]);
+                      }
+                      e.target.value = "";
+                    }}
+                    className="hidden"
+                    data-testid="input-review-image-upload"
+                  />
+                  {imageUploading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : <ImageIcon className="h-4 w-4 text-muted-foreground" />}
+                </label>
+              </div>
+            </div>
             <Button
               onClick={() => submitReview.mutate()}
               disabled={reviewRating === 0 || submitReview.isPending}
@@ -213,6 +254,17 @@ function ReviewSection({ productId, isAuthenticated, userId }: { productId: numb
               )}
               {review.comment && (
                 <p className="text-sm text-muted-foreground" data-testid={`text-review-comment-${review.id}`}>{review.comment}</p>
+              )}
+              {review.images && review.images.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2" data-testid={`review-images-${review.id}`}>
+                  {review.images.map((img, i) => (
+                    <a key={i} href={img} target="_blank" rel="noopener noreferrer" data-testid={`review-image-link-${review.id}-${i}`}>
+                      <div className="w-16 h-20 rounded-md overflow-hidden bg-muted">
+                        <img src={img} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    </a>
+                  ))}
+                </div>
               )}
               <p className="text-xs text-muted-foreground mt-1.5">
                 {review.createdAt ? new Date(review.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : ""}

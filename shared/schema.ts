@@ -202,6 +202,7 @@ export const reviews = pgTable("reviews", {
   rating: integer("rating").notNull(),
   title: text("title"),
   comment: text("comment"),
+  images: text("images").array().notNull().default(sql`'{}'::text[]`),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

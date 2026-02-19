@@ -1728,6 +1728,7 @@ export async function registerRoutes(
         rating: z.number().min(1).max(5),
         title: z.string().max(200).optional(),
         comment: z.string().max(2000).optional(),
+        images: z.array(z.string()).default([]),
       });
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Invalid review data", errors: parsed.error.flatten() });
@@ -1738,6 +1739,7 @@ export async function registerRoutes(
         rating: parsed.data.rating,
         title: parsed.data.title || null,
         comment: parsed.data.comment || null,
+        images: parsed.data.images,
       });
       res.status(201).json(review);
     } catch (error) {
