@@ -269,7 +269,7 @@ export default function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
                 <Link href="/login">
                   <Button
                     variant="outline"
@@ -281,9 +281,16 @@ export default function Header() {
                 </Link>
                 <Link href="/login?mode=register">
                   <Button
-                    size="sm"
+                    size="icon"
                     data-testid="button-create-account"
-                    className="bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A]"
+                    className="sm:hidden bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A]"
+                  >
+                    <User className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    data-testid="button-create-account-full"
+                    className="hidden sm:inline-flex bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A]"
                   >
                     <User className="mr-1.5 h-3.5 w-3.5" />
                     Create Account

@@ -187,7 +187,7 @@ export default function AdminCoupons() {
           <p className="text-muted-foreground">No coupons yet. Create your first coupon to offer discounts.</p>
         </Card>
       ) : (
-        <Card className="overflow-hidden">
+        <Card className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

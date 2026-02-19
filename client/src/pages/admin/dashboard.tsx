@@ -114,25 +114,25 @@ export default function AdminDashboard() {
               return (
                 <div
                   key={order.id}
-                  className="flex items-center justify-between gap-4 p-3 rounded-md bg-muted/30"
+                  className="flex items-center justify-between gap-3 p-3 rounded-md bg-muted/30"
                   data-testid={`recent-order-${order.id}`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0">
                       <ShoppingBag className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">Order #{order.id}</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">Order #{order.id}</p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(order.createdAt!).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        {new Date(order.createdAt!).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Badge className={`text-[10px] border-0 no-default-hover-elevate no-default-active-elevate ${sc.className}`}>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge className={`text-[10px] border-0 no-default-hover-elevate no-default-active-elevate hidden sm:inline-flex ${sc.className}`}>
                       {sc.label}
                     </Badge>
-                    <span className="text-sm font-semibold">Rs. {Number(order.totalAmount).toLocaleString("en-IN")}</span>
+                    <span className="text-sm font-semibold whitespace-nowrap">Rs. {Number(order.totalAmount).toLocaleString("en-IN")}</span>
                   </div>
                 </div>
               );

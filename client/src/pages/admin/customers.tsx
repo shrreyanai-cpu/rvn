@@ -161,7 +161,7 @@ export default function AdminCustomers() {
       ) : filtered.length === 0 ? (
         <Card className="p-12 text-center"><p className="text-muted-foreground">No customers found</p></Card>
       ) : (
-        <Card className="overflow-hidden">
+        <Card className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

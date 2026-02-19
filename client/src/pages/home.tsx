@@ -25,7 +25,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen">
-      <section className="relative h-[90vh] overflow-hidden">
+      <section className="relative h-[70vh] sm:h-[80vh] lg:h-[90vh] overflow-hidden">
         <img
           src="/images/hero-banner.png"
           alt="Luxury Indian Clothing"
@@ -71,14 +71,14 @@ export default function HomePage() {
                 </Button>
               </Link>
             </div>
-            <div className="flex items-center gap-8 mt-10 text-white/50 text-xs">
+            <div className="flex items-center gap-4 sm:gap-8 mt-8 sm:mt-10 text-white/50 text-xs flex-wrap">
               <span className="flex items-center gap-1.5">
                 <Shield className="h-3.5 w-3.5" /> Secure Payments
               </span>
               <span className="flex items-center gap-1.5">
                 <Truck className="h-3.5 w-3.5" /> Free Delivery
               </span>
-              <span className="flex items-center gap-1.5">
+              <span className="hidden sm:flex items-center gap-1.5">
                 <Star className="h-3.5 w-3.5" /> Premium Quality
               </span>
             </div>
@@ -200,7 +200,7 @@ export default function HomePage() {
 
       <section className="py-20 sm:py-24 bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-end justify-between gap-4 mb-12">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 mb-8 sm:mb-12">
             <div>
               <p className="text-[#C9A961] text-xs font-medium tracking-[0.2em] uppercase mb-2">
                 Explore
@@ -253,7 +253,7 @@ export default function HomePage() {
 
       <section className="py-20 sm:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-end justify-between gap-4 mb-12">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 mb-8 sm:mb-12">
             <div>
               <p className="text-[#C9A961] text-xs font-medium tracking-[0.2em] uppercase mb-2">
                 Curated for You
@@ -352,7 +352,7 @@ export default function HomePage() {
 
       <section className="py-20 sm:py-24 bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-end justify-between gap-4 mb-12">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 mb-8 sm:mb-12">
             <div>
               <p className="text-[#C9A961] text-xs font-medium tracking-[0.2em] uppercase mb-2">
                 Just In
@@ -472,9 +472,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-14 border-y bg-card">
+      <section className="py-10 sm:py-14 border-y bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {[
               { icon: Truck, title: "Free Shipping", desc: "On orders above Rs. 2,999" },
               { icon: Shield, title: "Secure Payment", desc: "100% secure checkout" },

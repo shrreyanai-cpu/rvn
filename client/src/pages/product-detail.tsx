@@ -212,7 +212,7 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Button
               className="flex-1 bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A] font-semibold"
               disabled={!product.inStock || addToCartMutation.isPending}

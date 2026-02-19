@@ -87,7 +87,7 @@ export default function AdminOrders() {
       ) : filtered.length === 0 ? (
         <Card className="p-12 text-center"><p className="text-muted-foreground">No orders found</p></Card>
       ) : (
-        <Card className="overflow-hidden">
+        <Card className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
