@@ -7,7 +7,7 @@ import { registerObjectStorageRoutes } from "./replit_integrations/object_storag
 import { authStorage } from "./replit_integrations/auth/storage";
 import { Cashfree as CashfreeSDK, CFEnvironment } from "cashfree-pg";
 import { hasPermission, isAdminRole, type Permission } from "@shared/models/auth";
-import { sendOrderConfirmation, sendShippingUpdate, sendPromotionalEmail } from "./email";
+import { sendOrderConfirmation, sendShippingUpdate, sendPromotionalEmail, sendReturnRequestEmail } from "./email";
 
 function getCashfreeInstance() {
   const clientId = process.env.CASHFREE_APP_ID || "";
@@ -1555,6 +1555,124 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Delhivery warehouse creation error:", error);
       res.status(500).json({ message: "Failed to create warehouse" });
+    }
+  });
+
+  // ====================== RETURN REQUESTS ======================
+
+  const RETURN_WINDOW_DAYS = 2;
+
+  app.post("/api/orders/:id/return", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      const orderId = Number(req.params.id);
+      const schema = z.object({ reason: z.string().min(5, "Please provide a reason (at least 5 characters)") });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Please provide a valid reason for the return", errors: parsed.error.flatten() });
+
+      const order = await storage.getOrderById(orderId);
+      if (!order) return res.status(404).json({ message: "Order not found" });
+      if (order.userId !== userId) return res.status(403).json({ message: "Forbidden" });
+      if (order.status !== "delivered") return res.status(400).json({ message: "Only delivered orders can be returned" });
+
+      const existing = await storage.getReturnRequestByOrderId(orderId);
+      if (existing) return res.status(400).json({ message: "A return request already exists for this order" });
+
+      const deliveredAt = order.updatedAt || order.createdAt;
+      if (deliveredAt) {
+        const daysSinceDelivery = (Date.now() - new Date(deliveredAt).getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSinceDelivery > RETURN_WINDOW_DAYS) {
+          return res.status(400).json({ message: `Return window has expired. Returns must be requested within ${RETURN_WINDOW_DAYS} days of delivery.` });
+        }
+      }
+
+      const returnReq = await storage.createReturnRequest({
+        orderId,
+        userId,
+        reason: parsed.data.reason,
+        status: "pending",
+      });
+
+      const user = await authStorage.getUser(userId);
+      if (user?.email) {
+        sendReturnRequestEmail(user.email, orderId, "pending").catch(() => {});
+      }
+
+      res.json(returnReq);
+    } catch (error) {
+      console.error("Return request error:", error);
+      res.status(500).json({ message: "Failed to submit return request" });
+    }
+  });
+
+  app.get("/api/returns", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      const returns = await storage.getReturnRequestsByUser(userId);
+      res.json(returns);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch return requests" });
+    }
+  });
+
+  app.get("/api/orders/:id/return-status", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      const orderId = Number(req.params.id);
+      const order = await storage.getOrderById(orderId);
+      if (!order || order.userId !== userId) return res.status(404).json({ returnRequest: null });
+      const returnReq = await storage.getReturnRequestByOrderId(orderId);
+      res.json({ returnRequest: returnReq || null });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch return status" });
+    }
+  });
+
+  app.get("/api/admin/returns", isAuthenticated, requirePermission("manage_orders"), async (req, res) => {
+    try {
+      const returns = await storage.getAllReturnRequests();
+      const enriched = await Promise.all(returns.map(async (r) => {
+        const order = await storage.getOrderById(r.orderId);
+        const user = await authStorage.getUser(r.userId);
+        return {
+          ...r,
+          order: order ? { id: order.id, totalAmount: order.totalAmount, items: order.items, status: order.status } : null,
+          customerName: user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "Unknown",
+          customerEmail: user?.email || "",
+        };
+      }));
+      res.json(enriched);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch return requests" });
+    }
+  });
+
+  app.patch("/api/admin/returns/:id", isAuthenticated, requirePermission("manage_orders"), async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const schema = z.object({
+        status: z.enum(["approved", "rejected"]),
+        adminNotes: z.string().optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data" });
+
+      const updated = await storage.updateReturnRequest(id, parsed.data);
+      if (!updated) return res.status(404).json({ message: "Return request not found" });
+
+      if (parsed.data.status === "approved") {
+        await storage.updateOrderStatus(updated.orderId, "returned");
+      }
+
+      const user = await authStorage.getUser(updated.userId);
+      if (user?.email) {
+        sendReturnRequestEmail(user.email, updated.orderId, parsed.data.status, parsed.data.adminNotes).catch(() => {});
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Update return request error:", error);
+      res.status(500).json({ message: "Failed to update return request" });
     }
   });
 

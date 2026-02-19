@@ -327,6 +327,65 @@ export async function sendOtpEmail(email: string, otp: string) {
   return sendEmail(email, subject, html, FROM_AUTH);
 }
 
+export function buildReturnRequestEmail(orderId: number, status: string, adminNotes?: string | null) {
+  const statusConfig: Record<string, { label: string; color: string; icon: string; message: string }> = {
+    pending: {
+      label: "Received",
+      color: "#FF9800",
+      icon: "&#128230;",
+      message: "We have received your return request and will review it shortly. You will be notified once it is processed.",
+    },
+    approved: {
+      label: "Approved",
+      color: "#4CAF50",
+      icon: "&#10003;",
+      message: "Your return request has been approved. Please ship the item(s) back within 3 days. Once received and inspected, your refund will be processed.",
+    },
+    rejected: {
+      label: "Rejected",
+      color: "#F44336",
+      icon: "&#10007;",
+      message: "Unfortunately, your return request has been declined. Please contact our support team if you have any questions.",
+    },
+  };
+
+  const cfg = statusConfig[status] || statusConfig.pending;
+
+  const notesSection = adminNotes ? `
+    <div style="background:#f9fafb; border-radius:6px; padding:16px; margin:20px 0;">
+      <h3 style="margin:0 0 8px; color:${BRAND.navy}; font-size:14px;">Notes from our team</h3>
+      <p style="margin:0; color:${BRAND.gray}; font-size:14px;">${adminNotes}</p>
+    </div>
+  ` : '';
+
+  const content = `
+    <div style="text-align:center; margin-bottom:24px;">
+      <div style="width:56px; height:56px; border-radius:50%; background:${cfg.color}20; display:inline-flex; align-items:center; justify-content:center; margin-bottom:12px;">
+        <span style="font-size:28px; color:${cfg.color};">${cfg.icon}</span>
+      </div>
+      <h2 style="margin:0; color:${BRAND.navy}; font-size:22px; font-family:Georgia,serif;">Return Request ${cfg.label}</h2>
+      <p style="margin:8px 0 0; color:${BRAND.gray};">Order #${orderId}</p>
+    </div>
+    <p style="color:#374151; line-height:1.6;">${cfg.message}</p>
+    ${notesSection}
+    <div style="background:${BRAND.lightGold}; border-radius:6px; padding:16px; margin:20px 0;">
+      <p style="margin:0; color:${BRAND.navy}; font-size:14px; line-height:1.5;">
+        <strong>Return Policy:</strong> Items must be unused, in original packaging, and returned within 2 days of delivery. Refunds are processed within 5-7 business days after inspection.
+      </p>
+    </div>
+  `;
+
+  return {
+    subject: `Return Request ${cfg.label} - Order #${orderId} | ${BRAND.name}`,
+    html: baseLayout(content, `Your return request for order #${orderId} is ${cfg.label.toLowerCase()}.`),
+  };
+}
+
+export async function sendReturnRequestEmail(email: string, orderId: number, status: string, adminNotes?: string | null) {
+  const { subject, html } = buildReturnRequestEmail(orderId, status, adminNotes);
+  return sendEmail(email, subject, html);
+}
+
 export async function sendOrderConfirmation(email: string, order: OrderData) {
   const { subject, html } = buildOrderConfirmationEmail(order);
   return sendEmail(email, subject, html);
