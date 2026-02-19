@@ -1,35 +1,91 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Mail, Lock, User as UserIcon, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Mail, Lock, User as UserIcon, Eye, EyeOff, ArrowLeft, ShieldCheck } from "lucide-react";
 import { SiFacebook, SiGoogle } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
   const initialMode = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("mode") === "register" ? "register" : "login";
-  const [mode, setMode] = useState<"login" | "register">(initialMode);
+  const [mode, setMode] = useState<"login" | "register" | "verify">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const { login, register } = useAuth();
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
+  const [verifyEmail, setVerifyEmail] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const { login, register, verifyOtp, resendOtp } = useAuth();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
+  useEffect(() => {
+    if (mode === "verify") {
+      setTimeout(() => inputRefs.current[0]?.focus(), 100);
+    }
+  }, [mode]);
+
+  const handleOtpChange = (index: number, value: string) => {
+    if (value.length > 1) value = value.slice(-1);
+    if (value && !/^\d$/.test(value)) return;
+    const newDigits = [...otpDigits];
+    newDigits[index] = value;
+    setOtpDigits(newDigits);
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (pasted.length === 6) {
+      setOtpDigits(pasted.split(""));
+      inputRefs.current[5]?.focus();
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       if (mode === "login") {
         await login.mutateAsync({ email, password });
-      } else {
-        await register.mutateAsync({ email, password, firstName, lastName });
+        setLocation("/");
+      } else if (mode === "register") {
+        const result = await register.mutateAsync({ email, password, firstName, lastName });
+        if (result.requiresVerification) {
+          setVerifyEmail(email);
+          setMode("verify");
+          setResendCooldown(60);
+          toast({ title: "Verification code sent!", description: "Please check your email for the 6-digit code." });
+        } else {
+          setLocation("/");
+        }
       }
-      setLocation("/");
     } catch (error: any) {
+      if (error?.requiresVerification) {
+        setVerifyEmail(error.email || email);
+        setMode("verify");
+        setResendCooldown(60);
+        toast({ title: "Email not verified", description: "A new verification code has been sent to your email." });
+        return;
+      }
       const msg = error?.message || "Something went wrong";
       let description = "Please try again.";
       try {
@@ -44,6 +100,40 @@ export default function LoginPage() {
         description,
         variant: "destructive",
       });
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const otp = otpDigits.join("");
+    if (otp.length !== 6) {
+      toast({ title: "Please enter the full 6-digit code", variant: "destructive" });
+      return;
+    }
+    try {
+      await verifyOtp.mutateAsync({ email: verifyEmail, otp });
+      toast({ title: "Email verified!", description: "Welcome to Ravindrra Vastra Niketan." });
+      setLocation("/");
+    } catch (error: any) {
+      const msg = error?.message || "";
+      let description = "Invalid or expired code. Please try again.";
+      try {
+        const parsed = JSON.parse(msg.split(": ").slice(1).join(": ") || "{}");
+        description = parsed.message || description;
+      } catch {}
+      toast({ title: "Verification Failed", description, variant: "destructive" });
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0) return;
+    try {
+      await resendOtp.mutateAsync({ email: verifyEmail });
+      setResendCooldown(60);
+      setOtpDigits(["", "", "", "", "", ""]);
+      toast({ title: "Code sent!", description: "A new verification code has been sent to your email." });
+    } catch {
+      toast({ title: "Failed to resend code", variant: "destructive" });
     }
   };
 
@@ -86,168 +176,238 @@ export default function LoginPage() {
 
       <div className="flex-1 flex items-center justify-center p-6 bg-background">
         <div className="w-full max-w-md">
-          <div className="mb-8">
-            <Link href="/">
-              <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer mb-6" data-testid="link-back-home">
-                <ArrowLeft className="h-3.5 w-3.5" />
-                Back to store
-              </span>
-            </Link>
-            <h1 className="font-serif text-2xl font-bold mb-1" data-testid="text-login-title">
-              {mode === "login" ? "Welcome Back" : "Create Account"}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {mode === "login"
-                ? "Sign in to your account to continue shopping"
-                : "Join Ravindrra Vastra Niketan today"}
-            </p>
-          </div>
+          {mode === "verify" ? (
+            <>
+              <div className="mb-8">
+                <button
+                  type="button"
+                  onClick={() => { setMode("login"); setOtpDigits(["", "", "", "", "", ""]); }}
+                  className="inline-flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer mb-6"
+                  data-testid="link-back-login"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  Back to login
+                </button>
+                <div className="flex items-center gap-3 mb-1">
+                  <ShieldCheck className="h-7 w-7 text-[#C9A961]" />
+                  <h1 className="font-serif text-2xl font-bold" data-testid="text-verify-title">
+                    Verify Your Email
+                  </h1>
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  We've sent a 6-digit code to <span className="font-medium text-foreground">{verifyEmail}</span>
+                </p>
+              </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === "register" && (
-              <div className="grid grid-cols-2 gap-3">
+              <form onSubmit={handleVerifyOtp} className="space-y-6">
+                <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
+                  {otpDigits.map((digit, i) => (
+                    <input
+                      key={i}
+                      ref={(el) => { inputRefs.current[i] = el; }}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(i, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                      className="w-12 h-14 text-center text-xl font-bold border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-[#C9A961] focus:border-[#C9A961] transition-colors"
+                      data-testid={`input-otp-${i}`}
+                    />
+                  ))}
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A] font-semibold"
+                  disabled={verifyOtp.isPending || otpDigits.join("").length !== 6}
+                  data-testid="button-verify-otp"
+                >
+                  {verifyOtp.isPending ? "Verifying..." : "Verify Email"}
+                </Button>
+
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Didn't receive the code?{" "}
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      disabled={resendCooldown > 0 || resendOtp.isPending}
+                      className="text-[#C9A961] font-medium hover:underline disabled:opacity-50 disabled:no-underline"
+                      data-testid="button-resend-otp"
+                    >
+                      {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : resendOtp.isPending ? "Sending..." : "Resend Code"}
+                    </button>
+                  </p>
+                </div>
+              </form>
+            </>
+          ) : (
+            <>
+              <div className="mb-8">
+                <Link href="/">
+                  <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer mb-6" data-testid="link-back-home">
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    Back to store
+                  </span>
+                </Link>
+                <h1 className="font-serif text-2xl font-bold mb-1" data-testid="text-login-title">
+                  {mode === "login" ? "Welcome Back" : "Create Account"}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {mode === "login"
+                    ? "Sign in to your account to continue shopping"
+                    : "Join Ravindrra Vastra Niketan today"}
+                </p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {mode === "register" && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="relative">
+                      <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="First Name"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="pl-10"
+                        required
+                        data-testid="input-first-name"
+                      />
+                    </div>
+                    <div className="relative">
+                      <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Last Name"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="pl-10"
+                        required
+                        data-testid="input-last-name"
+                      />
+                    </div>
+                  </div>
+                )}
                 <div className="relative">
-                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="First Name"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
+                    type="email"
+                    placeholder="Email address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
                     required
-                    data-testid="input-first-name"
+                    autoFocus
+                    data-testid="input-email"
                   />
                 </div>
                 <div className="relative">
-                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Last Name"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="pl-10"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10 pr-10"
                     required
-                    data-testid="input-last-name"
+                    minLength={mode === "register" ? 6 : 1}
+                    data-testid="input-password"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    data-testid="button-toggle-password"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A] font-semibold"
+                  disabled={isPending}
+                  data-testid="button-submit-login"
+                >
+                  {isPending
+                    ? "Please wait..."
+                    : mode === "login"
+                    ? "Continue with Email"
+                    : "Create Account"}
+                </Button>
+              </form>
+
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-3 text-muted-foreground">or continue with</span>
                 </div>
               </div>
-            )}
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="email"
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="pl-10"
-                required
-                autoFocus
-                data-testid="input-email"
-              />
-            </div>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type={showPassword ? "text" : "password"}
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 pr-10"
-                required
-                minLength={mode === "register" ? 6 : 1}
-                data-testid="input-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                data-testid="button-toggle-password"
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
 
-            <Button
-              type="submit"
-              className="w-full bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A] font-semibold"
-              disabled={isPending}
-              data-testid="button-submit-login"
-            >
-              {isPending
-                ? "Please wait..."
-                : mode === "login"
-                ? "Continue with Email"
-                : "Create Account"}
-            </Button>
-          </form>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-3 text-muted-foreground">or continue with</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              variant="outline"
-              className="gap-2"
-              type="button"
-              data-testid="button-google-login"
-              onClick={() =>
-                toast({
-                  title: "Coming Soon",
-                  description: "Google sign-in will be available soon.",
-                })
-              }
-            >
-              <SiGoogle className="h-4 w-4" />
-              Google
-            </Button>
-            <Button
-              variant="outline"
-              className="gap-2"
-              type="button"
-              data-testid="button-facebook-login"
-              onClick={() =>
-                toast({
-                  title: "Coming Soon",
-                  description: "Facebook sign-in will be available soon.",
-                })
-              }
-            >
-              <SiFacebook className="h-4 w-4" />
-              Facebook
-            </Button>
-          </div>
-
-          <p className="text-center text-sm text-muted-foreground mt-6">
-            {mode === "login" ? (
-              <>
-                Don't have an account?{" "}
-                <button
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  variant="outline"
+                  className="gap-2"
                   type="button"
-                  onClick={() => setMode("register")}
-                  className="text-[#C9A961] font-medium hover:underline"
-                  data-testid="button-switch-register"
+                  data-testid="button-google-login"
+                  onClick={() =>
+                    toast({
+                      title: "Coming Soon",
+                      description: "Google sign-in will be available soon.",
+                    })
+                  }
                 >
-                  Create one
-                </button>
-              </>
-            ) : (
-              <>
-                Already have an account?{" "}
-                <button
+                  <SiGoogle className="h-4 w-4" />
+                  Google
+                </Button>
+                <Button
+                  variant="outline"
+                  className="gap-2"
                   type="button"
-                  onClick={() => setMode("login")}
-                  className="text-[#C9A961] font-medium hover:underline"
-                  data-testid="button-switch-login"
+                  data-testid="button-facebook-login"
+                  onClick={() =>
+                    toast({
+                      title: "Coming Soon",
+                      description: "Facebook sign-in will be available soon.",
+                    })
+                  }
                 >
-                  Sign in
-                </button>
-              </>
-            )}
-          </p>
+                  <SiFacebook className="h-4 w-4" />
+                  Facebook
+                </Button>
+              </div>
+
+              <p className="text-center text-sm text-muted-foreground mt-6">
+                {mode === "login" ? (
+                  <>
+                    Don't have an account?{" "}
+                    <button
+                      type="button"
+                      onClick={() => setMode("register")}
+                      className="text-[#C9A961] font-medium hover:underline"
+                      data-testid="button-switch-register"
+                    >
+                      Create one
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    Already have an account?{" "}
+                    <button
+                      type="button"
+                      onClick={() => setMode("login")}
+                      className="text-[#C9A961] font-medium hover:underline"
+                      data-testid="button-switch-login"
+                    >
+                      Sign in
+                    </button>
+                  </>
+                )}
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -40,7 +40,11 @@ export function useAuth() {
   const loginMutation = useMutation({
     mutationFn: async (data: { email: string; password: string }) => {
       const res = await apiRequest("POST", "/api/auth/login", data);
-      return res.json();
+      const json = await res.json();
+      if (json.requiresVerification) {
+        throw Object.assign(new Error("Email not verified"), { requiresVerification: true, email: json.email });
+      }
+      return json;
     },
     onSuccess: (user) => {
       queryClient.setQueryData(["/api/auth/user"], user);
@@ -52,8 +56,23 @@ export function useAuth() {
       const res = await apiRequest("POST", "/api/auth/register", data);
       return res.json();
     },
+    onSuccess: () => {},
+  });
+
+  const verifyOtpMutation = useMutation({
+    mutationFn: async (data: { email: string; otp: string }) => {
+      const res = await apiRequest("POST", "/api/auth/verify-otp", data);
+      return res.json();
+    },
     onSuccess: (user) => {
       queryClient.setQueryData(["/api/auth/user"], user);
+    },
+  });
+
+  const resendOtpMutation = useMutation({
+    mutationFn: async (data: { email: string }) => {
+      const res = await apiRequest("POST", "/api/auth/resend-otp", data);
+      return res.json();
     },
   });
 
@@ -65,5 +84,7 @@ export function useAuth() {
     isLoggingOut: logoutMutation.isPending,
     login: loginMutation,
     register: registerMutation,
+    verifyOtp: verifyOtpMutation,
+    resendOtp: resendOtpMutation,
   };
 }

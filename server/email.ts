@@ -277,6 +277,8 @@ export function buildPromotionalEmail(subject: string, heading: string, body: st
 
 const FROM_TRANSACTIONAL = `${BRAND.name} <care.customer@ravindrra.com>`;
 const FROM_CAMPAIGN = `${BRAND.name} <no-reply@ravindrra.com>`;
+const FROM_AUTH = `${BRAND.name} <auth@ravindrra.com>`;
+const REPLY_TO = "support@ravindrra.com";
 
 export async function sendEmail(to: string, subject: string, html: string, from?: string) {
   try {
@@ -286,6 +288,7 @@ export async function sendEmail(to: string, subject: string, html: string, from?
       to,
       subject,
       html,
+      replyTo: REPLY_TO,
     });
     console.log(`Email sent to ${to}: ${subject}`);
     return result;
@@ -293,6 +296,35 @@ export async function sendEmail(to: string, subject: string, html: string, from?
     console.error("Failed to send email:", error);
     return null;
   }
+}
+
+export function buildOtpEmail(otp: string) {
+  const content = `
+    <div style="text-align:center; margin-bottom:24px;">
+      <h2 style="margin:0; color:${BRAND.navy}; font-size:22px; font-family:Georgia,serif;">Verify Your Email</h2>
+      <p style="margin:8px 0 0; color:${BRAND.gray};">Use the code below to verify your email address</p>
+    </div>
+
+    <div style="text-align:center; margin:32px 0;">
+      <div style="display:inline-block; background:${BRAND.lightGold}; border:2px dashed ${BRAND.gold}; border-radius:8px; padding:20px 40px;">
+        <span style="font-size:36px; font-weight:700; letter-spacing:8px; color:${BRAND.navy}; font-family:monospace;">${otp}</span>
+      </div>
+    </div>
+
+    <p style="color:#374151; line-height:1.6; text-align:center;">
+      This code expires in <strong>10 minutes</strong>. If you didn't create an account with us, you can safely ignore this email.
+    </p>
+  `;
+
+  return {
+    subject: `Your Verification Code - ${BRAND.name}`,
+    html: baseLayout(content, `Your verification code is ${otp}`),
+  };
+}
+
+export async function sendOtpEmail(email: string, otp: string) {
+  const { subject, html } = buildOtpEmail(otp);
+  return sendEmail(email, subject, html, FROM_AUTH);
 }
 
 export async function sendOrderConfirmation(email: string, order: OrderData) {

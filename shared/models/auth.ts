@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, index, jsonb, pgTable, timestamp, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgTable, timestamp, varchar } from "drizzle-orm/pg-core";
 
 export const sessions = pgTable(
   "sessions",
@@ -33,6 +33,7 @@ export const emailVerifications = pgTable("email_verifications", {
   otp: varchar("otp").notNull(),
   expiresAt: timestamp("expires_at").notNull(),
   used: boolean("used").default(false),
+  attempts: integer("attempts").default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
