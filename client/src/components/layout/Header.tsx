@@ -124,9 +124,9 @@ export default function Header() {
           </div>
 
           <Link href="/">
-            <span className="font-serif text-lg sm:text-xl font-bold tracking-wide cursor-pointer" data-testid="link-logo">
-              <span className="text-[hsl(210,25%,28%)] dark:text-[hsl(45,35%,92%)]">RAVINDRRA</span>
-              <span className="text-[#C9A961] ml-1">VASTRA</span>
+            <span className="flex items-center gap-2 cursor-pointer" data-testid="link-logo">
+              <img src="/logo.png" alt="Ravindrra Vastra Niketan" className="h-8 w-8 sm:h-9 sm:w-9 object-contain" />
+              <span className="font-serif text-lg sm:text-xl font-bold tracking-wide text-[hsl(210,25%,28%)] dark:text-[hsl(45,35%,92%)]">RAVINDRRA</span>
             </span>
           </Link>
 

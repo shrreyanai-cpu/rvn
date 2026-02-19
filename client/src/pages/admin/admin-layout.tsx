@@ -52,7 +52,7 @@ function AdminSidebar() {
           </div>
           <div>
             <h2 className="font-serif text-sm font-bold leading-tight" data-testid="text-admin-brand">
-              Ravindrra Vastra
+              Ravindrra Vastra Niketan
             </h2>
             <p className="text-[10px] text-muted-foreground leading-tight">Admin Panel</p>
           </div>
