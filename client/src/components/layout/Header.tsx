@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { ShoppingBag, Search, Menu, X, User, LogOut, LayoutDashboard, ChevronDown, ChevronRight } from "lucide-react";
 import { isAdminRole } from "@shared/models/auth";
@@ -12,17 +12,74 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import type { CartItem, Category } from "@shared/schema";
+
+function CategoryDropdown({ main, subs, navigate }: { main: Category; subs: Category[]; navigate: (path: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setOpen(true);
+  };
+
+  const handleLeave = () => {
+    timeoutRef.current = setTimeout(() => setOpen(false), 150);
+  };
+
+  useEffect(() => {
+    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative"
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+    >
+      <button
+        className="flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors text-muted-foreground hover:text-foreground"
+        onClick={() => navigate(`/shop?category=${main.slug}`)}
+        data-testid={`link-nav-${main.slug}`}
+      >
+        {main.name}
+        <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div
+          className="absolute left-1/2 -translate-x-1/2 top-full pt-1 z-50"
+          data-testid={`dropdown-${main.slug}`}
+        >
+          <div className="w-[240px] rounded-lg border bg-popover text-popover-foreground shadow-lg p-2 animate-in fade-in-0 zoom-in-95 duration-150">
+            <Link href={`/shop?category=${main.slug}`} onClick={() => setOpen(false)}>
+              <div
+                className="px-3 py-2 rounded-md text-sm font-semibold text-[#C9A961] hover:bg-accent transition-colors cursor-pointer mb-0.5"
+                data-testid={`link-dropdown-all-${main.slug}`}
+              >
+                All {main.name}
+              </div>
+            </Link>
+            {subs.map((sub) => (
+              <Link key={sub.id} href={`/shop?category=${sub.slug}`} onClick={() => setOpen(false)}>
+                <div
+                  className="px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+                  data-testid={`link-dropdown-${sub.slug}`}
+                >
+                  {sub.name}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const simpleLinks = [
   { href: "/", label: "Home" },
@@ -145,58 +202,24 @@ export default function Header() {
               </Link>
             ))}
 
-            <NavigationMenu>
-              <NavigationMenuList>
-                {mainCategories.map((main) => {
-                  const subs = getSubcategories(main.id);
-                  if (subs.length === 0) {
-                    return (
-                      <NavigationMenuItem key={main.id}>
-                        <Link href={`/shop?category=${main.slug}`}>
-                          <span
-                            className="px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer text-muted-foreground hover:text-foreground"
-                            data-testid={`link-nav-${main.slug}`}
-                          >
-                            {main.name}
-                          </span>
-                        </Link>
-                      </NavigationMenuItem>
-                    );
-                  }
-                  return (
-                    <NavigationMenuItem key={main.id}>
-                      <NavigationMenuTrigger
-                        className="text-sm font-medium text-muted-foreground hover:text-foreground bg-transparent hover:bg-transparent focus:bg-transparent data-[state=open]:bg-transparent"
-                        data-testid={`link-nav-${main.slug}`}
-                      >
-                        {main.name}
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        <div className="w-[280px] p-3" data-testid={`dropdown-${main.slug}`}>
-                          <Link href={`/shop?category=${main.slug}`}>
-                            <div className="px-3 py-2 rounded-md text-sm font-semibold text-[#C9A961] hover-elevate transition-colors cursor-pointer mb-1" data-testid={`link-dropdown-all-${main.slug}`}>
-                              All {main.name}
-                            </div>
-                          </Link>
-                          <div className="grid grid-cols-1 gap-0.5">
-                            {subs.map((sub) => (
-                              <Link key={sub.id} href={`/shop?category=${sub.slug}`}>
-                                <div
-                                  className="px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover-elevate transition-colors cursor-pointer"
-                                  data-testid={`link-dropdown-${sub.slug}`}
-                                >
-                                  {sub.name}
-                                </div>
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  );
-                })}
-              </NavigationMenuList>
-            </NavigationMenu>
+            {mainCategories.map((main) => {
+              const subs = getSubcategories(main.id);
+              if (subs.length === 0) {
+                return (
+                  <Link key={main.id} href={`/shop?category=${main.slug}`}>
+                    <span
+                      className="px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer text-muted-foreground hover:text-foreground"
+                      data-testid={`link-nav-${main.slug}`}
+                    >
+                      {main.name}
+                    </span>
+                  </Link>
+                );
+              }
+              return (
+                <CategoryDropdown key={main.id} main={main} subs={subs} navigate={navigate} />
+              );
+            })}
           </nav>
 
           <div className="flex items-center gap-1">
