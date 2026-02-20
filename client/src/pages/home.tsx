@@ -79,8 +79,8 @@ function HeroSlider() {
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/55 to-black/25" />
         </div>
       ))}
-      <div className="absolute inset-0 z-10 flex items-center">
-        <div className="max-w-7xl w-full mx-auto px-4 sm:px-6">
+      <div className="absolute inset-x-0 top-0 bottom-16 z-10 flex items-center pointer-events-none">
+        <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 pointer-events-auto">
           <div className="max-w-xl">
             <p
               className="text-[#C9A961] text-xs sm:text-sm font-medium tracking-[0.3em] uppercase mb-5 transition-opacity duration-500"
@@ -135,17 +135,19 @@ function HeroSlider() {
           </div>
         </div>
       </div>
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3 z-20">
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-30">
         {heroSlides.map((_, i) => (
           <button
             key={i}
             onClick={() => goToSlide(i)}
-            className={`h-2 rounded-full transition-all duration-500 cursor-pointer ${
-              i === current ? "w-10 bg-[#C9A961]" : "w-5 bg-white/40 hover:bg-white/60"
-            }`}
+            className="p-2 cursor-pointer"
             aria-label={`Go to slide ${i + 1}`}
             data-testid={`button-hero-dot-${i}`}
-          />
+          >
+            <span className={`block rounded-full transition-all duration-500 ${
+              i === current ? "w-6 h-1 bg-[#C9A961]" : "w-3 h-1 bg-white/40"
+            }`} />
+          </button>
         ))}
       </div>
     </section>
