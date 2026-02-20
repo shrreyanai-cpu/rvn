@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "wouter";
 import { ArrowRight, Truck, Shield, Repeat, Sparkles, Star, Quote, Award, Users, MapPin, Clock, TrendingUp } from "lucide-react";
 import { SiInstagram } from "react-icons/si";
@@ -42,112 +42,108 @@ const heroSlides = [
 
 function HeroSlider() {
   const [current, setCurrent] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const resetAutoSlide = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % heroSlides.length);
+    }, 5000);
+  }, []);
 
   const goToSlide = useCallback((index: number) => {
-    if (isTransitioning || index === current) return;
-    setIsTransitioning(true);
     setCurrent(index);
-    setTimeout(() => setIsTransitioning(false), 700);
-  }, [current, isTransitioning]);
+    resetAutoSlide();
+  }, [resetAutoSlide]);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setIsTransitioning(true);
-      setCurrent((prev) => (prev + 1) % heroSlides.length);
-      setTimeout(() => setIsTransitioning(false), 700);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, []);
+    resetAutoSlide();
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [resetAutoSlide]);
+
+  const slide = heroSlides[current];
 
   return (
     <section className="relative h-[70vh] sm:h-[80vh] lg:h-[90vh] overflow-hidden">
-      {heroSlides.map((slide, i) => (
+      {heroSlides.map((s, i) => (
         <div
           key={i}
           className="absolute inset-0 transition-opacity duration-700 ease-in-out"
           style={{ opacity: i === current ? 1 : 0, zIndex: i === current ? 1 : 0 }}
         >
           <img
-            src={slide.image}
-            alt={`${slide.title} ${slide.highlight}`}
+            src={s.image}
+            alt={`${s.title} ${s.highlight}`}
             className="absolute inset-0 w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/55 to-black/25" />
         </div>
       ))}
-      <div className="relative z-10 h-full max-w-7xl mx-auto px-4 sm:px-6 flex items-center">
-        <div className="max-w-xl">
-          {heroSlides.map((slide, i) => (
-            <div
-              key={i}
-              className="absolute transition-all duration-700 ease-in-out"
-              style={{
-                opacity: i === current ? 1 : 0,
-                transform: i === current ? "translateY(0)" : "translateY(20px)",
-                pointerEvents: i === current ? "auto" : "none",
-              }}
+      <div className="absolute inset-0 z-10 flex items-center">
+        <div className="max-w-7xl w-full mx-auto px-4 sm:px-6">
+          <div className="max-w-xl">
+            <p
+              className="text-[#C9A961] text-xs sm:text-sm font-medium tracking-[0.3em] uppercase mb-5 transition-opacity duration-500"
+              key={`subtitle-${current}`}
+              data-testid={`text-hero-subtitle-${current}`}
             >
-              <p
-                className="text-[#C9A961] text-xs sm:text-sm font-medium tracking-[0.3em] uppercase mb-5"
-                data-testid={`text-hero-subtitle-${i}`}
-              >
-                {slide.subtitle}
-              </p>
-              <div className="w-12 h-[2px] bg-[#C9A961] mb-6" />
-              <h1
-                className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.1] mb-5"
-                data-testid={`text-hero-title-${i}`}
-              >
-                {slide.title}{" "}
-                <span className="text-[#C9A961] italic">{slide.highlight}</span>
-              </h1>
-              <p className="text-white/70 text-base sm:text-lg leading-relaxed mb-10 max-w-md">
-                {slide.description}
-              </p>
-              <div className="flex flex-wrap gap-4">
-                <Link href={slide.cta.href}>
-                  <Button
-                    className="bg-[#C9A961] text-[#1A1A1A] border-[#C9A961] font-semibold px-8 tracking-wide"
-                    data-testid={`button-hero-cta-${i}`}
-                  >
-                    {slide.cta.text}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-                <Link href={slide.secondary.href}>
-                  <Button
-                    variant="outline"
-                    className="text-white border-white/25 backdrop-blur-sm bg-white/5 px-8 tracking-wide"
-                    data-testid={`button-hero-secondary-${i}`}
-                  >
-                    {slide.secondary.text}
-                  </Button>
-                </Link>
-              </div>
-              <div className="flex items-center gap-4 sm:gap-8 mt-8 sm:mt-10 text-white/50 text-xs flex-wrap">
-                <span className="flex items-center gap-1.5">
-                  <Shield className="h-3.5 w-3.5" /> Secure Payments
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Truck className="h-3.5 w-3.5" /> Free Delivery
-                </span>
-                <span className="hidden sm:flex items-center gap-1.5">
-                  <Star className="h-3.5 w-3.5" /> Premium Quality
-                </span>
-              </div>
+              {slide.subtitle}
+            </p>
+            <div className="w-12 h-[2px] bg-[#C9A961] mb-6" />
+            <h1
+              className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.1] mb-5 transition-opacity duration-500"
+              key={`title-${current}`}
+              data-testid={`text-hero-title-${current}`}
+            >
+              {slide.title}{" "}
+              <span className="text-[#C9A961] italic">{slide.highlight}</span>
+            </h1>
+            <p className="text-white/70 text-base sm:text-lg leading-relaxed mb-8 max-w-md transition-opacity duration-500" key={`desc-${current}`}>
+              {slide.description}
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <Link href={slide.cta.href}>
+                <Button
+                  className="bg-[#C9A961] text-[#1A1A1A] border-[#C9A961] font-semibold px-8 tracking-wide"
+                  data-testid={`button-hero-cta-${current}`}
+                >
+                  {slide.cta.text}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href={slide.secondary.href}>
+                <Button
+                  variant="outline"
+                  className="text-white border-white/25 backdrop-blur-sm bg-white/5 px-8 tracking-wide"
+                  data-testid={`button-hero-secondary-${current}`}
+                >
+                  {slide.secondary.text}
+                </Button>
+              </Link>
             </div>
-          ))}
+            <div className="flex items-center gap-4 sm:gap-8 mt-8 sm:mt-10 text-white/50 text-xs flex-wrap">
+              <span className="flex items-center gap-1.5">
+                <Shield className="h-3.5 w-3.5" /> Secure Payments
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Truck className="h-3.5 w-3.5" /> Free Delivery
+              </span>
+              <span className="hidden sm:flex items-center gap-1.5">
+                <Star className="h-3.5 w-3.5" /> Premium Quality
+              </span>
+            </div>
+          </div>
         </div>
       </div>
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3 z-20">
         {heroSlides.map((_, i) => (
           <button
             key={i}
             onClick={() => goToSlide(i)}
-            className={`h-1.5 rounded-full transition-all duration-500 ${
-              i === current ? "w-10 bg-[#C9A961]" : "w-5 bg-white/30 hover:bg-white/50"
+            className={`h-2 rounded-full transition-all duration-500 cursor-pointer ${
+              i === current ? "w-10 bg-[#C9A961]" : "w-5 bg-white/40 hover:bg-white/60"
             }`}
+            aria-label={`Go to slide ${i + 1}`}
             data-testid={`button-hero-dot-${i}`}
           />
         ))}
@@ -212,7 +208,7 @@ export default function HomePage() {
     <div className="min-h-screen">
       <HeroSlider />
 
-      <section className="overflow-hidden bg-[#2C3E50] dark:bg-[#1a2530] py-3">
+      <section className="relative z-20 overflow-hidden bg-[#2C3E50] dark:bg-[#1a2530] py-3">
         <div className="flex animate-marquee whitespace-nowrap">
           {Array.from({ length: 2 }).map((_, idx) => (
             <div key={idx} className="flex items-center shrink-0">
