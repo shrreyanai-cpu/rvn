@@ -121,17 +121,6 @@ function HeroSlider() {
                 </Button>
               </Link>
             </div>
-            <div className="flex items-center gap-4 sm:gap-8 mt-8 sm:mt-10 text-white/50 text-xs flex-wrap">
-              <span className="flex items-center gap-1.5">
-                <Shield className="h-3.5 w-3.5" /> Secure Payments
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Truck className="h-3.5 w-3.5" /> Free Delivery
-              </span>
-              <span className="hidden sm:flex items-center gap-1.5">
-                <Star className="h-3.5 w-3.5" /> Premium Quality
-              </span>
-            </div>
           </div>
         </div>
       </div>
