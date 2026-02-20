@@ -249,62 +249,100 @@ export default function AdminProducts() {
       {isLoading ? (
         <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-md" />)}</div>
       ) : (
-        <Card className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead className="hidden sm:table-cell">Category</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead className="hidden md:table-cell">Stock</TableHead>
-                <TableHead className="hidden md:table-cell">Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((product) => {
-                const cat = categories?.find((c) => c.id === product.categoryId);
-                return (
-                  <TableRow key={product.id} data-testid={`row-product-${product.id}`}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-12 rounded overflow-hidden bg-muted flex-shrink-0">
-                          <img src={product.images?.[0] || "/images/products/silk-saree-burgundy.png"} alt={product.name} className="w-full h-full object-cover" />
+        <>
+        <div className="hidden sm:block">
+          <Card className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product</TableHead>
+                  <TableHead className="hidden md:table-cell">Category</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead className="hidden md:table-cell">Stock</TableHead>
+                  <TableHead className="hidden lg:table-cell">Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((product) => {
+                  const cat = categories?.find((c) => c.id === product.categoryId);
+                  return (
+                    <TableRow key={product.id} data-testid={`row-product-${product.id}`}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-12 rounded overflow-hidden bg-muted flex-shrink-0">
+                            <img src={product.images?.[0] || "/images/products/silk-saree-burgundy.png"} alt={product.name} className="w-full h-full object-cover" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm truncate max-w-[180px]">{product.name}</p>
+                            <p className="text-xs text-muted-foreground">{product.material}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-sm truncate max-w-[180px]">{product.name}</p>
-                          <p className="text-xs text-muted-foreground">{product.material}</p>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <span className="text-sm text-muted-foreground">
+                          {cat ? (cat.parentId ? `${categories?.find(c => c.id === cat.parentId)?.name || ""} > ${cat.name}` : cat.name) : "-"}
+                        </span>
+                      </TableCell>
+                      <TableCell><span className="text-sm font-medium">Rs. {Number(product.price).toLocaleString("en-IN")}</span></TableCell>
+                      <TableCell className="hidden md:table-cell"><span className="text-sm">{product.stockQuantity}</span></TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <Badge variant={product.inStock ? "default" : "secondary"} className={`text-[10px] no-default-hover-elevate no-default-active-elevate ${product.inStock ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"} border-0`}>
+                          {product.inStock ? "In Stock" : "Out of Stock"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button size="icon" variant="ghost" onClick={() => { setEditingProduct(product); setDialogOpen(true); }} data-testid={`button-edit-product-${product.id}`}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => deleteMutation.mutate(product.id)} data-testid={`button-delete-product-${product.id}`}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      <span className="text-sm text-muted-foreground">
-                        {cat ? (cat.parentId ? `${categories?.find(c => c.id === cat.parentId)?.name || ""} > ${cat.name}` : cat.name) : "-"}
-                      </span>
-                    </TableCell>
-                    <TableCell><span className="text-sm font-medium">Rs. {Number(product.price).toLocaleString("en-IN")}</span></TableCell>
-                    <TableCell className="hidden md:table-cell"><span className="text-sm">{product.stockQuantity}</span></TableCell>
-                    <TableCell className="hidden md:table-cell">
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </Card>
+        </div>
+
+        <div className="sm:hidden space-y-3">
+          {filtered.map((product) => {
+            const cat = categories?.find((c) => c.id === product.categoryId);
+            return (
+              <Card key={product.id} className="p-3" data-testid={`card-product-${product.id}`}>
+                <div className="flex items-start gap-3">
+                  <div className="w-14 h-[4.5rem] rounded overflow-hidden bg-muted flex-shrink-0">
+                    <img src={product.images?.[0] || "/images/products/silk-saree-burgundy.png"} alt={product.name} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{product.name}</p>
+                    <p className="text-xs text-muted-foreground">{cat?.name || product.material || "-"}</p>
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      <span className="text-sm font-semibold">Rs. {Number(product.price).toLocaleString("en-IN")}</span>
                       <Badge variant={product.inStock ? "default" : "secondary"} className={`text-[10px] no-default-hover-elevate no-default-active-elevate ${product.inStock ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"} border-0`}>
-                        {product.inStock ? "In Stock" : "Out of Stock"}
+                        {product.inStock ? "In Stock" : "Out"}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => { setEditingProduct(product); setDialogOpen(true); }} data-testid={`button-edit-product-${product.id}`}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" onClick={() => deleteMutation.mutate(product.id)} data-testid={`button-delete-product-${product.id}`}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </Card>
+                      <span className="text-xs text-muted-foreground">Qty: {product.stockQuantity}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Button size="icon" variant="ghost" onClick={() => { setEditingProduct(product); setDialogOpen(true); }} data-testid={`button-edit-product-m-${product.id}`}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" onClick={() => deleteMutation.mutate(product.id)} data-testid={`button-delete-product-m-${product.id}`}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+        </>
       )}
     </div>
   );

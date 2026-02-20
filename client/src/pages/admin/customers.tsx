@@ -164,76 +164,115 @@ export default function AdminCustomers() {
       ) : filtered.length === 0 ? (
         <Card className="p-12 text-center"><p className="text-muted-foreground">No customers found</p></Card>
       ) : (
-        <Card className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead className="hidden sm:table-cell">Email</TableHead>
-                <TableHead>Orders</TableHead>
-                <TableHead className="hidden md:table-cell">Joined</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="text-right"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((customer) => {
-                const initials = `${(customer.firstName || "")[0] || ""}${(customer.lastName || "")[0] || ""}`.toUpperCase() || "U";
-                return (
-                  <TableRow key={customer.id} data-testid={`row-customer-${customer.id}`}>
-                    <TableCell>
-                      <Link href={`/admin/customers/${customer.id}`} className="flex items-center gap-3 hover:opacity-80" data-testid={`link-customer-detail-${customer.id}`}>
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="text-xs bg-[#C9A961]/15 text-[#C9A961]">{initials}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium text-sm text-[#C9A961]">{customer.firstName || ""} {customer.lastName || ""}</p>
-                          <p className="text-xs text-muted-foreground sm:hidden">{customer.email}</p>
+        <>
+        <div className="hidden sm:block">
+          <Card className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead className="hidden md:table-cell">Email</TableHead>
+                  <TableHead>Orders</TableHead>
+                  <TableHead className="hidden lg:table-cell">Joined</TableHead>
+                  <TableHead className="hidden md:table-cell">Role</TableHead>
+                  <TableHead className="text-right"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((customer) => {
+                  const initials = `${(customer.firstName || "")[0] || ""}${(customer.lastName || "")[0] || ""}`.toUpperCase() || "U";
+                  return (
+                    <TableRow key={customer.id} data-testid={`row-customer-${customer.id}`}>
+                      <TableCell>
+                        <Link href={`/admin/customers/${customer.id}`} className="flex items-center gap-3 hover:opacity-80" data-testid={`link-customer-detail-${customer.id}`}>
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback className="text-xs bg-[#C9A961]/15 text-[#C9A961]">{initials}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium text-sm text-[#C9A961]">{customer.firstName || ""} {customer.lastName || ""}</p>
+                            <p className="text-xs text-muted-foreground md:hidden">{customer.email}</p>
+                          </div>
+                        </Link>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <span className="text-sm text-muted-foreground">{customer.email}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <ShoppingBag className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-sm">{customer.orderCount}</span>
                         </div>
-                      </Link>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      <span className="text-sm text-muted-foreground">{customer.email}</span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        <ShoppingBag className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="text-sm">{customer.orderCount}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(customer.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {(() => {
-                        const role = (customer.role || (customer.isAdmin ? "super_admin" : "customer")) as Role;
-                        const isStaff = role !== "customer";
-                        return isStaff ? (
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(customer.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        </span>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {(() => {
+                          const role = (customer.role || (customer.isAdmin ? "super_admin" : "customer")) as Role;
+                          const isStaff = role !== "customer";
+                          return isStaff ? (
+                            <Badge className="text-[10px] bg-[#C9A961]/15 text-[#C9A961] border-0 no-default-hover-elevate no-default-active-elevate">
+                              <Shield className="h-3 w-3 mr-1" /> {ROLE_LABELS[role]}
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-[10px] no-default-hover-elevate no-default-active-elevate border-0">
+                              Customer
+                            </Badge>
+                          );
+                        })()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Link href={`/admin/customers/${customer.id}`}>
+                          <Button size="icon" variant="ghost" data-testid={`button-view-customer-${customer.id}`}>
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </Card>
+        </div>
+
+        <div className="sm:hidden space-y-3">
+          {filtered.map((customer) => {
+            const initials = `${(customer.firstName || "")[0] || ""}${(customer.lastName || "")[0] || ""}`.toUpperCase() || "U";
+            const role = (customer.role || (customer.isAdmin ? "super_admin" : "customer")) as Role;
+            const isStaff = role !== "customer";
+            return (
+              <Link key={customer.id} href={`/admin/customers/${customer.id}`} data-testid={`card-customer-${customer.id}`}>
+                <Card className="p-3 hover-elevate">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10 flex-shrink-0">
+                      <AvatarFallback className="text-xs bg-[#C9A961]/15 text-[#C9A961]">{initials}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm text-[#C9A961] truncate">{customer.firstName || ""} {customer.lastName || ""}</p>
+                      <p className="text-xs text-muted-foreground truncate">{customer.email}</p>
+                      <div className="flex items-center gap-3 mt-1 flex-wrap">
+                        <div className="flex items-center gap-1">
+                          <ShoppingBag className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">{customer.orderCount} orders</span>
+                        </div>
+                        {isStaff ? (
                           <Badge className="text-[10px] bg-[#C9A961]/15 text-[#C9A961] border-0 no-default-hover-elevate no-default-active-elevate">
                             <Shield className="h-3 w-3 mr-1" /> {ROLE_LABELS[role]}
                           </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-[10px] no-default-hover-elevate no-default-active-elevate border-0">
-                            Customer
-                          </Badge>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Link href={`/admin/customers/${customer.id}`}>
-                        <Button size="icon" variant="ghost" data-testid={`button-view-customer-${customer.id}`}>
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </Card>
+                        ) : null}
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  </div>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+        </>
       )}
     </div>
   );
