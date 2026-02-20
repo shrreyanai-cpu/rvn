@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Tag, FolderOpen,
-  LogOut, ChevronLeft, Truck, Shield, Mail, RotateCcw
+  LogOut, Store, ChevronLeft, Truck, Shield, Mail, RotateCcw
 } from "lucide-react";
 import { hasPermission, isAdminRole, type Permission } from "@shared/models/auth";
 import { useAuth } from "@/hooks/use-auth";
@@ -55,8 +55,10 @@ function AdminSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Ravindrra Vastra Niketan" className="h-9 w-9 object-contain" data-testid="img-admin-sidebar-logo" />
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-md bg-[#2C3E50] dark:bg-[#C9A961] flex items-center justify-center">
+            <Store className="h-4 w-4 text-white dark:text-[#1A1A1A]" />
+          </div>
           <div>
             <h2 className="font-serif text-sm font-bold leading-tight" data-testid="text-admin-brand">
               Ravindrra Vastra Niketan
