@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Truck, Globe, Loader2, MapPin, Calculator, Package, Calendar, Warehouse, FileText, Download } from "lucide-react";
+import { Truck, Globe, Loader2, MapPin, Calculator, Package, Calendar, Warehouse, FileText, Download, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,10 @@ export default function AdminDelivery() {
     delhiveryPickupPhone: "",
     sellerName: "",
     sellerGstTin: "",
+    whatsappNotifyNumber: "",
+    whatsappOrderNotifications: true,
+    whatsappAbandonedCartEnabled: true,
+    whatsappAbandonedCartMinutes: "30",
   });
 
   const { data: settings, isLoading } = useQuery<DeliverySettings>({
@@ -61,6 +65,10 @@ export default function AdminDelivery() {
         delhiveryPickupPhone: settings.delhiveryPickupPhone || "",
         sellerName: settings.sellerName || "",
         sellerGstTin: settings.sellerGstTin || "",
+        whatsappNotifyNumber: settings.whatsappNotifyNumber || "",
+        whatsappOrderNotifications: settings.whatsappOrderNotifications ?? true,
+        whatsappAbandonedCartEnabled: settings.whatsappAbandonedCartEnabled ?? true,
+        whatsappAbandonedCartMinutes: String(settings.whatsappAbandonedCartMinutes || 30),
       });
     }
   }, [settings]);
@@ -82,6 +90,10 @@ export default function AdminDelivery() {
         delhiveryPickupPhone: form.delhiveryPickupPhone || null,
         sellerName: form.sellerName || null,
         sellerGstTin: form.sellerGstTin || null,
+        whatsappNotifyNumber: form.whatsappNotifyNumber || null,
+        whatsappOrderNotifications: form.whatsappOrderNotifications,
+        whatsappAbandonedCartEnabled: form.whatsappAbandonedCartEnabled,
+        whatsappAbandonedCartMinutes: parseInt(form.whatsappAbandonedCartMinutes) || 30,
       });
     },
     onSuccess: () => {
@@ -382,6 +394,74 @@ export default function AdminDelivery() {
                   Test Pincode
                 </Button>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-green-600" />
+              <CardTitle className="font-serif" data-testid="text-whatsapp-title">WhatsApp Notifications</CardTitle>
+            </div>
+            <CardDescription>Get order alerts and abandoned cart reminders on WhatsApp via Twilio</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <Label>WhatsApp Number (with country code)</Label>
+                <Input
+                  value={form.whatsappNotifyNumber}
+                  onChange={(e) => setForm({ ...form, whatsappNotifyNumber: e.target.value })}
+                  placeholder="e.g., 918889777992"
+                  data-testid="input-whatsapp-number"
+                />
+                <p className="text-xs text-muted-foreground mt-1">All notifications will be sent to this number. Include country code without + (e.g., 91 for India)</p>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={form.whatsappOrderNotifications}
+                  onCheckedChange={(c) => setForm({ ...form, whatsappOrderNotifications: c })}
+                  data-testid="switch-whatsapp-orders"
+                />
+                <div>
+                  <Label>New Order Notifications</Label>
+                  <p className="text-xs text-muted-foreground">Get a WhatsApp message when a customer places and pays for an order</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={form.whatsappAbandonedCartEnabled}
+                  onCheckedChange={(c) => setForm({ ...form, whatsappAbandonedCartEnabled: c })}
+                  data-testid="switch-whatsapp-abandoned-cart"
+                />
+                <div>
+                  <Label>Abandoned Cart Alerts</Label>
+                  <p className="text-xs text-muted-foreground">Get notified when customers leave items in their cart without checking out</p>
+                </div>
+              </div>
+
+              {form.whatsappAbandonedCartEnabled && (
+                <div className="ml-12 max-w-xs">
+                  <Label>Alert After (minutes)</Label>
+                  <Input
+                    type="number"
+                    value={form.whatsappAbandonedCartMinutes}
+                    onChange={(e) => setForm({ ...form, whatsappAbandonedCartMinutes: e.target.value })}
+                    placeholder="30"
+                    min="5"
+                    max="1440"
+                    data-testid="input-whatsapp-cart-minutes"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Time to wait before sending the alert (5-1440 mins)</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

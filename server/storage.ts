@@ -80,6 +80,9 @@ export interface IStorage {
   deleteReview(id: number, userId: string): Promise<void>;
   getProductAverageRating(productId: number): Promise<{ average: number; count: number }>;
   getProductsAverageRatings(productIds: number[]): Promise<Record<number, { average: number; count: number }>>;
+
+  getAbandonedCarts(minutesThreshold: number): Promise<Array<{ userId: string; customerName: string; customerPhone: string; items: Array<{ name: string; quantity: number; price: string }>; totalValue: string }>>;
+  markCartNotified(userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -455,6 +458,58 @@ export class DatabaseStorage implements IStorage {
       map[r.productId] = { average: Number(r.average), count: Number(r.count) };
     }
     return map;
+  }
+
+  async getAbandonedCarts(minutesThreshold: number) {
+    const threshold = new Date(Date.now() - minutesThreshold * 60 * 1000);
+    const result = await db
+      .select({
+        userId: cartItems.userId,
+        productName: products.name,
+        quantity: cartItems.quantity,
+        price: products.price,
+        addedAt: cartItems.addedAt,
+        whatsappNotifiedAt: cartItems.whatsappNotifiedAt,
+      })
+      .from(cartItems)
+      .innerJoin(products, eq(cartItems.productId, products.id))
+      .where(sql`${cartItems.addedAt} < ${threshold} AND ${cartItems.whatsappNotifiedAt} IS NULL`);
+
+    const grouped: Record<string, typeof result> = {};
+    for (const row of result) {
+      if (!grouped[row.userId]) grouped[row.userId] = [];
+      grouped[row.userId].push(row);
+    }
+
+    const carts = [];
+    for (const [userId, items] of Object.entries(grouped)) {
+      const user = await this.getUserById(userId);
+      if (!user) continue;
+
+      const totalValue = items.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0).toFixed(2);
+      const savedAddr = user.savedShippingAddress as any;
+
+      carts.push({
+        userId,
+        customerName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'Customer',
+        customerPhone: savedAddr?.phone || '',
+        items: items.map((item) => ({
+          name: item.productName,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        totalValue,
+      });
+    }
+
+    return carts;
+  }
+
+  async markCartNotified(userId: string) {
+    await db
+      .update(cartItems)
+      .set({ whatsappNotifiedAt: new Date() })
+      .where(eq(cartItems.userId, userId));
   }
 }
 

@@ -65,6 +65,8 @@ export const cartItems = pgTable("cart_items", {
   quantity: integer("quantity").notNull().default(1),
   size: text("size"),
   color: text("color"),
+  addedAt: timestamp("added_at").defaultNow(),
+  whatsappNotifiedAt: timestamp("whatsapp_notified_at"),
 });
 
 export const cartItemsRelations = relations(cartItems, ({ one }) => ({
@@ -173,6 +175,10 @@ export const deliverySettings = pgTable("delivery_settings", {
   delhiveryEnvironment: text("delhivery_environment").default("staging"),
   sellerName: text("seller_name"),
   sellerGstTin: text("seller_gst_tin"),
+  whatsappNotifyNumber: text("whatsapp_notify_number"),
+  whatsappOrderNotifications: boolean("whatsapp_order_notifications").default(true),
+  whatsappAbandonedCartEnabled: boolean("whatsapp_abandoned_cart_enabled").default(true),
+  whatsappAbandonedCartMinutes: integer("whatsapp_abandoned_cart_minutes").default(30),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

@@ -8,6 +8,7 @@ import { authStorage } from "./replit_integrations/auth/storage";
 import { Cashfree as CashfreeSDK, CFEnvironment } from "cashfree-pg";
 import { hasPermission, isAdminRole, type Permission } from "@shared/models/auth";
 import { sendOrderConfirmation, sendShippingUpdate, sendPromotionalEmail, sendReturnRequestEmail } from "./email";
+import { sendOrderNotification, startAbandonedCartChecker } from "./whatsapp";
 
 function getCashfreeInstance() {
   const clientId = process.env.CASHFREE_APP_ID || "";
@@ -104,6 +105,8 @@ export async function registerRoutes(
   await setupAuth(app);
   registerAuthRoutes(app);
   registerObjectStorageRoutes(app);
+
+  startAbandonedCartChecker();
 
   app.get("/api/categories", async (_req, res) => {
     try {
@@ -727,6 +730,10 @@ export async function registerRoutes(
         const user = await authStorage.getUser(order.userId);
         if (user?.email) {
           sendOrderConfirmation(user.email, order as any).catch(err => console.error("Order confirmation email error:", err));
+        }
+        const updatedOrder = await storage.getOrderById(order.id);
+        if (updatedOrder) {
+          sendOrderNotification(updatedOrder as any).catch(err => console.error("WhatsApp order notification error:", err));
         }
       }
 
