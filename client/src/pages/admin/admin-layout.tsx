@@ -141,6 +141,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex flex-col flex-1">
           <header className="flex items-center gap-4 p-3 border-b">
             <SidebarTrigger data-testid="button-admin-sidebar-toggle" />
+            <Link href="/admin" className="flex items-center gap-2">
+              <img src="/logo.png" alt="Ravindrra Vastra Niketan" className="h-7 w-7 object-contain" data-testid="img-admin-logo" />
+              <span className="font-serif text-sm font-bold tracking-wide text-[hsl(210,25%,28%)] dark:text-[hsl(45,35%,92%)] hidden sm:inline" data-testid="text-admin-navbar-brand">
+                RAVINDRRA
+              </span>
+            </Link>
           </header>
           <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
             {children}
