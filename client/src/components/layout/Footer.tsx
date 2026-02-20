@@ -5,7 +5,7 @@ export default function Footer() {
   return (
     <footer className="border-t bg-card">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
           <div>
             <h3 className="font-serif text-lg font-bold mb-4 flex items-center gap-2">
               <img src="/logo.png" alt="Ravindrra Vastra Niketan" className="h-8 w-8 object-contain" />
@@ -109,6 +109,33 @@ export default function Footer() {
                 <Link href="/return-policy">
                   <span className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer" data-testid="link-footer-return-policy">
                     Return & Refund Policy
+                  </span>
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold uppercase tracking-wider mb-4">Quick Links</h4>
+            <ul className="space-y-2.5">
+              <li>
+                <Link href="/flash-sale">
+                  <span className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer" data-testid="link-footer-flash-sale">
+                    Flash Sale
+                  </span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/track-order">
+                  <span className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer" data-testid="link-footer-track-order">
+                    Track Order
+                  </span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact">
+                  <span className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer" data-testid="link-footer-contact">
+                    Contact Us
                   </span>
                 </Link>
               </li>

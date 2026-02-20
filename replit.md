@@ -4,6 +4,15 @@
 A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium Indian clothing store. Built as a standalone solution with product catalog, shopping cart, checkout, order management, and admin dashboard.
 
 ## Recent Changes
+- 2026-02-20: Sales Analytics dashboard (/admin/analytics) with Recharts: revenue trends, top products, category breakdown, order status distribution
+- 2026-02-20: Flash Sale system: flashSalePrice/Start/End fields on products, countdown timers, /flash-sale page
+- 2026-02-20: Instagram Feed section on homepage with admin management of posts (image URL, post URL, caption)
+- 2026-02-20: Newsletter signup popup (5s delay, 7-day dismiss, localStorage), subscriber management, admin view
+- 2026-02-20: Order tracking page (/track-order) with visual timeline, Delhivery integration, scan history
+- 2026-02-20: New schema tables: newsletterSubscribers, instagramPosts, contactMessages
+- 2026-02-20: Footer updated with Quick Links (Flash Sale, Track Order, Contact Us)
+- 2026-02-20: Admin sidebar: Analytics link added
+- 2026-02-20: Contact page (/contact) with store info, contact form, and Google Maps embed
 - 2026-02-19: Product weight field (grams) on products schema, admin form, saved in order items, total weight calculated for Delhivery shipments
 - 2026-02-19: Admin orders table: expandable rows showing items list with product images, qty, size, color, weight per item, and total order weight
 - 2026-02-19: Product review and rating system: reviews table, star ratings, customer feedback on product detail page, average ratings on product cards
@@ -79,8 +88,16 @@ A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium India
 - `/payment/callback` - Payment verification after Cashfree redirect
 - `/orders` - Customer order history (shows payment status)
 - `/profile` - My Account (personal info, password, addresses management, recent orders)
+- `/contact` - Contact page with store info, contact form, and Google Maps
+- `/return-policy` - Return & refund policy documentation
+- `/terms-conditions` - Terms & conditions
+- `/privacy-policy` - Privacy policy
+- `/shipping-delivery` - Shipping & delivery information
+- `/track-order` - Order tracking page
+- `/flash-sale` - Flash sale products with countdown timers
 - `/admin` - Admin dashboard (products + orders management)
 - `/admin/delivery` - Delivery settings & Delhivery integration
+- `/admin/analytics` - Sales analytics dashboard with charts
 
 ## Design
 - Inspired by Net-a-Porter and Zara

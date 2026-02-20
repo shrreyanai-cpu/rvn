@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Product, Category } from "@shared/schema";
 import ProductCard from "@/components/ProductCard";
+import InstagramFeed from "@/components/instagram-feed";
 
 const heroSlides = [
   {
@@ -621,6 +622,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <InstagramFeed />
 
       <section className="py-16 sm:py-20 bg-[#2C3E50] dark:bg-[#1a2530]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">

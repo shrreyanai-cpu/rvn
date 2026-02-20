@@ -23,6 +23,7 @@ import NotFound from "@/pages/not-found";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import AdminLayout from "@/pages/admin/admin-layout";
 import AdminDashboard from "@/pages/admin/dashboard";
+import AdminAnalytics from "@/pages/admin/analytics";
 import AdminProducts from "@/pages/admin/products";
 import AdminOrders from "@/pages/admin/orders";
 import AdminCustomers from "@/pages/admin/customers";
@@ -37,6 +38,10 @@ import ReturnPolicyPage from "@/pages/return-policy";
 import TermsConditionsPage from "@/pages/terms-conditions";
 import PrivacyPolicyPage from "@/pages/privacy-policy";
 import ShippingDeliveryPage from "@/pages/shipping-delivery";
+import TrackOrderPage from "@/pages/track-order";
+import ContactPage from "@/pages/contact";
+import FlashSalePage from "@/pages/flash-sale";
+import NewsletterPopup from "@/components/newsletter-popup";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -96,6 +101,7 @@ function AdminRouter() {
     <AdminLayout>
       <Switch>
         <Route path="/admin" component={AdminDashboard} />
+        <Route path="/admin/analytics" component={AdminAnalytics} />
         <Route path="/admin/products" component={AdminProducts} />
         <Route path="/admin/orders" component={AdminOrders} />
         <Route path="/admin/customers/:id" component={AdminCustomerDetail} />
@@ -128,17 +134,20 @@ function AppRouter() {
       <Switch>
         <Route path="/" component={HomeOrLanding} />
         <Route path="/shop" component={ShopPage} />
+        <Route path="/flash-sale" component={FlashSalePage} />
         <Route path="/product/:slug" component={ProductDetailPage} />
         <Route path="/search" component={SearchPage} />
         <Route path="/cart" component={CartPage} />
         <Route path="/checkout" component={CheckoutPage} />
         <Route path="/payment/callback" component={PaymentCallbackPage} />
         <Route path="/orders" component={OrdersPage} />
+        <Route path="/track-order" component={TrackOrderPage} />
         <Route path="/profile" component={ProfilePage} />
         <Route path="/return-policy" component={ReturnPolicyPage} />
         <Route path="/terms-conditions" component={TermsConditionsPage} />
         <Route path="/privacy-policy" component={PrivacyPolicyPage} />
         <Route path="/shipping-delivery" component={ShippingDeliveryPage} />
+        <Route path="/contact" component={ContactPage} />
         <Route component={NotFound} />
       </Switch>
     </MainLayout>
@@ -151,6 +160,7 @@ function App() {
       <TooltipProvider>
         <ScrollToTop />
         <Toaster />
+        <NewsletterPopup />
         <AppRouter />
       </TooltipProvider>
     </QueryClientProvider>

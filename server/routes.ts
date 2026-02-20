@@ -96,7 +96,8 @@ const updateOrderStatusSchema = z.object({
   status: z.enum(["pending", "confirmed", "shipped", "delivered", "cancelled"]),
 });
 
-import { insertCouponSchema, insertCategorySchema } from "@shared/schema";
+import { insertCouponSchema, insertCategorySchema, newsletterSubscribers } from "@shared/schema";
+import { db } from "./db";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -1766,6 +1767,193 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Delete review error:", error);
       res.status(500).json({ message: "Failed to delete review" });
+    }
+  });
+
+  // ===== Order Tracking =====
+  app.get("/api/track-order/:id", async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      if (isNaN(orderId)) return res.status(400).json({ message: "Invalid order ID" });
+      const order = await storage.getOrderById(orderId);
+      if (!order) return res.status(404).json({ message: "Order not found" });
+
+      const trackingInfo: any = {
+        id: order.id,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        totalAmount: order.totalAmount,
+        createdAt: order.createdAt,
+        delhiveryWaybill: order.delhiveryWaybill,
+        delhiveryStatus: order.delhiveryStatus,
+        trackingUrl: order.trackingUrl,
+        items: order.items,
+      };
+
+      if (order.delhiveryWaybill) {
+        try {
+          const settings = await storage.getDeliverySettings();
+          if (settings?.delhiveryApiToken) {
+            const baseUrl = settings.delhiveryEnvironment === "production"
+              ? "https://track.delhivery.com" : "https://staging-express.delhivery.com";
+            const trackRes = await fetch(`${baseUrl}/api/v1/packages/json/?waybill=${order.delhiveryWaybill}`, {
+              headers: { Authorization: `Token ${settings.delhiveryApiToken}` },
+            });
+            if (trackRes.ok) {
+              const trackData = await trackRes.json();
+              trackingInfo.delhiveryTracking = trackData?.ShipmentData?.[0]?.Shipment;
+            }
+          }
+        } catch (e) {
+          console.error("Delhivery tracking fetch error:", e);
+        }
+      }
+
+      res.json(trackingInfo);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to track order" });
+    }
+  });
+
+  // ===== Newsletter =====
+  app.post("/api/newsletter/subscribe", async (req, res) => {
+    try {
+      const schema = z.object({ email: z.string().email() });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Valid email required" });
+      const sub = await storage.addNewsletterSubscriber({ email: parsed.data.email });
+      res.status(201).json(sub);
+    } catch (error: any) {
+      if (error?.code === '23505') return res.status(409).json({ message: "Already subscribed" });
+      res.status(500).json({ message: "Failed to subscribe" });
+    }
+  });
+
+  app.get("/api/admin/newsletter", isAuthenticated, requirePermission("manage_customers"), async (_req, res) => {
+    try {
+      const subs = await storage.getNewsletterSubscribers();
+      res.json(subs);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch subscribers" });
+    }
+  });
+
+  app.delete("/api/admin/newsletter/:id", isAuthenticated, requirePermission("manage_customers"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+      await storage.deleteNewsletterSubscriber(id);
+      res.json({ message: "Subscriber removed" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to remove subscriber" });
+    }
+  });
+
+  // ===== Instagram Posts =====
+  app.get("/api/instagram-posts", async (_req, res) => {
+    try {
+      const posts = await storage.getInstagramPosts();
+      res.json(posts);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch posts" });
+    }
+  });
+
+  app.post("/api/admin/instagram-posts", isAuthenticated, requirePermission("manage_products"), async (req, res) => {
+    try {
+      const schema = z.object({
+        imageUrl: z.string().url(),
+        postUrl: z.string().url(),
+        caption: z.string().optional(),
+        sortOrder: z.number().optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data" });
+      const post = await storage.createInstagramPost({
+        imageUrl: parsed.data.imageUrl,
+        postUrl: parsed.data.postUrl,
+        caption: parsed.data.caption || null,
+        sortOrder: parsed.data.sortOrder || 0,
+      });
+      res.status(201).json(post);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create post" });
+    }
+  });
+
+  app.delete("/api/admin/instagram-posts/:id", isAuthenticated, requirePermission("manage_products"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+      await storage.deleteInstagramPost(id);
+      res.json({ message: "Post deleted" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete post" });
+    }
+  });
+
+  // ===== Contact Messages =====
+  app.post("/api/contact", async (req, res) => {
+    try {
+      const schema = z.object({
+        name: z.string().min(1),
+        email: z.string().email(),
+        phone: z.string().optional(),
+        subject: z.string().min(1),
+        message: z.string().min(1),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "All fields required" });
+      const msg = await storage.createContactMessage({
+        name: parsed.data.name,
+        email: parsed.data.email,
+        phone: parsed.data.phone || null,
+        subject: parsed.data.subject,
+        message: parsed.data.message,
+      });
+      res.status(201).json(msg);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  app.get("/api/admin/contact-messages", isAuthenticated, requirePermission("view_customers"), async (_req, res) => {
+    try {
+      const msgs = await storage.getContactMessages();
+      res.json(msgs);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  app.patch("/api/admin/contact-messages/:id/read", isAuthenticated, requirePermission("view_customers"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+      await storage.markContactMessageRead(id);
+      res.json({ message: "Marked as read" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update" });
+    }
+  });
+
+  // ===== Flash Sale Products =====
+  app.get("/api/flash-sale", async (_req, res) => {
+    try {
+      const products = await storage.getFlashSaleProducts();
+      res.json(products);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch flash sale products" });
+    }
+  });
+
+  // ===== Sales Analytics =====
+  app.get("/api/admin/analytics", isAuthenticated, requirePermission("view_dashboard"), async (_req, res) => {
+    try {
+      const analytics = await storage.getSalesAnalytics();
+      res.json(analytics);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch analytics" });
     }
   });
 

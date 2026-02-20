@@ -1,5 +1,6 @@
 import {
   categories, products, cartItems, orders, coupons, deliverySettings, addresses, returnRequests, reviews,
+  newsletterSubscribers, instagramPosts, contactMessages,
   type Category, type InsertCategory,
   type Product, type InsertProduct,
   type CartItem, type InsertCartItem,
@@ -9,6 +10,9 @@ import {
   type Address, type InsertAddress,
   type ReturnRequest, type InsertReturnRequest,
   type Review, type InsertReview,
+  type NewsletterSubscriber, type InsertNewsletterSubscriber,
+  type InstagramPost, type InsertInstagramPost,
+  type ContactMessage, type InsertContactMessage,
 } from "@shared/schema";
 import { users } from "@shared/models/auth";
 import { db } from "./db";
@@ -83,6 +87,21 @@ export interface IStorage {
 
   getAbandonedCarts(minutesThreshold: number): Promise<Array<{ userId: string; customerName: string; customerPhone: string; items: Array<{ name: string; quantity: number; price: string }>; totalValue: string }>>;
   markCartNotified(userId: string): Promise<void>;
+
+  getNewsletterSubscribers(): Promise<NewsletterSubscriber[]>;
+  addNewsletterSubscriber(data: InsertNewsletterSubscriber): Promise<NewsletterSubscriber>;
+  deleteNewsletterSubscriber(id: number): Promise<void>;
+
+  getInstagramPosts(): Promise<InstagramPost[]>;
+  createInstagramPost(data: InsertInstagramPost): Promise<InstagramPost>;
+  deleteInstagramPost(id: number): Promise<void>;
+
+  getContactMessages(): Promise<ContactMessage[]>;
+  createContactMessage(data: InsertContactMessage): Promise<ContactMessage>;
+  markContactMessageRead(id: number): Promise<void>;
+
+  getFlashSaleProducts(): Promise<Product[]>;
+  getSalesAnalytics(): Promise<{ dailyRevenue: Array<{ date: string; revenue: number; orders: number }>; topProducts: Array<{ name: string; sold: number; revenue: number }>; categoryBreakdown: Array<{ category: string; revenue: number; orders: number }>; orderStatusBreakdown: Array<{ status: string; count: number }> }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -510,6 +529,120 @@ export class DatabaseStorage implements IStorage {
       .update(cartItems)
       .set({ whatsappNotifiedAt: new Date() })
       .where(eq(cartItems.userId, userId));
+  }
+
+  async getNewsletterSubscribers(): Promise<NewsletterSubscriber[]> {
+    return db.select().from(newsletterSubscribers).orderBy(desc(newsletterSubscribers.createdAt));
+  }
+
+  async addNewsletterSubscriber(data: InsertNewsletterSubscriber): Promise<NewsletterSubscriber> {
+    const [sub] = await db.insert(newsletterSubscribers).values(data).returning();
+    return sub;
+  }
+
+  async deleteNewsletterSubscriber(id: number): Promise<void> {
+    await db.delete(newsletterSubscribers).where(eq(newsletterSubscribers.id, id));
+  }
+
+  async getInstagramPosts(): Promise<InstagramPost[]> {
+    return db.select().from(instagramPosts).orderBy(instagramPosts.sortOrder);
+  }
+
+  async createInstagramPost(data: InsertInstagramPost): Promise<InstagramPost> {
+    const [post] = await db.insert(instagramPosts).values(data).returning();
+    return post;
+  }
+
+  async deleteInstagramPost(id: number): Promise<void> {
+    await db.delete(instagramPosts).where(eq(instagramPosts.id, id));
+  }
+
+  async getContactMessages(): Promise<ContactMessage[]> {
+    return db.select().from(contactMessages).orderBy(desc(contactMessages.createdAt));
+  }
+
+  async createContactMessage(data: InsertContactMessage): Promise<ContactMessage> {
+    const [msg] = await db.insert(contactMessages).values(data).returning();
+    return msg;
+  }
+
+  async markContactMessageRead(id: number): Promise<void> {
+    await db.update(contactMessages).set({ isRead: true }).where(eq(contactMessages.id, id));
+  }
+
+  async getFlashSaleProducts(): Promise<Product[]> {
+    const now = new Date();
+    const allProducts = await db.select().from(products);
+    return allProducts.filter(p =>
+      p.flashSalePrice && p.flashSaleStart && p.flashSaleEnd &&
+      new Date(p.flashSaleStart) <= now && new Date(p.flashSaleEnd) >= now
+    );
+  }
+
+  async getSalesAnalytics() {
+    const allOrders = await db.select().from(orders).orderBy(desc(orders.createdAt));
+    const paidOrders = allOrders.filter(o => o.paymentStatus === 'paid');
+
+    const dailyMap = new Map<string, { revenue: number; orders: number }>();
+    for (const o of paidOrders) {
+      const date = new Date(o.createdAt || new Date()).toISOString().split('T')[0];
+      const existing = dailyMap.get(date) || { revenue: 0, orders: 0 };
+      existing.revenue += Number(o.totalAmount);
+      existing.orders += 1;
+      dailyMap.set(date, existing);
+    }
+    const dailyRevenue = Array.from(dailyMap.entries())
+      .map(([date, data]) => ({ date, ...data }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-30);
+
+    const productSales = new Map<string, { sold: number; revenue: number }>();
+    for (const o of paidOrders) {
+      const items = o.items as Array<{ name: string; quantity: number; price: string }>;
+      if (Array.isArray(items)) {
+        for (const item of items) {
+          const existing = productSales.get(item.name) || { sold: 0, revenue: 0 };
+          existing.sold += item.quantity;
+          existing.revenue += Number(item.price) * item.quantity;
+          productSales.set(item.name, existing);
+        }
+      }
+    }
+    const topProducts = Array.from(productSales.entries())
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10);
+
+    const allCats = await db.select().from(categories);
+    const catMap = new Map(allCats.map(c => [c.id, c.name]));
+    const allProds = await db.select().from(products);
+    const prodCatMap = new Map(allProds.map(p => [p.name, catMap.get(p.categoryId || 0) || 'Uncategorized']));
+    const catBreakdown = new Map<string, { revenue: number; orders: number }>();
+    for (const o of paidOrders) {
+      const items = o.items as Array<{ name: string; quantity: number; price: string }>;
+      if (Array.isArray(items)) {
+        for (const item of items) {
+          const cat = prodCatMap.get(item.name) || 'Uncategorized';
+          const existing = catBreakdown.get(cat) || { revenue: 0, orders: 0 };
+          existing.revenue += Number(item.price) * item.quantity;
+          existing.orders += 1;
+          catBreakdown.set(cat, existing);
+        }
+      }
+    }
+    const categoryBreakdown = Array.from(catBreakdown.entries())
+      .map(([category, data]) => ({ category, ...data }))
+      .sort((a, b) => b.revenue - a.revenue);
+
+    const statusMap = new Map<string, number>();
+    for (const o of allOrders) {
+      const s = o.status || 'pending';
+      statusMap.set(s, (statusMap.get(s) || 0) + 1);
+    }
+    const orderStatusBreakdown = Array.from(statusMap.entries())
+      .map(([status, count]) => ({ status, count }));
+
+    return { dailyRevenue, topProducts, categoryBreakdown, orderStatusBreakdown };
   }
 }
 

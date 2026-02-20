@@ -44,6 +44,9 @@ export const products = pgTable("products", {
   stockQuantity: integer("stock_quantity").notNull().default(0),
   featured: boolean("featured").notNull().default(false),
   weight: integer("weight").notNull().default(0),
+  flashSalePrice: numeric("flash_sale_price", { precision: 10, scale: 2 }),
+  flashSaleStart: timestamp("flash_sale_start"),
+  flashSaleEnd: timestamp("flash_sale_end"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -222,3 +225,41 @@ export const reviewsRelations = relations(reviews, ({ one }) => ({
 export const insertReviewSchema = createInsertSchema(reviews).omit({ id: true, createdAt: true });
 export type InsertReview = z.infer<typeof insertReviewSchema>;
 export type Review = typeof reviews.$inferSelect;
+
+export const newsletterSubscribers = pgTable("newsletter_subscribers", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertNewsletterSubscriberSchema = createInsertSchema(newsletterSubscribers).omit({ id: true, createdAt: true });
+export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscriberSchema>;
+export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
+
+export const instagramPosts = pgTable("instagram_posts", {
+  id: serial("id").primaryKey(),
+  imageUrl: text("image_url").notNull(),
+  postUrl: text("post_url").notNull(),
+  caption: text("caption"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertInstagramPostSchema = createInsertSchema(instagramPosts).omit({ id: true, createdAt: true });
+export type InsertInstagramPost = z.infer<typeof insertInstagramPostSchema>;
+export type InstagramPost = typeof instagramPosts.$inferSelect;
+
+export const contactMessages = pgTable("contact_messages", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  subject: text("subject").notNull(),
+  message: text("message").notNull(),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertContactMessageSchema = createInsertSchema(contactMessages).omit({ id: true, isRead: true, createdAt: true });
+export type InsertContactMessage = z.infer<typeof insertContactMessageSchema>;
+export type ContactMessage = typeof contactMessages.$inferSelect;
