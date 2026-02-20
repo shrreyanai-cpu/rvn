@@ -79,7 +79,7 @@ function HeroSlider() {
           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/55 to-black/25" />
         </div>
       ))}
-      <div className="absolute inset-x-0 top-0 bottom-16 z-10 flex items-center pointer-events-none">
+      <div className="absolute inset-x-0 top-16 bottom-16 z-10 flex items-center pointer-events-none">
         <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 pointer-events-auto">
           <div className="max-w-xl">
             <p
