@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { Link } from "wouter";
 import { ArrowRight, Truck, Shield, Repeat, Sparkles, Star, Quote, Award, Users, MapPin, Clock, TrendingUp } from "lucide-react";
 import { SiInstagram } from "react-icons/si";
@@ -9,6 +9,152 @@ import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Product, Category } from "@shared/schema";
 import ProductCard from "@/components/ProductCard";
+
+const heroSlides = [
+  {
+    image: "/images/hero-banner.png",
+    subtitle: "Premium Indian Fashion Since 1985",
+    title: "Timeless Elegance,",
+    highlight: "Modern Grace",
+    description: "Discover exquisite handcrafted clothing that celebrates India's rich textile heritage with contemporary sophistication.",
+    cta: { text: "Shop Collection", href: "/shop" },
+    secondary: { text: "View Featured", href: "/shop?featured=true" },
+  },
+  {
+    image: "/images/products/red-bridal-lehenga.png",
+    subtitle: "Bridal Season 2026",
+    title: "The Grand",
+    highlight: "Bridal Collection",
+    description: "Exquisite bridal lehengas featuring heavy kundan and zardozi embroidery, crafted for the modern Indian bride.",
+    cta: { text: "Shop Bridal", href: "/shop?category=lehenga" },
+    secondary: { text: "Explore More", href: "/shop" },
+  },
+  {
+    image: "/images/products/silk-saree-burgundy.png",
+    subtitle: "Handwoven Heritage",
+    title: "Pure Silk",
+    highlight: "Saree Collection",
+    description: "Handwoven by master artisans from Varanasi and Kanchipuram, each saree tells a story of centuries-old craftsmanship.",
+    cta: { text: "Shop Sarees", href: "/shop?category=sarees" },
+    secondary: { text: "All Collections", href: "/shop" },
+  },
+];
+
+function HeroSlider() {
+  const [current, setCurrent] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  const goToSlide = useCallback((index: number) => {
+    if (isTransitioning || index === current) return;
+    setIsTransitioning(true);
+    setCurrent(index);
+    setTimeout(() => setIsTransitioning(false), 700);
+  }, [current, isTransitioning]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIsTransitioning(true);
+      setCurrent((prev) => (prev + 1) % heroSlides.length);
+      setTimeout(() => setIsTransitioning(false), 700);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <section className="relative h-[70vh] sm:h-[80vh] lg:h-[90vh] overflow-hidden">
+      {heroSlides.map((slide, i) => (
+        <div
+          key={i}
+          className="absolute inset-0 transition-opacity duration-700 ease-in-out"
+          style={{ opacity: i === current ? 1 : 0, zIndex: i === current ? 1 : 0 }}
+        >
+          <img
+            src={slide.image}
+            alt={`${slide.title} ${slide.highlight}`}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/55 to-black/25" />
+        </div>
+      ))}
+      <div className="relative z-10 h-full max-w-7xl mx-auto px-4 sm:px-6 flex items-center">
+        <div className="max-w-xl">
+          {heroSlides.map((slide, i) => (
+            <div
+              key={i}
+              className="absolute transition-all duration-700 ease-in-out"
+              style={{
+                opacity: i === current ? 1 : 0,
+                transform: i === current ? "translateY(0)" : "translateY(20px)",
+                pointerEvents: i === current ? "auto" : "none",
+              }}
+            >
+              <p
+                className="text-[#C9A961] text-xs sm:text-sm font-medium tracking-[0.3em] uppercase mb-5"
+                data-testid={`text-hero-subtitle-${i}`}
+              >
+                {slide.subtitle}
+              </p>
+              <div className="w-12 h-[2px] bg-[#C9A961] mb-6" />
+              <h1
+                className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.1] mb-5"
+                data-testid={`text-hero-title-${i}`}
+              >
+                {slide.title}{" "}
+                <span className="text-[#C9A961] italic">{slide.highlight}</span>
+              </h1>
+              <p className="text-white/70 text-base sm:text-lg leading-relaxed mb-10 max-w-md">
+                {slide.description}
+              </p>
+              <div className="flex flex-wrap gap-4">
+                <Link href={slide.cta.href}>
+                  <Button
+                    className="bg-[#C9A961] text-[#1A1A1A] border-[#C9A961] font-semibold px-8 tracking-wide"
+                    data-testid={`button-hero-cta-${i}`}
+                  >
+                    {slide.cta.text}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+                <Link href={slide.secondary.href}>
+                  <Button
+                    variant="outline"
+                    className="text-white border-white/25 backdrop-blur-sm bg-white/5 px-8 tracking-wide"
+                    data-testid={`button-hero-secondary-${i}`}
+                  >
+                    {slide.secondary.text}
+                  </Button>
+                </Link>
+              </div>
+              <div className="flex items-center gap-4 sm:gap-8 mt-8 sm:mt-10 text-white/50 text-xs flex-wrap">
+                <span className="flex items-center gap-1.5">
+                  <Shield className="h-3.5 w-3.5" /> Secure Payments
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Truck className="h-3.5 w-3.5" /> Free Delivery
+                </span>
+                <span className="hidden sm:flex items-center gap-1.5">
+                  <Star className="h-3.5 w-3.5" /> Premium Quality
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+        {heroSlides.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => goToSlide(i)}
+            className={`h-1.5 rounded-full transition-all duration-500 ${
+              i === current ? "w-10 bg-[#C9A961]" : "w-5 bg-white/30 hover:bg-white/50"
+            }`}
+            data-testid={`button-hero-dot-${i}`}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export default function HomePage() {
   const { data: featuredProducts, isLoading: loadingProducts } = useQuery<Product[]>({
@@ -64,76 +210,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen">
-      <section className="relative h-[70vh] sm:h-[80vh] lg:h-[90vh] overflow-hidden">
-        <img
-          src="/images/hero-banner.png"
-          alt="Luxury Indian Clothing"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/55 to-black/25" />
-        <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 flex items-center">
-          <div className="max-w-xl">
-            <p
-              className="text-[#C9A961] text-xs sm:text-sm font-medium tracking-[0.3em] uppercase mb-5"
-              data-testid="text-hero-subtitle"
-            >
-              Premium Indian Fashion Since 1985
-            </p>
-            <div className="w-12 h-[2px] bg-[#C9A961] mb-6" />
-            <h1
-              className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.1] mb-5"
-              data-testid="text-hero-title"
-            >
-              Timeless Elegance,{" "}
-              <span className="text-[#C9A961] italic">Modern Grace</span>
-            </h1>
-            <p className="text-white/70 text-base sm:text-lg leading-relaxed mb-10 max-w-md">
-              Discover exquisite handcrafted clothing that celebrates India's rich textile heritage with contemporary sophistication.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Link href="/shop">
-                <Button
-                  className="bg-[#C9A961] text-[#1A1A1A] border-[#C9A961] font-semibold px-8 tracking-wide"
-                  data-testid="button-shop-collection"
-                >
-                  Shop Collection
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-              <Link href="/shop?featured=true">
-                <Button
-                  variant="outline"
-                  className="text-white border-white/25 backdrop-blur-sm bg-white/5 px-8 tracking-wide"
-                  data-testid="button-view-featured"
-                >
-                  View Featured
-                </Button>
-              </Link>
-            </div>
-            <div className="flex items-center gap-4 sm:gap-8 mt-8 sm:mt-10 text-white/50 text-xs flex-wrap">
-              <span className="flex items-center gap-1.5">
-                <Shield className="h-3.5 w-3.5" /> Secure Payments
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Truck className="h-3.5 w-3.5" /> Free Delivery
-              </span>
-              <span className="hidden sm:flex items-center gap-1.5">
-                <Star className="h-3.5 w-3.5" /> Premium Quality
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-1.5">
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              className={`h-1 rounded-full transition-all ${
-                i === 0 ? "w-8 bg-[#C9A961]" : "w-4 bg-white/30"
-              }`}
-            />
-          ))}
-        </div>
-      </section>
+      <HeroSlider />
 
       <section className="overflow-hidden bg-[#2C3E50] dark:bg-[#1a2530] py-3">
         <div className="flex animate-marquee whitespace-nowrap">
