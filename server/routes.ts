@@ -898,8 +898,9 @@ export async function registerRoutes(
   app.get("/api/admin/customers", isAuthenticated, requirePermission("view_customers"), async (_req, res) => {
     try {
       const allUsers = await storage.getAllUsers();
+      const customers = allUsers.filter((user) => user.role === "customer");
       const usersWithOrders = await Promise.all(
-        allUsers.map(async (user) => {
+        customers.map(async (user) => {
           const orderCount = await storage.getUserOrderCount(user.id);
           return { ...user, orderCount };
         })
