@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Tag, FolderOpen,
-  LogOut, Store, ChevronLeft, Truck, Shield, Mail, RotateCcw
+  LogOut, ChevronLeft, Truck, Shield, Mail, RotateCcw
 } from "lucide-react";
 import { hasPermission, isAdminRole, type Permission } from "@shared/models/auth";
 import { useAuth } from "@/hooks/use-auth";
@@ -55,10 +55,8 @@ function AdminSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-md bg-[#2C3E50] dark:bg-[#C9A961] flex items-center justify-center">
-            <Store className="h-4 w-4 text-white dark:text-[#1A1A1A]" />
-          </div>
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="Ravindrra Vastra Niketan" className="h-9 w-9 object-contain" data-testid="img-admin-sidebar-logo" />
           <div>
             <h2 className="font-serif text-sm font-bold leading-tight" data-testid="text-admin-brand">
               Ravindrra Vastra Niketan
@@ -141,12 +139,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex flex-col flex-1">
           <header className="flex items-center gap-4 p-3 border-b">
             <SidebarTrigger data-testid="button-admin-sidebar-toggle" />
-            <Link href="/admin" className="flex items-center gap-2">
-              <img src="/logo.png" alt="Ravindrra Vastra Niketan" className="h-7 w-7 object-contain" data-testid="img-admin-logo" />
-              <span className="font-serif text-sm font-bold tracking-wide text-[hsl(210,25%,28%)] dark:text-[hsl(45,35%,92%)] hidden sm:inline" data-testid="text-admin-navbar-brand">
-                RAVINDRRA
-              </span>
-            </Link>
           </header>
           <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
             {children}
