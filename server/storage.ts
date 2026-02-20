@@ -302,7 +302,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAdminStats(): Promise<{ totalCustomers: number; totalRevenue: number; totalOrders: number; totalProducts: number }> {
-    const [customerCount] = await db.select({ value: count() }).from(users);
+    const [customerCount] = await db.select({ value: count() }).from(users).where(eq(users.role, "customer"));
     const [productCount] = await db.select({ value: count() }).from(products);
     const [orderCount] = await db.select({ value: count() }).from(orders);
     const revenueResult = await db.select({ total: sql<string>`COALESCE(SUM(total_amount::numeric), 0)` }).from(orders);
