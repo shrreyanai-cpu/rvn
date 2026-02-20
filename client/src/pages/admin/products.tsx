@@ -45,6 +45,7 @@ function ProductForm({
     compareAtPrice: product?.compareAtPrice || "",
     categoryId: product?.categoryId?.toString() || "",
     material: product?.material || "",
+    brand: product?.brand || "",
     sizes: product?.sizes?.join(", ") || "",
     colors: product?.colors?.join(", ") || "",
     stockQuantity: product?.stockQuantity?.toString() || "0",
@@ -64,6 +65,7 @@ function ProductForm({
         compareAtPrice: form.compareAtPrice || null,
         categoryId: form.categoryId ? parseInt(form.categoryId) : null,
         material: form.material || null,
+        brand: form.brand || null,
         sizes: form.sizes ? form.sizes.split(",").map((s) => s.trim()).filter(Boolean) : [],
         colors: form.colors ? form.colors.split(",").map((s) => s.trim()).filter(Boolean) : [],
         stockQuantity: parseInt(form.stockQuantity) || 0,
@@ -141,6 +143,10 @@ function ProductForm({
         <div>
           <Label>Material</Label>
           <Input value={form.material} onChange={(e) => setForm({ ...form, material: e.target.value })} placeholder="e.g., Pure Silk" data-testid="input-product-material" />
+        </div>
+        <div>
+          <Label>Brand</Label>
+          <Input value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} placeholder="e.g., Ravindrra" data-testid="input-product-brand" />
         </div>
         <div>
           <Label>Sizes (comma separated)</Label>

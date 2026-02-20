@@ -40,6 +40,7 @@ export const products = pgTable("products", {
   sizes: text("sizes").array().notNull().default(sql`'{}'::text[]`),
   colors: text("colors").array().notNull().default(sql`'{}'::text[]`),
   material: text("material"),
+  brand: text("brand"),
   inStock: boolean("in_stock").notNull().default(true),
   stockQuantity: integer("stock_quantity").notNull().default(0),
   featured: boolean("featured").notNull().default(false),

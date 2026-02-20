@@ -4,6 +4,8 @@
 A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium Indian clothing store. Built as a standalone solution with product catalog, shopping cart, checkout, order management, and admin dashboard.
 
 ## Recent Changes
+- 2026-02-20: Advanced product filtering: price range slider, size toggles, color swatches, brand checkboxes, material filter, in-stock toggle, active filter badges, enhanced sorting (rating, popularity, discount)
+- 2026-02-20: Brand field added to products schema and admin product form
 - 2026-02-20: Sales Analytics dashboard (/admin/analytics) with Recharts: revenue trends, top products, category breakdown, order status distribution
 - 2026-02-20: Flash Sale system: flashSalePrice/Start/End fields on products, countdown timers, /flash-sale page
 - 2026-02-20: Instagram Feed section on homepage with admin management of posts (image URL, post URL, caption)
