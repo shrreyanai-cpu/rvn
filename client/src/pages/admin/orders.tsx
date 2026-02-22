@@ -1,6 +1,7 @@
-import { useState, Fragment } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { Link } from "wouter";
-import { Search, Eye, Truck, ExternalLink, Trash2, Loader2, ChevronDown, ChevronRight, Package } from "lucide-react";
+import { Search, Eye, Truck, ExternalLink, Trash2, Loader2, ChevronDown, ChevronRight, Package, Ruler, Weight, Save, Check } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,8 @@ export default function AdminOrders() {
   const [selectedOrder, setSelectedOrder] = useState<OrderWithCustomer | null>(null);
   const [deletingOrderId, setDeletingOrderId] = useState<number | null>(null);
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
+  const [pkgForm, setPkgForm] = useState({ packageLength: "", packageWidth: "", packageHeight: "", packageWeight: "" });
+  const [pkgSaved, setPkgSaved] = useState(false);
 
   const { data: orders, isLoading } = useQuery<OrderWithCustomer[]>({ queryKey: ["/api/admin/orders"] });
 
@@ -70,6 +73,34 @@ export default function AdminOrders() {
     },
     onError: () => {
       toast({ title: "Failed to create shipment", variant: "destructive" });
+    },
+  });
+
+  useEffect(() => {
+    if (selectedOrder) {
+      setPkgForm({
+        packageLength: selectedOrder.packageLength || "",
+        packageWidth: selectedOrder.packageWidth || "",
+        packageHeight: selectedOrder.packageHeight || "",
+        packageWeight: selectedOrder.packageWeight || "",
+      });
+      setPkgSaved(false);
+    }
+  }, [selectedOrder]);
+
+  const updatePackageMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: typeof pkgForm }) => {
+      const res = await apiRequest("PATCH", `/api/admin/orders/${id}/package`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
+      setPkgSaved(true);
+      setTimeout(() => setPkgSaved(false), 2000);
+      toast({ title: "Package details saved" });
+    },
+    onError: () => {
+      toast({ title: "Failed to save package details", variant: "destructive" });
     },
   });
 
@@ -317,6 +348,34 @@ export default function AdminOrders() {
                       <span className="text-sm font-medium shrink-0">Rs. {Number(item.price).toLocaleString("en-IN")}</span>
                     </div>
                   ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium mb-2 flex items-center gap-1.5"><Package className="h-4 w-4" /> Package Details</p>
+                <div className="p-3 rounded-md bg-muted/30 space-y-3">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Length (cm)</Label>
+                      <Input type="number" placeholder="0" value={pkgForm.packageLength} onChange={(e) => setPkgForm((p) => ({ ...p, packageLength: e.target.value }))} className="h-8 text-sm mt-1" data-testid="input-package-length" />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Width (cm)</Label>
+                      <Input type="number" placeholder="0" value={pkgForm.packageWidth} onChange={(e) => setPkgForm((p) => ({ ...p, packageWidth: e.target.value }))} className="h-8 text-sm mt-1" data-testid="input-package-width" />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Height (cm)</Label>
+                      <Input type="number" placeholder="0" value={pkgForm.packageHeight} onChange={(e) => setPkgForm((p) => ({ ...p, packageHeight: e.target.value }))} className="h-8 text-sm mt-1" data-testid="input-package-height" />
+                    </div>
+                  </div>
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                      <Label className="text-xs text-muted-foreground">Weight (grams)</Label>
+                      <Input type="number" placeholder="0" value={pkgForm.packageWeight} onChange={(e) => setPkgForm((p) => ({ ...p, packageWeight: e.target.value }))} className="h-8 text-sm mt-1" data-testid="input-package-weight" />
+                    </div>
+                    <Button size="sm" className="h-8 px-3" onClick={() => updatePackageMutation.mutate({ id: selectedOrder.id, data: pkgForm })} disabled={updatePackageMutation.isPending} data-testid="button-save-package">
+                      {updatePackageMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : pkgSaved ? <><Check className="h-3.5 w-3.5 mr-1" /> Saved</> : <><Save className="h-3.5 w-3.5 mr-1" /> Save</>}
+                    </Button>
+                  </div>
                 </div>
               </div>
               {selectedOrder.shippingAddress ? (() => {

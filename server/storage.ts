@@ -63,6 +63,7 @@ export interface IStorage {
 
   getDeliverySettings(): Promise<DeliverySettings | undefined>;
   upsertDeliverySettings(data: Partial<DeliverySettings>): Promise<DeliverySettings>;
+  updateOrderPackage(id: number, data: { packageLength?: string | null; packageWidth?: string | null; packageHeight?: string | null; packageWeight?: string | null }): Promise<Order | undefined>;
   updateOrderTracking(id: number, data: { delhiveryWaybill?: string; delhiveryStatus?: string; trackingUrl?: string }): Promise<Order | undefined>;
 
   getAddresses(userId: string): Promise<Address[]>;
@@ -346,6 +347,11 @@ export class DatabaseStorage implements IStorage {
     }
     const [created] = await db.insert(deliverySettings).values(data as any).returning();
     return created;
+  }
+
+  async updateOrderPackage(id: number, data: { packageLength?: string | null; packageWidth?: string | null; packageHeight?: string | null; packageWeight?: string | null }): Promise<Order | undefined> {
+    const [updated] = await db.update(orders).set({ ...data, updatedAt: new Date() }).where(eq(orders.id, id)).returning();
+    return updated;
   }
 
   async updateOrderTracking(id: number, data: { delhiveryWaybill?: string; delhiveryStatus?: string; trackingUrl?: string }): Promise<Order | undefined> {

@@ -885,6 +885,30 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/admin/orders/:id/package", isAuthenticated, requirePermission("manage_orders"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid order ID" });
+      const { packageLength, packageWidth, packageHeight, packageWeight } = req.body;
+      const toNumStr = (v: any): string | null => {
+        if (v === "" || v == null) return null;
+        const n = Number(v);
+        return isNaN(n) || n < 0 ? null : String(n);
+      };
+      const order = await storage.updateOrderPackage(id, {
+        packageLength: toNumStr(packageLength),
+        packageWidth: toNumStr(packageWidth),
+        packageHeight: toNumStr(packageHeight),
+        packageWeight: toNumStr(packageWeight),
+      });
+      if (!order) return res.status(404).json({ message: "Order not found" });
+      res.json(order);
+    } catch (error) {
+      console.error("Update order package error:", error);
+      res.status(500).json({ message: "Failed to update package details" });
+    }
+  });
+
   // Admin stats
   app.get("/api/admin/stats", isAuthenticated, requirePermission("view_dashboard"), async (_req, res) => {
     try {
