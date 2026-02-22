@@ -314,6 +314,14 @@ export async function registerRoutes(
 
       await storage.clearCart(userId);
 
+      const orderUser = await authStorage.getUser(userId);
+      storage.createAdminNotification({
+        type: "new_order",
+        title: "New Order Received",
+        message: `Order #${order.id} placed by ${orderUser?.firstName || orderUser?.email || "Customer"} for Rs. ${Number(order.totalAmount).toLocaleString("en-IN")}`,
+        orderId: order.id,
+      }).catch(err => console.error("Notification error:", err));
+
       const clientId = process.env.CASHFREE_APP_ID;
       const clientSecret = process.env.CASHFREE_SECRET_KEY;
 
@@ -321,7 +329,7 @@ export async function registerRoutes(
         return res.json({ ...order, paymentSessionId: null });
       }
 
-      const user = await authStorage.getUser(userId);
+      const user = orderUser;
       const cashfree = getCashfreeInstance();
 
       const baseUrl = `${req.protocol}://${req.get("host")}`;
@@ -632,6 +640,14 @@ export async function registerRoutes(
         paymentMethod: "cashfree",
       });
 
+      const orderUser = await authStorage.getUser(userId);
+      storage.createAdminNotification({
+        type: "new_order",
+        title: "New Order Received",
+        message: `Order #${order.id} placed by ${orderUser?.firstName || orderUser?.email || "Customer"} for Rs. ${Number(order.totalAmount).toLocaleString("en-IN")}`,
+        orderId: order.id,
+      }).catch(err => console.error("Notification error:", err));
+
       const clientId = process.env.CASHFREE_APP_ID;
       const clientSecret = process.env.CASHFREE_SECRET_KEY;
 
@@ -641,7 +657,7 @@ export async function registerRoutes(
 
       const cashfree = getCashfreeInstance();
       const cfOrderId = `order_${order.id}_${Date.now()}`;
-      const user = await authStorage.getUser(userId);
+      const user = orderUser;
 
       const cfRequest = {
         order_amount: Number(finalTotal),
@@ -906,6 +922,36 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Update order package error:", error);
       res.status(500).json({ message: "Failed to update package details" });
+    }
+  });
+
+  app.get("/api/admin/notifications", isAuthenticated, requirePermission("view_dashboard"), async (_req, res) => {
+    try {
+      const notifications = await storage.getAdminNotifications();
+      const unreadCount = await storage.getUnreadNotificationCount();
+      res.json({ notifications, unreadCount });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  app.post("/api/admin/notifications/mark-read/:id", isAuthenticated, requirePermission("view_dashboard"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+      await storage.markNotificationRead(id);
+      res.json({ message: "Marked as read" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to mark notification read" });
+    }
+  });
+
+  app.post("/api/admin/notifications/mark-all-read", isAuthenticated, requirePermission("view_dashboard"), async (_req, res) => {
+    try {
+      await storage.markAllNotificationsRead();
+      res.json({ message: "All notifications marked as read" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to mark all notifications read" });
     }
   });
 

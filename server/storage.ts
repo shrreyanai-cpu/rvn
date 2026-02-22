@@ -1,6 +1,6 @@
 import {
   categories, products, cartItems, orders, coupons, deliverySettings, addresses, returnRequests, reviews,
-  newsletterSubscribers, instagramPosts, contactMessages,
+  newsletterSubscribers, instagramPosts, contactMessages, adminNotifications,
   type Category, type InsertCategory,
   type Product, type InsertProduct,
   type CartItem, type InsertCartItem,
@@ -13,6 +13,7 @@ import {
   type NewsletterSubscriber, type InsertNewsletterSubscriber,
   type InstagramPost, type InsertInstagramPost,
   type ContactMessage, type InsertContactMessage,
+  type AdminNotification,
 } from "@shared/schema";
 import { users } from "@shared/models/auth";
 import { db } from "./db";
@@ -103,6 +104,12 @@ export interface IStorage {
 
   getFlashSaleProducts(): Promise<Product[]>;
   getSalesAnalytics(): Promise<{ dailyRevenue: Array<{ date: string; revenue: number; orders: number }>; topProducts: Array<{ name: string; sold: number; revenue: number }>; categoryBreakdown: Array<{ category: string; revenue: number; orders: number }>; orderStatusBreakdown: Array<{ status: string; count: number }> }>;
+
+  getAdminNotifications(limit?: number): Promise<AdminNotification[]>;
+  getUnreadNotificationCount(): Promise<number>;
+  createAdminNotification(data: { type: string; title: string; message: string; orderId?: number }): Promise<AdminNotification>;
+  markNotificationRead(id: number): Promise<void>;
+  markAllNotificationsRead(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -649,6 +656,28 @@ export class DatabaseStorage implements IStorage {
       .map(([status, count]) => ({ status, count }));
 
     return { dailyRevenue, topProducts, categoryBreakdown, orderStatusBreakdown };
+  }
+
+  async getAdminNotifications(limit = 50): Promise<AdminNotification[]> {
+    return db.select().from(adminNotifications).orderBy(desc(adminNotifications.createdAt)).limit(limit);
+  }
+
+  async getUnreadNotificationCount(): Promise<number> {
+    const [result] = await db.select({ count: count() }).from(adminNotifications).where(eq(adminNotifications.isRead, false));
+    return result?.count || 0;
+  }
+
+  async createAdminNotification(data: { type: string; title: string; message: string; orderId?: number }): Promise<AdminNotification> {
+    const [notif] = await db.insert(adminNotifications).values(data).returning();
+    return notif;
+  }
+
+  async markNotificationRead(id: number): Promise<void> {
+    await db.update(adminNotifications).set({ isRead: true }).where(eq(adminNotifications.id, id));
+  }
+
+  async markAllNotificationsRead(): Promise<void> {
+    await db.update(adminNotifications).set({ isRead: true }).where(eq(adminNotifications.isRead, false));
   }
 }
 
