@@ -119,7 +119,7 @@ export default function ReturnPolicyPage() {
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Once your return is approved after video verification, please ship the item(s) back within 3 days.
                 After we receive and inspect the returned items, your refund will be processed
-                within <strong className="text-foreground">5-7 business days</strong> to the original payment method.
+                within <strong className="text-foreground">1-3 business days</strong> to the original payment method.
                 Shipping charges are non-refundable.
               </p>
             </div>

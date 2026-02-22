@@ -1710,7 +1710,7 @@ export async function registerRoutes(
 
   app.get("/api/products/:productId/reviews", async (req: Request, res: Response) => {
     try {
-      const productId = parseInt(req.params.productId);
+      const productId = parseInt(req.params.productId as string);
       if (isNaN(productId)) return res.status(400).json({ message: "Invalid product ID" });
       const reviewsList = await storage.getReviewsByProductId(productId);
       const rating = await storage.getProductAverageRating(productId);
@@ -1724,7 +1724,7 @@ export async function registerRoutes(
   app.post("/api/products/:productId/reviews", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getUserId(req);
-      const productId = parseInt(req.params.productId);
+      const productId = parseInt(req.params.productId as string);
       if (isNaN(productId)) return res.status(400).json({ message: "Invalid product ID" });
 
       const product = await storage.getProductById(productId);
@@ -1760,7 +1760,7 @@ export async function registerRoutes(
   app.delete("/api/reviews/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = getUserId(req);
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ message: "Invalid review ID" });
       await storage.deleteReview(id, userId);
       res.json({ message: "Review deleted" });
@@ -1840,7 +1840,7 @@ export async function registerRoutes(
 
   app.delete("/api/admin/newsletter/:id", isAuthenticated, requirePermission("manage_customers"), async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
       await storage.deleteNewsletterSubscriber(id);
       res.json({ message: "Subscriber removed" });
@@ -1883,7 +1883,7 @@ export async function registerRoutes(
 
   app.delete("/api/admin/instagram-posts/:id", isAuthenticated, requirePermission("manage_products"), async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
       await storage.deleteInstagramPost(id);
       res.json({ message: "Post deleted" });
@@ -1928,7 +1928,7 @@ export async function registerRoutes(
 
   app.patch("/api/admin/contact-messages/:id/read", isAuthenticated, requirePermission("view_customers"), async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
       await storage.markContactMessageRead(id);
       res.json({ message: "Marked as read" });
