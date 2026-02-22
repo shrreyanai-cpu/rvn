@@ -538,12 +538,10 @@ export default function ProductDetailPage() {
             </Button>
           </div>
 
-          {product.inStock && (
-            <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
-              <Check className="h-3.5 w-3.5" />
-              <span data-testid="text-stock-status">In Stock ({product.stockQuantity} available)</span>
-            </div>
-          )}
+          <div className={`flex items-center gap-2 text-xs ${product.inStock ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+            <Check className="h-3.5 w-3.5" />
+            <span data-testid="text-stock-status">{product.inStock ? "In Stock" : "Out of Stock"}</span>
+          </div>
         </div>
       </div>
 
