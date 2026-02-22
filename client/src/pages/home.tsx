@@ -208,7 +208,7 @@ export default function HomePage() {
                 "Handcrafted with Love",
                 "Free Shipping Above Rs. 1,500",
                 "Premium Quality Fabrics",
-                "30-Day Easy Returns",
+                "2-Day Easy Returns",
                 "Authentic Indian Craftsmanship",
                 "Secure Payments",
               ].map((text) => (
