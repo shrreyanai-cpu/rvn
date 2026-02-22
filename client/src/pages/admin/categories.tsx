@@ -133,8 +133,8 @@ export default function AdminCategories() {
 
   const { data: categories, isLoading } = useQuery<Category[]>({ queryKey: ["/api/categories"] });
 
-  const mainCategories = useMemo(() => categories?.filter((c) => !c.parentId) || [], [categories]);
-  const getSubcategories = (parentId: number) => categories?.filter((c) => c.parentId === parentId) || [];
+  const mainCategories = useMemo(() => (categories?.filter((c) => !c.parentId) || []).sort((a, b) => a.name.localeCompare(b.name)), [categories]);
+  const getSubcategories = (parentId: number) => (categories?.filter((c) => c.parentId === parentId) || []).sort((a, b) => a.name.localeCompare(b.name));
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => { await apiRequest("DELETE", `/api/admin/categories/${id}`); },

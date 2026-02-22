@@ -106,7 +106,7 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   async getCategories(): Promise<Category[]> {
-    return db.select().from(categories);
+    return db.select().from(categories).orderBy(categories.name);
   }
 
   async getCategoryBySlug(slug: string): Promise<Category | undefined> {

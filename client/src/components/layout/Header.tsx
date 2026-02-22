@@ -101,8 +101,8 @@ export default function Header() {
     queryKey: ["/api/categories"],
   });
 
-  const mainCategories = categories?.filter((c) => !c.parentId) || [];
-  const getSubcategories = (parentId: number) => categories?.filter((c) => c.parentId === parentId) || [];
+  const mainCategories = (categories?.filter((c) => !c.parentId) || []).sort((a, b) => a.name.localeCompare(b.name));
+  const getSubcategories = (parentId: number) => (categories?.filter((c) => c.parentId === parentId) || []).sort((a, b) => a.name.localeCompare(b.name));
 
   const cartCount = cartItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 

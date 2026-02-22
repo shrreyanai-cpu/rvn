@@ -374,7 +374,7 @@ export default function ShopPage() {
   }, [categories]);
 
   const getSubcategories = (parentId: number) => {
-    return categories?.filter((c) => c.parentId === parentId) || [];
+    return (categories?.filter((c) => c.parentId === parentId) || []).sort((a, b) => a.name.localeCompare(b.name));
   };
 
   const selectedCat = categories?.find((c) => c.slug === selectedCategory);
