@@ -670,24 +670,26 @@ export default function HomePage() {
               Hear from our valued customers about their shopping experience with us
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               {
-                name: "Priya Sharma",
-                location: "Mumbai",
-                text: "The quality of the silk saree I purchased was absolutely breathtaking. The intricate zari work is even more beautiful in person. Truly a masterpiece! I wore it to my sister's wedding and received so many compliments.",
+                name: "Mahesh Chhabda",
+                text: "One stop for all your garments need.. from inner wear to all ethnic wear.. from new born to old age. All this in cost landing price... 365 days of valuable service from 9am to 8pm.. with wide variety under one roof! One just visit this place to see this by their own eyes!",
                 rating: 5,
               },
               {
-                name: "Arjun Patel",
-                location: "Delhi",
-                text: "Ordered a sherwani for my wedding and it was perfect. The fit, the embroidery, the fabric - everything exceeded my expectations. The team also helped with custom alterations at no extra charge. Thank you, Ravindrra!",
+                name: "Avinash P.",
+                text: "They got best collection in the rural area. Whenever I visit my Native, I use to shop from them as they got the dress right out from their factory with all detailed work like proper stitching and designs. Moreover these guys provide the elegant design in affordable rates. Best place to shop for Wedding Ceremony or events.",
                 rating: 5,
               },
               {
-                name: "Meera Krishnan",
-                location: "Bangalore",
-                text: "I've been ordering from Ravindrra for two years now. The consistency in quality and their attention to detail is what keeps me coming back. Their customer service is exceptional - always helpful and responsive.",
+                name: "Mayur Sawant",
+                text: "Value for money. Really cheap price for the quality of material. Loved shopping there. Went to shop for just one saree for my wife. Came up buying 17000 worth of 10 sarees. Highly recommended.",
+                rating: 5,
+              },
+              {
+                name: "Rahul Koshti",
+                text: "This is one of the best shopping place for your clothes. You can purchase A-2-Z, branded-non branded from Low-2-High cost range. The inside of shop is very well maintained and lot of staff around you all the times for your help. I purchased a lot of good quality Sarees, Tops, shirts, pants, blankets and more.",
                 rating: 5,
               },
             ].map((testimonial) => (
@@ -701,9 +703,17 @@ export default function HomePage() {
                 <p className="text-sm leading-relaxed text-muted-foreground mb-5">
                   "{testimonial.text}"
                 </p>
-                <div>
+                <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold">{testimonial.name}</p>
-                  <p className="text-xs text-muted-foreground">{testimonial.location}</p>
+                  <a
+                    href="https://maps.app.goo.gl/swepGVssrwPn3zfe6"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-muted-foreground hover:text-[#C9A961] transition-colors"
+                    data-testid={`link-google-review-${testimonial.name.toLowerCase().replace(/\s/g, "-")}`}
+                  >
+                    Google Review
+                  </a>
                 </div>
               </Card>
             ))}
