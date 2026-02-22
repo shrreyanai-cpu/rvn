@@ -283,7 +283,7 @@ export async function registerRoutes(
         .toFixed(2);
 
       const subtotal = Number(totalAmount);
-      const shipping = subtotal >= 1500 ? 0 : 80;
+      const shipping = subtotal >= 1000 ? 0 : 80;
       let discount = 0;
 
       if (parsed.data.couponCode) {
@@ -603,7 +603,7 @@ export async function registerRoutes(
       }];
 
       const subtotal = Number(product.price) * parsed.data.quantity;
-      const shipping = subtotal >= 1500 ? 0 : 80;
+      const shipping = subtotal >= 1000 ? 0 : 80;
       let discount = 0;
 
       if (parsed.data.couponCode) {
@@ -769,7 +769,7 @@ export async function registerRoutes(
       }
 
       let discount = 0;
-      const shippingCharge = subtotal >= 1500 ? 0 : 80;
+      const shippingCharge = subtotal >= 1000 ? 0 : 80;
       if (coupon.discountType === "free_shipping") {
         discount = shippingCharge;
       } else if (coupon.discountType === "percentage") {

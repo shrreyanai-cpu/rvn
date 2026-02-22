@@ -30,8 +30,8 @@ export default function ShippingDeliveryPage() {
             <div>
               <h2 className="font-semibold mb-1">Shipping Charges</h2>
               <ul className="text-sm text-muted-foreground leading-relaxed space-y-2">
-                <li><strong className="text-foreground">Free Shipping:</strong> On all orders above Rs. 1,500.</li>
-                <li><strong className="text-foreground">Flat Rate:</strong> Rs. 80 for orders below Rs. 1,500.</li>
+                <li><strong className="text-foreground">Free Shipping:</strong> On all orders above Rs. 1,000.</li>
+                <li><strong className="text-foreground">Flat Rate:</strong> Rs. 80 for orders below Rs. 1,000.</li>
                 <li>Use coupon code <strong className="text-foreground">FREESHIP</strong> to get free shipping on any order.</li>
               </ul>
             </div>

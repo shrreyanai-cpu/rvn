@@ -206,7 +206,7 @@ export default function HomePage() {
             <div key={idx} className="flex items-center shrink-0">
               {[
                 "Handcrafted with Love",
-                "Free Shipping Above Rs. 1,500",
+                "Free Shipping Above Rs. 1,000",
                 "Premium Quality Fabrics",
                 "2-Day Easy Returns",
                 "Authentic Indian Craftsmanship",
@@ -715,9 +715,9 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {[
-              { icon: Truck, title: "Free Shipping", desc: "On orders above Rs. 1,500" },
+              { icon: Truck, title: "Free Shipping", desc: "On orders above Rs. 1,000" },
               { icon: Shield, title: "Secure Payment", desc: "100% secure checkout" },
-              { icon: Repeat, title: "Easy Returns", desc: "30-day return policy" },
+              { icon: Repeat, title: "Easy Returns", desc: "2-day return policy" },
               { icon: Sparkles, title: "Premium Quality", desc: "Handcrafted with care" },
             ].map((item) => (
               <div

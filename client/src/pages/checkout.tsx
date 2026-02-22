@@ -105,7 +105,7 @@ export default function CheckoutPage() {
     (sum, item) => sum + Number(item.product.price) * item.quantity,
     0
   );
-  const shipping = subtotal >= 1500 ? 0 : 80;
+  const shipping = subtotal >= 1000 ? 0 : 80;
   const discount = appliedCoupon?.discount || 0;
   const total = Math.max(0, subtotal + shipping - discount);
 
@@ -532,7 +532,7 @@ export default function CheckoutPage() {
                         Delivery available to {pincodeCheckResult.pincode}
                       </p>
                       <p className="text-xs text-green-600 dark:text-green-500">
-                        {subtotal >= 1500 ? "Free delivery on this order" : `Delivery charge: Rs. 80 (Free above Rs. 1,500)`}
+                        {subtotal >= 1000 ? "Free delivery on this order" : `Delivery charge: Rs. 80 (Free above Rs. 1,000)`}
                       </p>
                     </div>
                   </>
@@ -654,7 +654,7 @@ export default function CheckoutPage() {
                 )}
               </div>
               {shipping > 0 && appliedCoupon?.discountType !== "free_shipping" && (
-                <p className="text-xs text-muted-foreground">Add Rs. {(1500 - subtotal).toLocaleString("en-IN")} more for free delivery</p>
+                <p className="text-xs text-muted-foreground">Add Rs. {(1000 - subtotal).toLocaleString("en-IN")} more for free delivery</p>
               )}
               {appliedCoupon && appliedCoupon.discountType !== "free_shipping" && (
                 <div className="flex justify-between text-green-600 dark:text-green-400">

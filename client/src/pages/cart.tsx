@@ -42,7 +42,7 @@ export default function CartPage() {
     0
   ) || 0;
 
-  const shipping = subtotal >= 1500 ? 0 : 80;
+  const shipping = subtotal >= 1000 ? 0 : 80;
   const total = subtotal + shipping;
 
   if (isLoading) {
@@ -180,7 +180,7 @@ export default function CartPage() {
                 </div>
                 {shipping > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    Add Rs. {(1500 - subtotal).toLocaleString("en-IN")} more for free delivery
+                    Add Rs. {(1000 - subtotal).toLocaleString("en-IN")} more for free delivery
                   </p>
                 )}
                 <Separator />
