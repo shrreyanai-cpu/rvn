@@ -125,7 +125,7 @@ export default function Footer() {
             </p>
             <div className="flex items-center gap-3">
               <a
-                href="https://instagram.com/ravindrra_vastra"
+                href="https://www.instagram.com/ravindrra_vastra_niketan/?hl=en"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover-elevate transition-colors"
@@ -135,7 +135,7 @@ export default function Footer() {
                 <SiInstagram className="h-4 w-4 text-muted-foreground" />
               </a>
               <a
-                href="https://facebook.com/ravindrra.vastra"
+                href="https://www.facebook.com/ravindrravastraniketanofficial/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover-elevate transition-colors"
@@ -145,7 +145,7 @@ export default function Footer() {
                 <SiFacebook className="h-4 w-4 text-muted-foreground" />
               </a>
               <a
-                href="https://youtube.com/@ravindrra_vastra"
+                href="https://www.youtube.com/@Ravindrra-Vastra-Niketan/shorts"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover-elevate transition-colors"
