@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRoute, Link, useLocation } from "wouter";
 import { ArrowLeft, ShoppingBag, Minus, Plus, Check, Zap, Star, Trash2, User, ImageIcon, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -295,6 +295,17 @@ export default function ProductDetailPage() {
     queryKey: ["/api/products", slug],
     enabled: !!slug,
   });
+
+  useEffect(() => {
+    if (product) {
+      if (product.sizes?.length && !selectedSize) {
+        setSelectedSize(product.sizes[0]);
+      }
+      if (product.colors?.length && !selectedColor) {
+        setSelectedColor(product.colors[0]);
+      }
+    }
+  }, [product]);
 
   const addToCartMutation = useMutation({
     mutationFn: async () => {
