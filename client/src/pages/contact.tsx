@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import SEOHead from "@/components/seo";
 
 const contactFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -70,7 +71,29 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
+      <SEOHead
+        title="Contact Us"
+        description="Get in touch with Ravindrra Vastra Niketan. Visit our store at MG Road, Raipur or call us at +91 8889777992. We're here to help!"
+        keywords="contact, Ravindrra Vastra Niketan, Raipur, phone, address, customer support"
+        ogType="website"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "LocalBusiness",
+          "name": "Ravindrra Vastra Niketan",
+          "description": "Premium Indian Fashion Since 1985",
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "MG Road",
+            "addressLocality": "Raipur",
+            "addressRegion": "Chhattisgarh",
+            "postalCode": "492001",
+            "addressCountry": "IN",
+          },
+          "telephone": "+918889777992",
+          "email": "support@ravindrra.com",
+          "openingHours": ["Mo-Sa 10:00-20:00", "Su 11:00-18:00"],
+        }}
+      />
       <div className="bg-[#2C3E50] text-white py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <Link href="/">

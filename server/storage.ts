@@ -1,6 +1,7 @@
 import {
   categories, products, cartItems, orders, coupons, deliverySettings, addresses, returnRequests, reviews,
   newsletterSubscribers, instagramPosts, contactMessages, adminNotifications,
+  wishlists, seasonalBanners, abandonedCartEmails,
   type Category, type InsertCategory,
   type Product, type InsertProduct,
   type CartItem, type InsertCartItem,
@@ -14,10 +15,12 @@ import {
   type InstagramPost, type InsertInstagramPost,
   type ContactMessage, type InsertContactMessage,
   type AdminNotification,
+  type Wishlist, type InsertWishlist,
+  type SeasonalBanner, type InsertSeasonalBanner,
 } from "@shared/schema";
 import { users } from "@shared/models/auth";
 import { db } from "./db";
-import { eq, and, desc, sql, count, inArray } from "drizzle-orm";
+import { eq, and, desc, sql, count, inArray, gte, lte, isNull, or } from "drizzle-orm";
 
 export interface IStorage {
   getCategories(): Promise<Category[]>;
@@ -110,6 +113,27 @@ export interface IStorage {
   createAdminNotification(data: { type: string; title: string; message: string; orderId?: number }): Promise<AdminNotification>;
   markNotificationRead(id: number): Promise<void>;
   markAllNotificationsRead(): Promise<void>;
+
+  getWishlist(userId: string): Promise<(Wishlist & { product: Product })[]>;
+  addToWishlist(data: InsertWishlist): Promise<Wishlist>;
+  removeFromWishlist(userId: string, productId: number): Promise<void>;
+  isInWishlist(userId: string, productId: number): Promise<boolean>;
+
+  getActiveBanners(): Promise<SeasonalBanner[]>;
+  getAllBanners(): Promise<SeasonalBanner[]>;
+  createBanner(data: InsertSeasonalBanner): Promise<SeasonalBanner>;
+  updateBanner(id: number, data: Partial<InsertSeasonalBanner>): Promise<SeasonalBanner | undefined>;
+  deleteBanner(id: number): Promise<void>;
+
+  getEnhancedStats(): Promise<{
+    totalCustomers: number; totalRevenue: number; totalOrders: number; totalProducts: number;
+    todayRevenue: number; todayOrders: number; pendingOrders: number; lowStockProducts: number;
+    thisMonthRevenue: number; lastMonthRevenue: number; avgOrderValue: number;
+  }>;
+
+  getAbandonedCartsForEmail(hoursThreshold: number): Promise<Array<{ userId: string; email: string; items: Array<{ name: string; quantity: number; price: string; imageUrl?: string }>; totalValue: string }>>;
+  recordAbandonedCartEmail(userId: string, email: string, cartValue: string): Promise<void>;
+  wasAbandonedCartEmailSent(userId: string, hoursAgo: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -678,6 +702,138 @@ export class DatabaseStorage implements IStorage {
 
   async markAllNotificationsRead(): Promise<void> {
     await db.update(adminNotifications).set({ isRead: true }).where(eq(adminNotifications.isRead, false));
+  }
+
+  async getWishlist(userId: string): Promise<(Wishlist & { product: Product })[]> {
+    const items = await db.select().from(wishlists).where(eq(wishlists.userId, userId)).orderBy(desc(wishlists.createdAt));
+    const result: (Wishlist & { product: Product })[] = [];
+    for (const item of items) {
+      const [product] = await db.select().from(products).where(eq(products.id, item.productId));
+      if (product) result.push({ ...item, product });
+    }
+    return result;
+  }
+
+  async addToWishlist(data: InsertWishlist): Promise<Wishlist> {
+    const existing = await db.select().from(wishlists).where(and(eq(wishlists.userId, data.userId), eq(wishlists.productId, data.productId)));
+    if (existing.length > 0) return existing[0];
+    const [item] = await db.insert(wishlists).values(data).returning();
+    return item;
+  }
+
+  async removeFromWishlist(userId: string, productId: number): Promise<void> {
+    await db.delete(wishlists).where(and(eq(wishlists.userId, userId), eq(wishlists.productId, productId)));
+  }
+
+  async isInWishlist(userId: string, productId: number): Promise<boolean> {
+    const [item] = await db.select().from(wishlists).where(and(eq(wishlists.userId, userId), eq(wishlists.productId, productId)));
+    return !!item;
+  }
+
+  async getActiveBanners(): Promise<SeasonalBanner[]> {
+    const now = new Date();
+    const all = await db.select().from(seasonalBanners).where(eq(seasonalBanners.isActive, true)).orderBy(seasonalBanners.sortOrder);
+    return all.filter(b => {
+      if (b.startDate && new Date(b.startDate) > now) return false;
+      if (b.endDate && new Date(b.endDate) < now) return false;
+      return true;
+    });
+  }
+
+  async getAllBanners(): Promise<SeasonalBanner[]> {
+    return db.select().from(seasonalBanners).orderBy(desc(seasonalBanners.createdAt));
+  }
+
+  async createBanner(data: InsertSeasonalBanner): Promise<SeasonalBanner> {
+    const [banner] = await db.insert(seasonalBanners).values(data).returning();
+    return banner;
+  }
+
+  async updateBanner(id: number, data: Partial<InsertSeasonalBanner>): Promise<SeasonalBanner | undefined> {
+    const [banner] = await db.update(seasonalBanners).set(data).where(eq(seasonalBanners.id, id)).returning();
+    return banner;
+  }
+
+  async deleteBanner(id: number): Promise<void> {
+    await db.delete(seasonalBanners).where(eq(seasonalBanners.id, id));
+  }
+
+  async getEnhancedStats() {
+    const [customerCount] = await db.select({ count: count() }).from(users);
+    const [productCount] = await db.select({ count: count() }).from(products);
+    const allOrders = await db.select().from(orders);
+    const paidOrders = allOrders.filter(o => o.paymentStatus === "paid");
+
+    const totalRevenue = paidOrders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
+    const avgOrderValue = paidOrders.length > 0 ? totalRevenue / paidOrders.length : 0;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayOrders = paidOrders.filter(o => o.createdAt && new Date(o.createdAt) >= today);
+    const todayRevenue = todayOrders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
+
+    const pendingOrders = allOrders.filter(o => o.status === "pending").length;
+
+    const [lowStock] = await db.select({ count: count() }).from(products).where(and(eq(products.inStock, true), lte(products.stockQuantity, 5)));
+
+    const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const thisMonthRevenue = paidOrders.filter(o => o.createdAt && new Date(o.createdAt) >= thisMonthStart).reduce((sum, o) => sum + Number(o.totalAmount), 0);
+    const lastMonthRevenue = paidOrders.filter(o => o.createdAt && new Date(o.createdAt) >= lastMonthStart && new Date(o.createdAt!) < thisMonthStart).reduce((sum, o) => sum + Number(o.totalAmount), 0);
+
+    return {
+      totalCustomers: customerCount?.count || 0,
+      totalRevenue,
+      totalOrders: allOrders.length,
+      totalProducts: productCount?.count || 0,
+      todayRevenue,
+      todayOrders: todayOrders.length,
+      pendingOrders,
+      lowStockProducts: lowStock?.count || 0,
+      thisMonthRevenue,
+      lastMonthRevenue,
+      avgOrderValue: Math.round(avgOrderValue),
+    };
+  }
+
+  async getAbandonedCartsForEmail(hoursThreshold: number) {
+    const threshold = new Date(Date.now() - hoursThreshold * 60 * 60 * 1000);
+    const carts = await db.select().from(cartItems).where(lte(cartItems.addedAt, threshold));
+    const userMap = new Map<string, typeof carts>();
+    for (const item of carts) {
+      if (!userMap.has(item.userId)) userMap.set(item.userId, []);
+      userMap.get(item.userId)!.push(item);
+    }
+
+    const result: Array<{ userId: string; email: string; items: Array<{ name: string; quantity: number; price: string; imageUrl?: string }>; totalValue: string }> = [];
+    for (const [userId, items] of Array.from(userMap.entries())) {
+      const user = await db.select().from(users).where(eq(users.id, userId)).then(r => r[0]);
+      if (!user?.email) continue;
+      const enrichedItems: Array<{ name: string; quantity: number; price: string; imageUrl?: string }> = [];
+      let total = 0;
+      for (const ci of items) {
+        const [prod] = await db.select().from(products).where(eq(products.id, ci.productId));
+        if (prod) {
+          enrichedItems.push({ name: prod.name, quantity: ci.quantity, price: String(prod.price), imageUrl: prod.images?.[0] });
+          total += Number(prod.price) * ci.quantity;
+        }
+      }
+      if (enrichedItems.length > 0) {
+        result.push({ userId, email: user.email, items: enrichedItems, totalValue: total.toFixed(2) });
+      }
+    }
+    return result;
+  }
+
+  async recordAbandonedCartEmail(userId: string, email: string, cartValue: string): Promise<void> {
+    await db.insert(abandonedCartEmails).values({ userId, email, cartValue });
+  }
+
+  async wasAbandonedCartEmailSent(userId: string, hoursAgo: number): Promise<boolean> {
+    const threshold = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
+    const [result] = await db.select({ count: count() }).from(abandonedCartEmails)
+      .where(and(eq(abandonedCartEmails.userId, userId), gte(abandonedCartEmails.sentAt, threshold)));
+    return (result?.count || 0) > 0;
   }
 }
 

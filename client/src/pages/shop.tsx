@@ -26,6 +26,7 @@ import { Separator } from "@/components/ui/separator";
 import { useQuery } from "@tanstack/react-query";
 import type { Product, Category } from "@shared/schema";
 import ProductCard from "@/components/ProductCard";
+import SEOHead from "@/components/seo";
 
 interface Filters {
   priceRange: [number, number];
@@ -531,6 +532,12 @@ export default function ShopPage() {
 
   return (
     <div className="min-h-screen">
+      <SEOHead
+        title={`${pageTitle} - Shop`}
+        description={pageDescription}
+        keywords="buy Indian clothing, sarees online, lehengas, kurtas, ethnic wear shop, Indian fashion store"
+        ogType="website"
+      />
       <div className="bg-card border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
           {(isSubCategory && parentOfSelected) && (

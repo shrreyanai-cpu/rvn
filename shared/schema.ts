@@ -282,3 +282,48 @@ export const adminNotifications = pgTable("admin_notifications", {
 export const insertAdminNotificationSchema = createInsertSchema(adminNotifications).omit({ id: true, isRead: true, createdAt: true });
 export type InsertAdminNotification = z.infer<typeof insertAdminNotificationSchema>;
 export type AdminNotification = typeof adminNotifications.$inferSelect;
+
+export const wishlists = pgTable("wishlists", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  productId: integer("product_id").references(() => products.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const wishlistsRelations = relations(wishlists, ({ one }) => ({
+  product: one(products, {
+    fields: [wishlists.productId],
+    references: [products.id],
+  }),
+}));
+
+export const insertWishlistSchema = createInsertSchema(wishlists).omit({ id: true, createdAt: true });
+export type InsertWishlist = z.infer<typeof insertWishlistSchema>;
+export type Wishlist = typeof wishlists.$inferSelect;
+
+export const seasonalBanners = pgTable("seasonal_banners", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  subtitle: text("subtitle"),
+  imageUrl: text("image_url").notNull(),
+  linkUrl: text("link_url"),
+  bgColor: text("bg_color").default("#2C3E50"),
+  textColor: text("text_color").default("#FFFFFF"),
+  isActive: boolean("is_active").notNull().default(true),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertSeasonalBannerSchema = createInsertSchema(seasonalBanners).omit({ id: true, createdAt: true });
+export type InsertSeasonalBanner = z.infer<typeof insertSeasonalBannerSchema>;
+export type SeasonalBanner = typeof seasonalBanners.$inferSelect;
+
+export const abandonedCartEmails = pgTable("abandoned_cart_emails", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  email: text("email").notNull(),
+  sentAt: timestamp("sent_at").defaultNow(),
+  cartValue: numeric("cart_value", { precision: 10, scale: 2 }),
+});

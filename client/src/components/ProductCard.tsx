@@ -1,15 +1,17 @@
 import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Star } from "lucide-react";
+import { Star, Heart } from "lucide-react";
 import type { Product } from "@shared/schema";
 
 interface ProductCardProps {
   product: Product;
   rating?: { average: number; count: number };
+  isWishlisted?: boolean;
+  onWishlistToggle?: (productId: number) => void;
 }
 
-export default function ProductCard({ product, rating }: ProductCardProps) {
+export default function ProductCard({ product, rating, isWishlisted, onWishlistToggle }: ProductCardProps) {
   const mainImage = product.images?.[0] || "/images/products/silk-saree-burgundy.png";
   const hasDiscount = product.compareAtPrice && Number(product.compareAtPrice) > Number(product.price);
   const discountPercent = hasDiscount
@@ -48,6 +50,25 @@ export default function ProductCard({ product, rating }: ProductCardProps) {
             >
               Featured
             </Badge>
+          )}
+          {onWishlistToggle && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onWishlistToggle(product.id);
+              }}
+              className="absolute top-2 right-2 p-1.5 rounded-full bg-white/90 dark:bg-black/60 hover:bg-white dark:hover:bg-black/80 transition-colors z-10"
+              data-testid={`button-wishlist-toggle-${product.id}`}
+            >
+              <Heart
+                className={`h-4 w-4 ${
+                  isWishlisted
+                    ? "fill-red-500 text-red-500"
+                    : "fill-none text-muted-foreground"
+                }`}
+              />
+            </button>
           )}
         </div>
         <div className="pt-3 space-y-1">

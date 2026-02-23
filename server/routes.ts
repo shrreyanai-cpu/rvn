@@ -2027,5 +2027,157 @@ export async function registerRoutes(
     }
   });
 
+  // ===== Wishlist =====
+  app.get("/api/wishlist", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const items = await storage.getWishlist(userId);
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch wishlist" });
+    }
+  });
+
+  app.get("/api/wishlist/check/:productId", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const productId = parseInt(req.params.productId as string);
+      if (isNaN(productId)) return res.status(400).json({ message: "Invalid product ID" });
+      const inWishlist = await storage.isInWishlist(userId, productId);
+      res.json({ inWishlist });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to check wishlist" });
+    }
+  });
+
+  app.post("/api/wishlist", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const { productId } = req.body;
+      if (!productId) return res.status(400).json({ message: "Product ID required" });
+      const item = await storage.addToWishlist({ userId, productId });
+      res.status(201).json(item);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to add to wishlist" });
+    }
+  });
+
+  app.delete("/api/wishlist/:productId", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const productId = parseInt(req.params.productId as string);
+      if (isNaN(productId)) return res.status(400).json({ message: "Invalid product ID" });
+      await storage.removeFromWishlist(userId, productId);
+      res.json({ message: "Removed from wishlist" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to remove from wishlist" });
+    }
+  });
+
+  // ===== Seasonal Banners =====
+  app.get("/api/banners", async (_req, res) => {
+    try {
+      const banners = await storage.getActiveBanners();
+      res.json(banners);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch banners" });
+    }
+  });
+
+  app.get("/api/admin/banners", isAuthenticated, requirePermission("manage_products"), async (_req, res) => {
+    try {
+      const banners = await storage.getAllBanners();
+      res.json(banners);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch banners" });
+    }
+  });
+
+  app.post("/api/admin/banners", isAuthenticated, requirePermission("manage_products"), async (req, res) => {
+    try {
+      const banner = await storage.createBanner(req.body);
+      res.status(201).json(banner);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create banner" });
+    }
+  });
+
+  app.patch("/api/admin/banners/:id", isAuthenticated, requirePermission("manage_products"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+      const banner = await storage.updateBanner(id, req.body);
+      res.json(banner);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update banner" });
+    }
+  });
+
+  app.delete("/api/admin/banners/:id", isAuthenticated, requirePermission("manage_products"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+      await storage.deleteBanner(id);
+      res.json({ message: "Deleted" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete banner" });
+    }
+  });
+
+  // ===== Enhanced Admin Stats =====
+  app.get("/api/admin/enhanced-stats", isAuthenticated, requirePermission("view_dashboard"), async (_req, res) => {
+    try {
+      const stats = await storage.getEnhancedStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch enhanced stats" });
+    }
+  });
+
+  // ===== Abandoned Cart Email Trigger (admin) =====
+  app.post("/api/admin/send-abandoned-cart-emails", isAuthenticated, requirePermission("manage_orders"), async (_req, res) => {
+    try {
+      const carts = await storage.getAbandonedCartsForEmail(2);
+      let sent = 0;
+      for (const cart of carts) {
+        const alreadySent = await storage.wasAbandonedCartEmailSent(cart.userId, 24);
+        if (alreadySent) continue;
+        try {
+          await sendPromotionalEmail(
+            [cart.email],
+            "You left something behind! Complete your purchase",
+            `<div style="font-family: 'Raleway', sans-serif; max-width: 600px; margin: 0 auto;">
+              <div style="background: #2C3E50; padding: 30px; text-align: center;">
+                <h1 style="color: #C9A961; font-family: 'Playfair Display', serif; margin: 0;">Ravindrra Vastra Niketan</h1>
+              </div>
+              <div style="padding: 30px; background: #fff;">
+                <h2 style="color: #2C3E50;">Don't forget your items!</h2>
+                <p style="color: #666;">You have items worth <strong>Rs. ${Number(cart.totalValue).toLocaleString("en-IN")}</strong> waiting in your cart.</p>
+                <div style="margin: 20px 0;">
+                  ${cart.items.map(i => `<div style="display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee;">
+                    ${i.imageUrl ? `<img src="${i.imageUrl}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; margin-right: 12px;" />` : ''}
+                    <div><p style="margin: 0; font-weight: 600;">${i.name}</p><p style="margin: 4px 0 0; color: #666;">Qty: ${i.quantity} × Rs. ${Number(i.price).toLocaleString("en-IN")}</p></div>
+                  </div>`).join('')}
+                </div>
+                <a href="https://ravindrra.com/cart" style="display: inline-block; background: #C9A961; color: #1A1A1A; padding: 12px 30px; text-decoration: none; font-weight: 600; border-radius: 4px;">Complete Your Purchase</a>
+              </div>
+            </div>`
+          );
+          await storage.recordAbandonedCartEmail(cart.userId, cart.email, cart.totalValue);
+          sent++;
+        } catch (e) {
+          console.error("Failed to send abandoned cart email to", cart.email, e);
+        }
+      }
+      res.json({ message: `Sent ${sent} abandoned cart reminder emails`, sent, total: carts.length });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to send abandoned cart emails" });
+    }
+  });
+
   return httpServer;
 }

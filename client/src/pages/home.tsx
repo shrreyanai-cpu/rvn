@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { Product, Category } from "@shared/schema";
 import ProductCard from "@/components/ProductCard";
 import InstagramFeed from "@/components/instagram-feed";
+import SEOHead from "@/components/seo";
 
 const heroSlides = [
   {
@@ -198,6 +199,20 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen">
+      <SEOHead
+        title="Premium Indian Fashion"
+        description="Discover exquisite handcrafted Indian clothing at Ravindrra Vastra Niketan. Shop sarees, lehengas, kurtas, sherwanis and more with free shipping above Rs. 1,000."
+        keywords="Indian fashion, sarees, lehengas, kurtas, sherwanis, ethnic wear, handcrafted clothing, Raipur"
+        ogType="website"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "Ravindrra Vastra Niketan",
+          "description": "Premium Indian Fashion Since 1985. Handcrafted clothing celebrating India's rich textile heritage.",
+          "url": window.location.origin,
+          "logo": `${window.location.origin}/logo.png`,
+        }}
+      />
       <HeroSlider />
 
       <section className="relative z-20 overflow-hidden bg-[#2C3E50] dark:bg-[#1a2530] py-3">

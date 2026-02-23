@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useUpload } from "@/hooks/use-upload";
 import type { Product, Review } from "@shared/schema";
+import { addToRecentlyViewed } from "@/hooks/use-recently-viewed";
+import SEOHead from "@/components/seo";
 
 function StarRating({ rating, size = "sm", interactive = false, onRate }: { rating: number; size?: "sm" | "md" | "lg"; interactive?: boolean; onRate?: (r: number) => void }) {
   const sizeClass = size === "lg" ? "h-6 w-6" : size === "md" ? "h-5 w-5" : "h-4 w-4";
@@ -298,6 +300,7 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     if (product) {
+      addToRecentlyViewed(product.id);
       if (product.sizes?.length && !selectedSize) {
         setSelectedSize(product.sizes[0]);
       }
@@ -360,6 +363,26 @@ export default function ProductDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <SEOHead
+        title={product.name}
+        description={product.description}
+        keywords={`${product.name}, ${product.material || ""}, Indian fashion, buy online`}
+        ogImage={images[0]}
+        ogType="product"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Product",
+          "name": product.name,
+          "description": product.description,
+          "image": product.images?.[0],
+          "offers": {
+            "@type": "Offer",
+            "price": product.price,
+            "priceCurrency": "INR",
+            "availability": product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+          },
+        }}
+      />
       <Link href="/shop">
         <Button variant="ghost" size="sm" className="mb-4" data-testid="button-back">
           <ArrowLeft className="mr-1.5 h-4 w-4" />

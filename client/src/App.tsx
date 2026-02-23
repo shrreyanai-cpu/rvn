@@ -33,6 +33,7 @@ import AdminDelivery from "@/pages/admin/delivery";
 import AdminRoles from "@/pages/admin/roles";
 import AdminEmails from "@/pages/admin/emails";
 import AdminReturns from "@/pages/admin/returns";
+import AdminBanners from "@/pages/admin/banners";
 import AdminCustomerDetail from "@/pages/admin/customer-detail";
 import ReturnPolicyPage from "@/pages/return-policy";
 import TermsConditionsPage from "@/pages/terms-conditions";
@@ -40,7 +41,9 @@ import PrivacyPolicyPage from "@/pages/privacy-policy";
 import ShippingDeliveryPage from "@/pages/shipping-delivery";
 import TrackOrderPage from "@/pages/track-order";
 import ContactPage from "@/pages/contact";
+import FAQPage from "@/pages/faq";
 import FlashSalePage from "@/pages/flash-sale";
+import WishlistPage from "@/pages/wishlist";
 import NewsletterPopup from "@/components/newsletter-popup";
 
 function ScrollToTop() {
@@ -111,6 +114,7 @@ function AdminRouter() {
         <Route path="/admin/delivery" component={AdminDelivery} />
         <Route path="/admin/emails" component={AdminEmails} />
         <Route path="/admin/returns" component={AdminReturns} />
+        <Route path="/admin/banners" component={AdminBanners} />
         <Route path="/admin/roles" component={AdminRoles} />
         <Route component={NotFound} />
       </Switch>
@@ -143,11 +147,13 @@ function AppRouter() {
         <Route path="/orders" component={OrdersPage} />
         <Route path="/track-order" component={TrackOrderPage} />
         <Route path="/profile" component={ProfilePage} />
+        <Route path="/wishlist" component={WishlistPage} />
         <Route path="/return-policy" component={ReturnPolicyPage} />
         <Route path="/terms-conditions" component={TermsConditionsPage} />
         <Route path="/privacy-policy" component={PrivacyPolicyPage} />
         <Route path="/shipping-delivery" component={ShippingDeliveryPage} />
         <Route path="/contact" component={ContactPage} />
+        <Route path="/faq" component={FAQPage} />
         <Route component={NotFound} />
       </Switch>
     </MainLayout>
