@@ -18,7 +18,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 const heroSlides = [
   {
     image: "/images/hero-banner.png",
-    subtitle: "Premium Indian Fashion Since 1985",
+    subtitle: "Premium Indian Fashion Since 1963",
     title: "Timeless Elegance,",
     highlight: "Modern Grace",
     description: "Discover exquisite handcrafted clothing that celebrates India's rich textile heritage with contemporary sophistication.",
@@ -239,7 +239,7 @@ export default function HomePage() {
           "@context": "https://schema.org",
           "@type": "Organization",
           "name": "Ravindrra Vastra Niketan",
-          "description": "Premium Indian Fashion Since 1985. Handcrafted clothing celebrating India's rich textile heritage.",
+          "description": "Premium Indian Fashion Since 1963. Handcrafted clothing celebrating India's rich textile heritage.",
           "url": window.location.origin,
           "logo": `${window.location.origin}/logo.png`,
         }}
@@ -251,9 +251,11 @@ export default function HomePage() {
           {Array.from({ length: 2 }).map((_, idx) => (
             <div key={idx} className="flex items-center shrink-0">
               {[
-                "Handcrafted with Love",
+                "63+ Years of Legacy",
+                "18+ Branches Across India",
+                "2M+ Happy Customers",
                 "Free Shipping Above Rs. 1,000",
-                "Premium Quality Fabrics",
+                "2000+ Premium Products",
                 "2-Day Easy Returns",
                 "Authentic Indian Craftsmanship",
                 "Secure Payments",
@@ -566,22 +568,23 @@ export default function HomePage() {
               <span className="text-[#C9A961] italic">Craftsmanship</span>
             </h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              For over three decades, Ravindrra Vastra Niketan has been a trusted name in Indian fashion.
-              Founded in 1985, we began as a small family-run textile shop with a vision to bring the finest
-              Indian fabrics and traditional artistry to discerning customers.
+              For over six decades, Ravindrra Vastra Niketan has been a trusted name in Indian fashion.
+              Founded in 1963, we began as a family-run textile shop with a vision to bring the finest
+              Indian fabrics and traditional artistry to discerning customers across India.
             </p>
             <p className="text-muted-foreground leading-relaxed mb-8">
               Today, we continue that legacy by working directly with master weavers and artisans from
               Varanasi, Jaipur, and Lucknow, ensuring every piece that carries our name is a testament
               to India's unparalleled textile heritage.
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-6">
+            <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-4">
               {[
-                { icon: Clock, value: "38+", label: "Years" },
-                { icon: Users, value: "10K+", label: "Customers" },
-                { icon: Star, value: "4.2★", label: "Google Rating" },
-                { icon: Award, value: "500+", label: "Products" },
-                { icon: MapPin, value: "Pan India", label: "Delivery" },
+                { icon: Clock, value: "63+", label: "Years" },
+                { icon: MapPin, value: "18+", label: "Branches" },
+                { icon: TrendingUp, value: "60K+", label: "Sq.Ft" },
+                { icon: Users, value: "2M+", label: "Customers" },
+                { icon: Award, value: "2000+", label: "Products" },
+                { icon: Star, value: "4.2★", label: "Rated" },
               ].map((stat) => (
                 <div key={stat.label} className="text-center" data-testid={`stat-${stat.label.toLowerCase()}`}>
                   <div className="w-10 h-10 mx-auto rounded-full bg-[#C9A961]/10 flex items-center justify-center mb-2">

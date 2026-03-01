@@ -80,7 +80,7 @@ export default function ContactPage() {
           "@context": "https://schema.org",
           "@type": "LocalBusiness",
           "name": "Ravindrra Vastra Niketan",
-          "description": "Premium Indian Fashion Since 1985",
+          "description": "Premium Indian Fashion Since 1963",
           "address": {
             "@type": "PostalAddress",
             "streetAddress": "MG Road",
@@ -126,7 +126,7 @@ export default function ContactPage() {
                 Ravindrra Vastra Niketan
               </h2>
               <p className="text-[#C9A961] font-medium" data-testid="text-store-tagline">
-                Premium Indian Fashion Since 1985
+                Premium Indian Fashion Since 1963
               </p>
             </div>
 

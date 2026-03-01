@@ -19,7 +19,7 @@ export default function LandingPage() {
               className="text-[#C9A961] text-sm font-medium tracking-[0.25em] uppercase mb-4"
               data-testid="text-landing-subtitle"
             >
-              Est. Since 1985
+              Est. Since 1963
             </p>
             <h1
               className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-5"
@@ -69,7 +69,7 @@ export default function LandingPage() {
             Why Choose Ravindrra Vastra Niketan
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Three decades of delivering exquisite Indian fashion to discerning customers.
+            Six decades, 18+ branches, 2M+ customers — India's most trusted ethnic fashion destination.
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
