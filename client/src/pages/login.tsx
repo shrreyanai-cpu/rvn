@@ -9,7 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
-  const initialMode = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("mode") === "register" ? "register" : "login";
+  const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const initialMode = params?.get("mode") === "register" ? "register" : "login";
   const [mode, setMode] = useState<"login" | "register" | "verify">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,6 +23,22 @@ export default function LoginPage() {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const { login, register, verifyOtp, resendOtp } = useAuth();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const errorParam = params?.get("error");
+    if (errorParam) {
+      const messages: Record<string, string> = {
+        google_failed: "Google sign-in failed. Please try again or use email login.",
+        session_failed: "Sign-in succeeded but session could not be saved. Please try again.",
+      };
+      toast({
+        title: "Sign-in Error",
+        description: messages[errorParam] || "An error occurred during sign-in. Please try again.",
+        variant: "destructive",
+      });
+      window.history.replaceState({}, "", "/login");
+    }
+  }, []);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -352,12 +369,9 @@ export default function LoginPage() {
                   className="gap-2"
                   type="button"
                   data-testid="button-google-login"
-                  onClick={() =>
-                    toast({
-                      title: "Coming Soon",
-                      description: "Google sign-in will be available soon.",
-                    })
-                  }
+                  onClick={() => {
+                    window.location.href = "/api/auth/google";
+                  }}
                 >
                   <SiGoogle className="h-4 w-4" />
                   Google

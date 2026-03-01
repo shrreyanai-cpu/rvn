@@ -4,6 +4,7 @@
 A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium Indian clothing store. Built as a standalone solution with product catalog, shopping cart, checkout, order management, and admin dashboard.
 
 ## Recent Changes
+- 2026-03-01: Google OAuth login: passport-google-oauth20, state-based CSRF protection, manual session assignment matching existing auth pattern
 - 2026-03-01: Migrated to Neon PostgreSQL database (NEON_DATABASE_URL env var), Drizzle ORM, connect-pg-simple sessions
 - 2026-03-01: Previously migrated to local JSON file storage (now reverted back to PostgreSQL)
 - 2026-03-01: Wishlist system: heart icon in header, wishlist toggle on all product cards (home/shop), /wishlist page, backend CRUD API

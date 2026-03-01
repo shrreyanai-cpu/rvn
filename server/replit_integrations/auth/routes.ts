@@ -7,6 +7,8 @@ import { db } from "../../db";
 import { emailVerifications } from "@shared/models/auth";
 import { eq, and, gt, desc } from "drizzle-orm";
 import { sendOtpEmail } from "../../email";
+import passport from "passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -57,7 +59,88 @@ async function createAndSendOtp(email: string): Promise<boolean> {
   return !!result;
 }
 
+function setupGoogleOAuth(app: Express) {
+  const clientID = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  if (!clientID || !clientSecret) {
+    console.log("Google OAuth not configured (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET missing)");
+    return;
+  }
+
+  const callbackURL = process.env.GOOGLE_CALLBACK_URL || "/api/auth/google/callback";
+
+  passport.use(
+    new GoogleStrategy(
+      {
+        clientID,
+        clientSecret,
+        callbackURL,
+      },
+      async (_accessToken, _refreshToken, profile, done) => {
+        try {
+          const email = profile.emails?.[0]?.value;
+          if (!email) {
+            return done(new Error("No email found in Google profile"), undefined);
+          }
+
+          let user = await authStorage.getUserByEmail(email);
+          if (user) {
+            if (!user.profileImageUrl && profile.photos?.[0]?.value) {
+              await authStorage.updateUser(user.id, {
+                profileImageUrl: profile.photos[0].value,
+              });
+            }
+          } else {
+            user = await authStorage.upsertUser({
+              email,
+              firstName: profile.name?.givenName || "",
+              lastName: profile.name?.familyName || "",
+              profileImageUrl: profile.photos?.[0]?.value || null,
+              emailVerified: true,
+            });
+          }
+
+          done(null, user);
+        } catch (err) {
+          done(err as Error, undefined);
+        }
+      }
+    )
+  );
+
+  app.use(passport.initialize());
+
+  app.get("/api/auth/google", passport.authenticate("google", {
+    scope: ["profile", "email"],
+    session: false,
+    state: true,
+  } as any));
+
+  app.get("/api/auth/google/callback",
+    passport.authenticate("google", { session: false, failureRedirect: "/login?error=google_failed" }),
+    (req: any, res) => {
+      if (req.user) {
+        (req.session as any).userId = req.user.id;
+        req.session.save((err: any) => {
+          if (err) {
+            console.error("Session save error after Google OAuth:", err);
+            return res.redirect("/login?error=session_failed");
+          }
+          res.redirect("/");
+        });
+      } else {
+        res.redirect("/login?error=google_failed");
+      }
+    }
+  );
+
+  console.log("Google OAuth configured successfully");
+}
+
 export function registerAuthRoutes(app: Express): void {
+  setupGoogleOAuth(app);
+
   app.post("/api/auth/login", async (req, res) => {
     try {
       const parsed = loginSchema.safeParse(req.body);
