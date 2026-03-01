@@ -95,8 +95,15 @@ function ProductForm({
       toast({ title: product ? "Product updated" : "Product created" });
       onClose();
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to save product", variant: "destructive" });
+    onError: (error: any) => {
+      let description = "Failed to save product";
+      try {
+        const msg = error?.message || "";
+        const jsonPart = msg.includes(":") ? msg.slice(msg.indexOf(":") + 1).trim() : msg;
+        const parsed = JSON.parse(jsonPart);
+        if (parsed?.message) description = parsed.message;
+      } catch {}
+      toast({ title: "Error", description, variant: "destructive" });
     },
   });
 

@@ -1011,8 +1011,11 @@ export async function registerRoutes(
       }
       const product = await storage.createProduct(parsed.data);
       res.json(product);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Create product error:", error);
+      if (error?.code === "23505" && error?.constraint === "products_sku_unique") {
+        return res.status(409).json({ message: "This SKU already exists. Please use a different SKU code." });
+      }
       res.status(500).json({ message: "Failed to create product" });
     }
   });
@@ -1029,7 +1032,10 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Product not found" });
       }
       res.json(product);
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.code === "23505" && error?.constraint === "products_sku_unique") {
+        return res.status(409).json({ message: "This SKU already exists. Please use a different SKU code." });
+      }
       res.status(500).json({ message: "Failed to update product" });
     }
   });
