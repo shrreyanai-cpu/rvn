@@ -54,6 +54,7 @@ export default function AdminOrders() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/enhanced-stats"] });
       toast({ title: "Order status updated" });
     },
   });
@@ -114,6 +115,7 @@ export default function AdminOrders() {
       setSelectedOrder(null);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/enhanced-stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/customers"] });
       toast({ title: "Order deleted" });
     },
