@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Product, Category, SeasonalBanner } from "@shared/schema";
+import type { Product, Category } from "@shared/schema";
 import ProductCard from "@/components/ProductCard";
 import InstagramFeed from "@/components/instagram-feed";
 import RecentlyViewed from "@/components/recently-viewed";
@@ -167,10 +167,6 @@ export default function HomePage() {
     queryKey: ["/api/categories"],
   });
 
-  const { data: banners } = useQuery<SeasonalBanner[]>({
-    queryKey: ["/api/banners"],
-  });
-
   const { data: wishlistItems } = useQuery<{ productId: number }[]>({
     queryKey: ["/api/wishlist"],
     enabled: isAuthenticated,
@@ -249,40 +245,6 @@ export default function HomePage() {
         }}
       />
       <HeroSlider />
-
-      {banners && banners.length > 0 && (
-        <section className="py-6 sm:py-8 bg-gradient-to-r from-[#C9A961]/10 via-transparent to-[#C9A961]/10" data-testid="section-seasonal-banners">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6">
-            <div className={`grid gap-4 ${banners.length === 1 ? 'grid-cols-1' : banners.length === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
-              {banners.map((banner) => (
-                <Link key={banner.id} href={banner.linkUrl || "/shop"}>
-                  <div className="group relative overflow-hidden rounded-lg cursor-pointer" data-testid={`banner-seasonal-${banner.id}`}>
-                    {banner.imageUrl ? (
-                      <img
-                        src={banner.imageUrl}
-                        alt={banner.title}
-                        className="w-full h-40 sm:h-48 object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="w-full h-40 sm:h-48 bg-gradient-to-br from-[#2C3E50] to-[#1a2530] flex items-center justify-center transition-transform duration-500 group-hover:scale-105">
-                        <div className="text-center px-6">
-                          <h3 className="font-serif text-xl sm:text-2xl font-bold text-white mb-1">{banner.title}</h3>
-                          {banner.subtitle && <p className="text-white/70 text-sm">{banner.subtitle}</p>}
-                        </div>
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-4">
-                      <h3 className="font-serif text-lg font-bold text-white">{banner.title}</h3>
-                      {banner.subtitle && <p className="text-white/80 text-xs mt-0.5">{banner.subtitle}</p>}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       <section className="relative z-20 overflow-hidden bg-[#2C3E50] dark:bg-[#1a2530] py-3">
         <div className="flex animate-marquee whitespace-nowrap">

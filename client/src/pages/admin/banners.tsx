@@ -1,9 +1,9 @@
 import { useState } from "react";
 import {
-  Plus, Pencil, Trash2, Loader2, Eye, EyeOff, Image as ImageIcon
+  Plus, Pencil, Trash2, Loader2, Eye, EyeOff, Tag, LayoutTemplate, Megaphone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,9 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -28,9 +31,7 @@ interface BannerFormData {
   bgColor: string;
   textColor: string;
   isActive: boolean;
-  startDate: string;
-  endDate: string;
-  sortOrder: string;
+  displayType: string;
 }
 
 function BannerForm({
@@ -47,12 +48,10 @@ function BannerForm({
     subtitle: banner?.subtitle || "",
     imageUrl: banner?.imageUrl || "",
     linkUrl: banner?.linkUrl || "",
-    bgColor: banner?.bgColor || "#2C3E50",
+    bgColor: banner?.bgColor || "#C9A961",
     textColor: banner?.textColor || "#FFFFFF",
     isActive: banner?.isActive ?? true,
-    startDate: banner?.startDate ? new Date(banner.startDate).toISOString().split("T")[0] : "",
-    endDate: banner?.endDate ? new Date(banner.endDate).toISOString().split("T")[0] : "",
-    sortOrder: banner?.sortOrder?.toString() || "0",
+    displayType: banner?.displayType || "bar",
   });
 
   const mutation = useMutation({
@@ -60,14 +59,13 @@ function BannerForm({
       const payload = {
         title: form.title,
         subtitle: form.subtitle || null,
-        imageUrl: form.imageUrl,
+        imageUrl: form.imageUrl || null,
         linkUrl: form.linkUrl || null,
         bgColor: form.bgColor,
         textColor: form.textColor,
         isActive: form.isActive,
-        startDate: form.startDate ? new Date(form.startDate).toISOString() : null,
-        endDate: form.endDate ? new Date(form.endDate).toISOString() : null,
-        sortOrder: parseInt(form.sortOrder) || 0,
+        displayType: form.displayType,
+        sortOrder: banner?.sortOrder ?? 0,
       };
       if (banner) {
         await apiRequest("PATCH", `/api/admin/banners/${banner.id}`, payload);
@@ -77,6 +75,7 @@ function BannerForm({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/banners"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/banners"] });
       toast({ title: banner ? "Banner updated" : "Banner created" });
       onClose();
     },
@@ -86,44 +85,68 @@ function BannerForm({
   });
 
   return (
-    <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+    <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2">
-          <Label>Title *</Label>
+          <Label>Announcement Text *</Label>
           <Input
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
-            placeholder="Banner title"
+            placeholder="e.g. Flat 20% OFF on all Sarees – Limited Time!"
             data-testid="input-banner-title"
           />
         </div>
         <div className="sm:col-span-2">
-          <Label>Subtitle</Label>
+          <Label>Subtitle <span className="text-muted-foreground text-xs">(optional, shown in popup mode)</span></Label>
           <Input
             value={form.subtitle}
             onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
-            placeholder="Optional subtitle"
+            placeholder="e.g. Use code SAVE20 at checkout"
             data-testid="input-banner-subtitle"
           />
         </div>
         <div className="sm:col-span-2">
-          <Label>Image URL *</Label>
-          <Input
-            value={form.imageUrl}
-            onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-            placeholder="https://example.com/image.jpg"
-            data-testid="input-banner-image-url"
-          />
+          <Label>Display Style</Label>
+          <Select value={form.displayType} onValueChange={(v) => setForm({ ...form, displayType: v })}>
+            <SelectTrigger data-testid="select-banner-display-type">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="bar">
+                <div className="flex items-center gap-2">
+                  <LayoutTemplate className="h-4 w-4" />
+                  Bar Strip — thin announcement strip below navbar on all pages
+                </div>
+              </SelectItem>
+              <SelectItem value="popup">
+                <div className="flex items-center gap-2">
+                  <Megaphone className="h-4 w-4" />
+                  Popup — dismissible overlay shown once per session
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="sm:col-span-2">
-          <Label>Link URL</Label>
+          <Label>Link URL <span className="text-muted-foreground text-xs">(optional, makes banner clickable)</span></Label>
           <Input
             value={form.linkUrl}
             onChange={(e) => setForm({ ...form, linkUrl: e.target.value })}
-            placeholder="https://example.com/sale"
+            placeholder="https://yourdomain.com/sale"
             data-testid="input-banner-link-url"
           />
         </div>
+        {form.displayType === "popup" && (
+          <div className="sm:col-span-2">
+            <Label>Popup Image URL <span className="text-muted-foreground text-xs">(optional)</span></Label>
+            <Input
+              value={form.imageUrl}
+              onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+              placeholder="https://example.com/sale-image.jpg"
+              data-testid="input-banner-image-url"
+            />
+          </div>
+        )}
         <div>
           <Label>Background Color</Label>
           <div className="flex items-center gap-2">
@@ -137,7 +160,7 @@ function BannerForm({
             <Input
               value={form.bgColor}
               onChange={(e) => setForm({ ...form, bgColor: e.target.value })}
-              placeholder="#2C3E50"
+              placeholder="#C9A961"
               data-testid="input-banner-bg-color"
             />
           </div>
@@ -160,72 +183,56 @@ function BannerForm({
             />
           </div>
         </div>
-        <div>
-          <Label>Start Date</Label>
-          <Input
-            type="date"
-            value={form.startDate}
-            onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-            data-testid="input-banner-start-date"
-          />
-        </div>
-        <div>
-          <Label>End Date</Label>
-          <Input
-            type="date"
-            value={form.endDate}
-            onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-            data-testid="input-banner-end-date"
-          />
-        </div>
-        <div>
-          <Label>Sort Order</Label>
-          <Input
-            type="number"
-            value={form.sortOrder}
-            onChange={(e) => setForm({ ...form, sortOrder: e.target.value })}
-            placeholder="0"
-            data-testid="input-banner-sort-order"
-          />
-        </div>
-        <div className="flex items-center gap-2 self-end">
+        <div className="flex items-center gap-3 sm:col-span-2 pt-1">
           <Switch
             checked={form.isActive}
             onCheckedChange={(c) => setForm({ ...form, isActive: c })}
             data-testid="switch-banner-active"
           />
-          <Label>Active</Label>
+          <div>
+            <Label className="cursor-pointer">Active</Label>
+            <p className="text-xs text-muted-foreground">Only one active banner displays at a time</p>
+          </div>
         </div>
       </div>
 
       <div>
-        <Label className="mb-2 block">Preview</Label>
-        <div
-          className="rounded-md overflow-hidden relative h-28 flex items-center justify-center"
-          style={{ backgroundColor: form.bgColor }}
-          data-testid="banner-preview"
-        >
-          {form.imageUrl && (
-            <img
-              src={form.imageUrl}
-              alt="Preview"
-              className="absolute inset-0 w-full h-full object-cover opacity-60"
-            />
-          )}
-          <div className="relative z-10 text-center px-4">
-            <h3
-              className="font-serif text-lg font-bold"
-              style={{ color: form.textColor }}
-            >
-              {form.title || "Banner Title"}
-            </h3>
-            {form.subtitle && (
-              <p className="text-sm mt-0.5" style={{ color: form.textColor, opacity: 0.85 }}>
-                {form.subtitle}
-              </p>
-            )}
+        <Label className="mb-2 block">Live Preview</Label>
+        {form.displayType === "bar" ? (
+          <div
+            className="relative rounded-md overflow-hidden flex items-center justify-center px-10 py-2"
+            style={{ backgroundColor: form.bgColor }}
+            data-testid="banner-preview-bar"
+          >
+            <div className="flex items-center gap-2" style={{ color: form.textColor }}>
+              <Tag className="h-3 w-3 shrink-0" />
+              <span className="text-sm font-medium truncate">{form.title || "Announcement text here"}</span>
+              {form.subtitle && <span className="text-xs opacity-80 hidden sm:inline">— {form.subtitle}</span>}
+            </div>
+            <div className="absolute right-2 opacity-50" style={{ color: form.textColor }}>✕</div>
           </div>
-        </div>
+        ) : (
+          <div
+            className="rounded-xl overflow-hidden relative max-w-xs"
+            style={{ backgroundColor: form.bgColor }}
+            data-testid="banner-preview-popup"
+          >
+            {form.imageUrl && (
+              <img src={form.imageUrl} alt="Preview" className="w-full h-28 object-cover" />
+            )}
+            <div className="p-4 text-center" style={{ color: form.textColor }}>
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Tag className="h-3 w-3" />
+                <span className="text-[10px] font-semibold uppercase tracking-widest opacity-80">Special Offer</span>
+              </div>
+              <p className="font-serif text-base font-bold">{form.title || "Popup title here"}</p>
+              {form.subtitle && <p className="text-xs opacity-80 mt-1">{form.subtitle}</p>}
+              <div className="mt-3 inline-block px-4 py-1.5 rounded-full text-xs bg-white/20 border border-white/30">
+                {form.linkUrl ? "Shop Now" : "Got it!"}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex gap-2 pt-2">
@@ -234,7 +241,7 @@ function BannerForm({
         </Button>
         <Button
           onClick={() => mutation.mutate()}
-          disabled={mutation.isPending || !form.title || !form.imageUrl}
+          disabled={mutation.isPending || !form.title}
           className="bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A]"
           data-testid="button-save-banner"
         >
@@ -261,10 +268,11 @@ export default function AdminBanners() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/banners"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/banners"] });
       toast({ title: "Banner deleted" });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to delete banner", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to delete", variant: "destructive" });
     },
   });
 
@@ -274,6 +282,7 @@ export default function AdminBanners() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/banners"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/banners"] });
       toast({ title: "Banner status updated" });
     },
     onError: () => {
@@ -281,17 +290,18 @@ export default function AdminBanners() {
     },
   });
 
-  const sorted = [...(banners || [])].sort((a, b) => a.sortOrder - b.sortOrder);
+  const activeBanner = banners?.find((b) => b.isActive);
+  const sorted = [...(banners || [])].sort((a, b) => b.id - a.id);
 
   return (
     <div>
       <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
         <div>
           <h1 className="font-serif text-2xl sm:text-3xl font-bold" data-testid="text-admin-banners-title">
-            Seasonal Banners
+            Sale Banner
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {banners?.length || 0} total banners
+            Display a promotional announcement strip or popup across the site
           </p>
         </div>
         <Dialog
@@ -306,13 +316,13 @@ export default function AdminBanners() {
               className="bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A]"
               data-testid="button-add-banner"
             >
-              <Plus className="mr-1.5 h-4 w-4" /> Add Banner
+              <Plus className="mr-1.5 h-4 w-4" /> New Banner
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle className="font-serif">
-                {editingBanner ? "Edit Banner" : "Add New Banner"}
+                {editingBanner ? "Edit Sale Banner" : "Create Sale Banner"}
               </DialogTitle>
             </DialogHeader>
             <BannerForm
@@ -326,18 +336,49 @@ export default function AdminBanners() {
         </Dialog>
       </div>
 
+      {activeBanner && (
+        <Card className="mb-6 border-[#C9A961]/40 bg-[#C9A961]/5">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Currently Active</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div
+              className={`rounded-lg overflow-hidden ${activeBanner.displayType === "bar" ? "flex items-center justify-center px-10 py-2" : "max-w-xs"}`}
+              style={{ backgroundColor: activeBanner.bgColor || "#C9A961" }}
+            >
+              {activeBanner.displayType === "bar" ? (
+                <div className="flex items-center gap-2" style={{ color: activeBanner.textColor || "#FFF" }}>
+                  <Tag className="h-3 w-3" />
+                  <span className="text-sm font-medium">{activeBanner.title}</span>
+                  {activeBanner.subtitle && <span className="text-xs opacity-80">— {activeBanner.subtitle}</span>}
+                </div>
+              ) : (
+                <div className="p-4 text-center" style={{ color: activeBanner.textColor || "#FFF" }}>
+                  <p className="font-serif font-bold">{activeBanner.title}</p>
+                  {activeBanner.subtitle && <p className="text-xs opacity-80 mt-1">{activeBanner.subtitle}</p>}
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Showing as: <span className="font-medium capitalize">{activeBanner.displayType === "bar" ? "Bar strip (below navbar on all pages)" : "Popup (once per session)"}</span>
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 w-full rounded-md" />
+            <Skeleton key={i} className="h-16 w-full rounded-md" />
           ))}
         </div>
       ) : sorted.length === 0 ? (
         <Card className="p-8 text-center">
-          <ImageIcon className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-          <p className="text-muted-foreground" data-testid="text-no-banners">
-            No banners yet. Create your first seasonal banner.
+          <Tag className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+          <p className="text-muted-foreground font-medium" data-testid="text-no-banners">
+            No sale banners yet
           </p>
+          <p className="text-sm text-muted-foreground mt-1">Create a banner to announce sales, offers, or events across your site.</p>
         </Card>
       ) : (
         <>
@@ -347,9 +388,8 @@ export default function AdminBanners() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Preview</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead className="hidden md:table-cell">Dates</TableHead>
-                    <TableHead className="hidden lg:table-cell">Order</TableHead>
+                    <TableHead>Announcement</TableHead>
+                    <TableHead>Style</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -359,49 +399,23 @@ export default function AdminBanners() {
                     <TableRow key={b.id} data-testid={`row-banner-${b.id}`}>
                       <TableCell>
                         <div
-                          className="w-24 h-14 rounded-md overflow-hidden relative flex items-center justify-center"
-                          style={{ backgroundColor: b.bgColor || "#2C3E50" }}
+                          className="w-28 h-9 rounded-md flex items-center justify-center px-2"
+                          style={{ backgroundColor: b.bgColor || "#C9A961" }}
                         >
-                          {b.imageUrl && (
-                            <img
-                              src={b.imageUrl}
-                              alt={b.title}
-                              className="absolute inset-0 w-full h-full object-cover opacity-60"
-                            />
-                          )}
-                          <span
-                            className="relative z-10 text-[10px] font-serif font-bold truncate px-1"
-                            style={{ color: b.textColor || "#FFFFFF" }}
-                          >
+                          <span className="text-[10px] font-medium truncate" style={{ color: b.textColor || "#FFF" }}>
                             {b.title}
                           </span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div>
-                          <p className="font-medium text-sm" data-testid={`text-banner-title-${b.id}`}>
-                            {b.title}
-                          </p>
-                          {b.subtitle && (
-                            <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                              {b.subtitle}
-                            </p>
-                          )}
-                        </div>
+                        <p className="font-medium text-sm" data-testid={`text-banner-title-${b.id}`}>{b.title}</p>
+                        {b.subtitle && <p className="text-xs text-muted-foreground truncate max-w-[200px]">{b.subtitle}</p>}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <div className="text-xs text-muted-foreground">
-                          {b.startDate
-                            ? new Date(b.startDate).toLocaleDateString()
-                            : "No start"}
-                          {" - "}
-                          {b.endDate
-                            ? new Date(b.endDate).toLocaleDateString()
-                            : "No end"}
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        <span className="text-sm text-muted-foreground">{b.sortOrder}</span>
+                      <TableCell>
+                        <Badge variant="outline" className="text-[10px] gap-1 no-default-hover-elevate no-default-active-elevate">
+                          {b.displayType === "bar" ? <LayoutTemplate className="h-3 w-3" /> : <Megaphone className="h-3 w-3" />}
+                          {b.displayType === "bar" ? "Bar" : "Popup"}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -409,7 +423,7 @@ export default function AdminBanners() {
                           className={`text-[10px] no-default-hover-elevate no-default-active-elevate ${
                             b.isActive
                               ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                              : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                              : "bg-gray-100 text-gray-600 dark:bg-gray-800/30 dark:text-gray-400"
                           } border-0`}
                           data-testid={`badge-banner-status-${b.id}`}
                         >
@@ -421,27 +435,16 @@ export default function AdminBanners() {
                           <Button
                             size="icon"
                             variant="ghost"
-                            onClick={() =>
-                              toggleMutation.mutate({
-                                id: b.id,
-                                isActive: !b.isActive,
-                              })
-                            }
+                            onClick={() => toggleMutation.mutate({ id: b.id, isActive: !b.isActive })}
+                            title={b.isActive ? "Deactivate" : "Activate"}
                             data-testid={`button-toggle-banner-${b.id}`}
                           >
-                            {b.isActive ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
+                            {b.isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </Button>
                           <Button
                             size="icon"
                             variant="ghost"
-                            onClick={() => {
-                              setEditingBanner(b);
-                              setDialogOpen(true);
-                            }}
+                            onClick={() => { setEditingBanner(b); setDialogOpen(true); }}
                             data-testid={`button-edit-banner-${b.id}`}
                           >
                             <Pencil className="h-4 w-4" />
@@ -467,79 +470,29 @@ export default function AdminBanners() {
             {sorted.map((b) => (
               <Card key={b.id} className="p-3" data-testid={`card-banner-${b.id}`}>
                 <div
-                  className="rounded-md overflow-hidden relative h-20 flex items-center justify-center mb-3"
-                  style={{ backgroundColor: b.bgColor || "#2C3E50" }}
+                  className="rounded-md h-9 flex items-center justify-center px-4 mb-3"
+                  style={{ backgroundColor: b.bgColor || "#C9A961" }}
                 >
-                  {b.imageUrl && (
-                    <img
-                      src={b.imageUrl}
-                      alt={b.title}
-                      className="absolute inset-0 w-full h-full object-cover opacity-60"
-                    />
-                  )}
-                  <div className="relative z-10 text-center px-3">
-                    <h3
-                      className="font-serif text-sm font-bold"
-                      style={{ color: b.textColor || "#FFFFFF" }}
-                    >
-                      {b.title}
-                    </h3>
-                    {b.subtitle && (
-                      <p
-                        className="text-xs mt-0.5"
-                        style={{ color: b.textColor || "#FFFFFF", opacity: 0.85 }}
-                      >
-                        {b.subtitle}
-                      </p>
-                    )}
-                  </div>
+                  <span className="text-xs font-medium truncate" style={{ color: b.textColor || "#FFF" }}>{b.title}</span>
                 </div>
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
                     <Badge
                       variant={b.isActive ? "default" : "secondary"}
-                      className={`text-[10px] no-default-hover-elevate no-default-active-elevate ${
-                        b.isActive
-                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                          : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                      } border-0`}
+                      className={`text-[10px] no-default-hover-elevate no-default-active-elevate ${b.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"} border-0`}
                     >
                       {b.isActive ? "Active" : "Inactive"}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">Order: {b.sortOrder}</span>
+                    <Badge variant="outline" className="text-[10px] no-default-hover-elevate no-default-active-elevate capitalize">{b.displayType}</Badge>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() =>
-                        toggleMutation.mutate({ id: b.id, isActive: !b.isActive })
-                      }
-                      data-testid={`button-toggle-banner-m-${b.id}`}
-                    >
-                      {b.isActive ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
+                    <Button size="icon" variant="ghost" onClick={() => toggleMutation.mutate({ id: b.id, isActive: !b.isActive })} data-testid={`button-toggle-banner-m-${b.id}`}>
+                      {b.isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => {
-                        setEditingBanner(b);
-                        setDialogOpen(true);
-                      }}
-                      data-testid={`button-edit-banner-m-${b.id}`}
-                    >
+                    <Button size="icon" variant="ghost" onClick={() => { setEditingBanner(b); setDialogOpen(true); }} data-testid={`button-edit-banner-m-${b.id}`}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => deleteMutation.mutate(b.id)}
-                      data-testid={`button-delete-banner-m-${b.id}`}
-                    >
+                    <Button size="icon" variant="ghost" onClick={() => deleteMutation.mutate(b.id)} data-testid={`button-delete-banner-m-${b.id}`}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>

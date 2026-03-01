@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { ShoppingBag, Search, Menu, X, User, LogOut, LayoutDashboard, ChevronDown, ChevronRight, Heart } from "lucide-react";
+import { ShoppingBag, Search, Menu, X, User, LogOut, LayoutDashboard, ChevronDown, ChevronRight, Heart, Tag } from "lucide-react";
 import { isAdminRole } from "@shared/models/auth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -15,7 +15,70 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import type { CartItem, Category } from "@shared/schema";
+import type { CartItem, Category, SeasonalBanner } from "@shared/schema";
+
+function SaleBannerBar({ banner }: { banner: SeasonalBanner }) {
+  const key = `sale-banner-dismissed-${banner.id}`;
+  const [dismissed, setDismissed] = useState(() => sessionStorage.getItem(key) === "1");
+  if (dismissed) return null;
+  const dismiss = () => { sessionStorage.setItem(key, "1"); setDismissed(true); };
+  const content = (
+    <div className="flex items-center justify-center gap-2 px-10 py-1.5 text-xs sm:text-sm font-medium" style={{ color: banner.textColor || "#FFFFFF" }}>
+      <Tag className="h-3 w-3 shrink-0" />
+      <span className="truncate">{banner.title}</span>
+      {banner.subtitle && <span className="hidden sm:inline opacity-80">— {banner.subtitle}</span>}
+    </div>
+  );
+  return (
+    <div className="relative w-full" style={{ backgroundColor: banner.bgColor || "#C9A961" }} data-testid="sale-banner-bar">
+      {banner.linkUrl ? (
+        <a href={banner.linkUrl} className="block hover:opacity-90 transition-opacity">{content}</a>
+      ) : (
+        content
+      )}
+      <button onClick={dismiss} className="absolute right-2 top-1/2 -translate-y-1/2 opacity-70 hover:opacity-100 transition-opacity" data-testid="button-dismiss-sale-banner" style={{ color: banner.textColor || "#FFFFFF" }}>
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
+function SaleBannerPopup({ banner }: { banner: SeasonalBanner }) {
+  const key = `sale-banner-popup-dismissed-${banner.id}`;
+  const [dismissed, setDismissed] = useState(() => sessionStorage.getItem(key) === "1");
+  if (dismissed) return null;
+  const dismiss = () => { sessionStorage.setItem(key, "1"); setDismissed(true); };
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" data-testid="sale-banner-popup">
+      <div className="absolute inset-0 bg-black/50" onClick={dismiss} />
+      <div className="relative rounded-xl overflow-hidden shadow-2xl max-w-sm w-full animate-in zoom-in-95 fade-in duration-300" style={{ backgroundColor: banner.bgColor || "#2C3E50" }}>
+        <button onClick={dismiss} className="absolute top-3 right-3 z-10 rounded-full p-1 bg-black/20 hover:bg-black/40 transition-colors" data-testid="button-close-sale-popup" style={{ color: banner.textColor || "#FFFFFF" }}>
+          <X className="h-4 w-4" />
+        </button>
+        {banner.imageUrl && (
+          <img src={banner.imageUrl} alt={banner.title} className="w-full h-40 object-cover" />
+        )}
+        <div className="p-6 text-center" style={{ color: banner.textColor || "#FFFFFF" }}>
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <Tag className="h-5 w-5" style={{ color: banner.textColor || "#FFFFFF" }} />
+            <span className="text-xs font-semibold uppercase tracking-widest opacity-80">Special Offer</span>
+          </div>
+          <h2 className="font-serif text-2xl font-bold mb-2">{banner.title}</h2>
+          {banner.subtitle && <p className="text-sm opacity-85 mb-4">{banner.subtitle}</p>}
+          {banner.linkUrl ? (
+            <a href={banner.linkUrl} onClick={dismiss} className="inline-block px-6 py-2.5 rounded-full text-sm font-semibold bg-white/20 hover:bg-white/30 transition-colors border border-white/40" style={{ color: banner.textColor || "#FFFFFF" }}>
+              Shop Now
+            </a>
+          ) : (
+            <button onClick={dismiss} className="px-6 py-2.5 rounded-full text-sm font-semibold bg-white/20 hover:bg-white/30 transition-colors border border-white/40" style={{ color: banner.textColor || "#FFFFFF" }}>
+              Got it!
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function CategoryDropdown({ main, subs, navigate }: { main: Category; subs: Category[]; navigate: (path: string) => void }) {
   const [open, setOpen] = useState(false);
@@ -110,8 +173,15 @@ export default function Header() {
     ? `${(user.firstName || "")[0] || ""}${(user.lastName || "")[0] || ""}`.toUpperCase() || "U"
     : "";
 
+  const { data: banners } = useQuery<SeasonalBanner[]>({
+    queryKey: ["/api/banners"],
+  });
+  const activeBanner = banners?.find((b) => b.isActive);
+
   return (
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b">
+      {activeBanner && activeBanner.displayType === "bar" && <SaleBannerBar banner={activeBanner} />}
+      {activeBanner && activeBanner.displayType === "popup" && <SaleBannerPopup banner={activeBanner} />}
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between gap-4 h-16">
           <div className="flex items-center gap-2 lg:hidden">

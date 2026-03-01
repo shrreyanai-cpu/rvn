@@ -307,14 +307,15 @@ export const seasonalBanners = pgTable("seasonal_banners", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   subtitle: text("subtitle"),
-  imageUrl: text("image_url").notNull(),
+  imageUrl: text("image_url"),
   linkUrl: text("link_url"),
-  bgColor: text("bg_color").default("#2C3E50"),
+  bgColor: text("bg_color").default("#C9A961"),
   textColor: text("text_color").default("#FFFFFF"),
   isActive: boolean("is_active").notNull().default(true),
   startDate: timestamp("start_date"),
   endDate: timestamp("end_date"),
   sortOrder: integer("sort_order").notNull().default(0),
+  displayType: text("display_type").notNull().default("bar"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
