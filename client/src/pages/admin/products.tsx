@@ -37,9 +37,17 @@ function ProductForm({
   const { toast } = useToast();
   const { uploadFile, isUploading } = useUpload({});
 
+  function generateSku(name: string): string {
+    const words = name.trim().split(/\s+/);
+    const prefix = words.map((w) => w[0]?.toUpperCase() || "").join("").slice(0, 4);
+    const num = Math.floor(Math.random() * 900) + 100;
+    return `${prefix}${num}`;
+  }
+
   const [form, setForm] = useState({
     name: product?.name || "",
     slug: product?.slug || "",
+    sku: product?.sku || "",
     description: product?.description || "",
     price: product?.price || "",
     compareAtPrice: product?.compareAtPrice || "",
@@ -60,6 +68,7 @@ function ProductForm({
       const payload = {
         name: form.name,
         slug: form.slug || form.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+        sku: form.sku || null,
         description: form.description,
         price: form.price,
         compareAtPrice: form.compareAtPrice || null,
@@ -105,10 +114,45 @@ function ProductForm({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2">
           <Label>Product Name</Label>
-          <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Product name" data-testid="input-product-name" />
+          <Input
+            value={form.name}
+            onChange={(e) => {
+              const name = e.target.value;
+              setForm((f) => ({
+                ...f,
+                name,
+                sku: f.sku || (!product ? generateSku(name) : f.sku),
+              }));
+            }}
+            placeholder="Product name"
+            data-testid="input-product-name"
+          />
         </div>
-        <div className="sm:col-span-2">
-          <Label>Slug</Label>
+        <div>
+          <Label>SKU Code</Label>
+          <div className="flex gap-2">
+            <Input
+              value={form.sku}
+              onChange={(e) => setForm({ ...form, sku: e.target.value.toUpperCase() })}
+              placeholder="e.g., RBL01"
+              className="font-mono uppercase"
+              data-testid="input-product-sku"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={() => setForm({ ...form, sku: generateSku(form.name || "SKU") })}
+              data-testid="button-generate-sku"
+            >
+              Generate
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">Unique code for inventory tracking. You can edit it freely.</p>
+        </div>
+        <div>
+          <Label>Slug (URL)</Label>
           <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="Auto-generated from name" data-testid="input-product-slug" />
         </div>
         <div className="sm:col-span-2">
@@ -262,6 +306,7 @@ export default function AdminProducts() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Product</TableHead>
+                  <TableHead className="hidden lg:table-cell">SKU</TableHead>
                   <TableHead className="hidden md:table-cell">Category</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead className="hidden md:table-cell">Stock</TableHead>
@@ -284,6 +329,13 @@ export default function AdminProducts() {
                             <p className="text-xs text-muted-foreground">{product.material}</p>
                           </div>
                         </div>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        {product.sku ? (
+                          <span className="font-mono text-xs bg-muted px-2 py-1 rounded">{product.sku}</span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         <span className="text-sm text-muted-foreground">
@@ -326,7 +378,10 @@ export default function AdminProducts() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{product.name}</p>
-                    <p className="text-xs text-muted-foreground">{cat?.name || product.material || "-"}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-muted-foreground">{cat?.name || product.material || "-"}</p>
+                      {product.sku && <span className="font-mono text-[10px] bg-muted px-1.5 py-0.5 rounded">{product.sku}</span>}
+                    </div>
                     <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                       <span className="text-sm font-semibold">Rs. {Number(product.price).toLocaleString("en-IN")}</span>
                       <Badge variant={product.inStock ? "default" : "secondary"} className={`text-[10px] no-default-hover-elevate no-default-active-elevate ${product.inStock ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"} border-0`}>

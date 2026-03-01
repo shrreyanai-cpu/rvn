@@ -39,6 +39,7 @@ export const products = pgTable("products", {
   images: text("images").array().notNull().default(sql`'{}'::text[]`),
   sizes: text("sizes").array().notNull().default(sql`'{}'::text[]`),
   colors: text("colors").array().notNull().default(sql`'{}'::text[]`),
+  sku: text("sku").unique(),
   material: text("material"),
   brand: text("brand"),
   inStock: boolean("in_stock").notNull().default(true),
