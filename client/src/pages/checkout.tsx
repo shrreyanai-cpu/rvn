@@ -333,7 +333,7 @@ export default function CheckoutPage() {
     },
     onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
-      if (data.paymentSessionId) {
+      if (data.paymentSessionId || data.razorpayOrderId || data.paymentMethod === "cod" || data.paymentError) {
         await handlePaymentRedirect(data);
       } else {
         toast({
@@ -364,7 +364,7 @@ export default function CheckoutPage() {
     onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
-      if (data.paymentSessionId) {
+      if (data.paymentSessionId || data.razorpayOrderId || data.paymentMethod === "cod" || data.paymentError) {
         await handlePaymentRedirect(data);
       } else {
         toast({
