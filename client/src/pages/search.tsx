@@ -32,7 +32,8 @@ export default function SearchPage() {
         (p) =>
           p.name.toLowerCase().includes(query.toLowerCase()) ||
           p.description.toLowerCase().includes(query.toLowerCase()) ||
-          p.material?.toLowerCase().includes(query.toLowerCase())
+          p.material?.toLowerCase().includes(query.toLowerCase()) ||
+          p.sku?.toLowerCase().includes(query.toLowerCase())
       ) || []
     : [];
 
