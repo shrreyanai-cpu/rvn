@@ -4,7 +4,8 @@
 A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium Indian clothing store. Built as a standalone solution with product catalog, shopping cart, checkout, order management, and admin dashboard.
 
 ## Recent Changes
-- 2026-03-01: Migrated from PostgreSQL/Drizzle to local JSON file storage (data/ directory), in-memory sessions
+- 2026-03-01: Migrated to Neon PostgreSQL database (NEON_DATABASE_URL env var), Drizzle ORM, connect-pg-simple sessions
+- 2026-03-01: Previously migrated to local JSON file storage (now reverted back to PostgreSQL)
 - 2026-03-01: Wishlist system: heart icon in header, wishlist toggle on all product cards (home/shop), /wishlist page, backend CRUD API
 - 2026-03-01: Seasonal sale banners: active banners displayed on homepage below hero, admin CRUD at /admin/banners
 - 2026-03-01: Recently viewed products: localStorage tracking, component displayed on homepage before CTA
@@ -76,13 +77,13 @@ A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium India
 
 ## Architecture
 - **Frontend**: React + Vite + Tailwind CSS + Shadcn UI + Wouter (routing) + TanStack Query
-- **Backend**: Express.js with local JSON file storage (data/ directory)
-- **Auth**: Custom email/password auth with OTP verification, in-memory sessions
+- **Backend**: Express.js + Neon PostgreSQL + Drizzle ORM
+- **Auth**: Custom email/password auth with OTP verification, connect-pg-simple sessions
 - **Storage**: Replit Object Storage for product images
-- **Data**: All data stored in JSON files under data/ directory (categories, products, users, orders, etc.)
+- **Database**: Neon PostgreSQL (NEON_DATABASE_URL env var)
 
 ## Key Files
-- `server/file-db.ts` - JSON file-based database helper (JsonCollection class)
+- `server/db.ts` - Neon PostgreSQL connection (Drizzle ORM)
 - `shared/schema.ts` - All data models (categories, products, cart, orders, deliverySettings)
 - `shared/models/auth.ts` - Auth-related models (users, sessions)
 - `server/routes.ts` - All API endpoints (including Delhivery integration routes)

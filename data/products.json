@@ -255,7 +255,7 @@
     "name": "Lavender Chiffon Saree",
     "slug": "lavender-chiffon-saree",
     "description": "A graceful lavender chiffon saree with delicate silver border embroidery. Lightweight and elegant, this saree drapes beautifully and is perfect for evening occasions and cocktail events.",
-    "price": "6999.00",
+    "price": "1",
     "compareAtPrice": "8499.00",
     "categoryId": 7,
     "images": [
@@ -273,7 +273,7 @@
     "inStock": true,
     "stockQuantity": 22,
     "featured": false,
-    "weight": null,
+    "weight": 0,
     "flashSalePrice": null,
     "flashSaleStart": null,
     "flashSaleEnd": null,

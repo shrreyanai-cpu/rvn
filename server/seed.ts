@@ -1,33 +1,26 @@
 import { storage } from "./storage";
-import { JsonCollection } from "./file-db";
+import { db } from "./db";
+import { users } from "@shared/models/auth";
+import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import crypto from "crypto";
-
-const usersDb = new JsonCollection<any>("users");
 
 async function seedAdminUser() {
   const adminEmail = "shrreyango@gmail.com";
-  const existing = usersDb.findOne((u: any) => u.email === adminEmail);
+  const [existing] = await db.select().from(users).where(eq(users.email, adminEmail));
   if (!existing) {
     const hashedPassword = await bcrypt.hash("100808", 12);
-    usersDb.insert({
-      id: crypto.randomUUID(),
+    await db.insert(users).values({
       email: adminEmail,
       password: hashedPassword,
       firstName: "Admin",
       lastName: "User",
       isAdmin: true,
       role: "super_admin",
-      phone: null,
       emailVerified: true,
-      savedShippingAddress: null,
-      profileImageUrl: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
     });
     console.log("Admin user created: " + adminEmail);
   } else if (!existing.isAdmin) {
-    usersDb.update(existing.id, { isAdmin: true, role: "super_admin" });
+    await db.update(users).set({ isAdmin: true, role: "super_admin" }).where(eq(users.id, existing.id));
     console.log("Admin privileges granted to: " + adminEmail);
   }
 }

@@ -1,9 +1,17 @@
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
+import connectPgSimple from "connect-pg-simple";
+import { pool } from "../../db";
 
 export function getSession() {
+  const PgStore = connectPgSimple(session);
   const sessionTtl = 7 * 24 * 60 * 60 * 1000;
   return session({
+    store: new PgStore({
+      pool,
+      tableName: "sessions",
+      createTableIfMissing: true,
+    }),
     secret: process.env.SESSION_SECRET || "fallback-secret-key-change-in-production",
     resave: false,
     saveUninitialized: false,

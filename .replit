@@ -47,3 +47,4 @@ integrations = ["javascript_database:1.0.0", "javascript_object_storage:2.0.0", 
 [userenv.shared]
 CASHFREE_ENV = "PRODUCTION"
 VITE_CASHFREE_ENV = "PRODUCTION"
+NEON_DATABASE_URL = "postgresql://neondb_owner:npg_13pVOnoaMXlA@ep-sweet-heart-a1qdskby-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"

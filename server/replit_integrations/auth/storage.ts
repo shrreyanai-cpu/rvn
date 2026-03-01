@@ -1,8 +1,6 @@
-import { type User, type UpsertUser } from "@shared/models/auth";
-import { JsonCollection } from "../../file-db";
-import crypto from "crypto";
-
-const usersDb = new JsonCollection<any>("users");
+import { type User, type UpsertUser, users } from "@shared/models/auth";
+import { db } from "../../db";
+import { eq } from "drizzle-orm";
 
 export interface IAuthStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -13,48 +11,43 @@ export interface IAuthStorage {
 
 class AuthStorage implements IAuthStorage {
   async getUser(id: string): Promise<User | undefined> {
-    return usersDb.getById(id) as User | undefined;
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return usersDb.findOne((u) => u.email === email) as User | undefined;
+    if (!email) return undefined;
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
     if (userData.id) {
-      const existing = usersDb.getById(userData.id);
+      const [existing] = await db.select().from(users).where(eq(users.id, userData.id));
       if (existing) {
-        const updated = usersDb.update(userData.id, { ...userData, updatedAt: new Date() });
-        return updated as User;
+        const [updated] = await db.update(users).set({ ...userData, updatedAt: new Date() }).where(eq(users.id, userData.id)).returning();
+        return updated;
       }
     }
-    const existingByEmail = userData.email ? usersDb.findOne((u: any) => u.email === userData.email) : null;
-    if (existingByEmail) {
-      const updated = usersDb.update(existingByEmail.id, { ...userData, updatedAt: new Date() });
-      return updated as User;
+    if (userData.email) {
+      const [existingByEmail] = await db.select().from(users).where(eq(users.email, userData.email));
+      if (existingByEmail) {
+        const [updated] = await db.update(users).set({ ...userData, updatedAt: new Date() }).where(eq(users.id, existingByEmail.id)).returning();
+        return updated;
+      }
     }
 
-    const user = {
-      id: userData.id || crypto.randomUUID(),
-      email: userData.email || null,
-      password: userData.password || null,
-      firstName: userData.firstName || null,
-      lastName: userData.lastName || null,
-      profileImageUrl: (userData as any).profileImageUrl || null,
-      isAdmin: (userData as any).isAdmin || false,
-      role: (userData as any).role || "customer",
-      phone: (userData as any).phone || null,
-      emailVerified: (userData as any).emailVerified || false,
-      savedShippingAddress: (userData as any).savedShippingAddress || null,
+    const [user] = await db.insert(users).values({
+      ...userData,
       createdAt: new Date(),
       updatedAt: new Date(),
-    };
-    return usersDb.insert(user) as User;
+    }).returning();
+    return user;
   }
 
   async updateUser(id: string, data: Partial<UpsertUser>): Promise<User | undefined> {
-    const updated = usersDb.update(id, { ...data, updatedAt: new Date() });
-    return updated as User | undefined;
+    const [updated] = await db.update(users).set({ ...data, updatedAt: new Date() }).where(eq(users.id, id)).returning();
+    return updated;
   }
 }
 
