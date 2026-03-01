@@ -58,67 +58,6 @@ export default function AdminDashboard() {
           Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-md" />)
         ) : (
           <>
-            <Card className="p-5" data-testid="card-today-revenue">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Today's Revenue</p>
-                  <p className="text-2xl font-bold font-serif text-[#2C3E50] dark:text-white" data-testid="text-today-revenue">
-                    Rs. {(stats?.todayRevenue || 0).toLocaleString("en-IN")}
-                  </p>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-[#C9A961]/10 flex items-center justify-center shrink-0">
-                  <DollarSign className="h-5 w-5 text-[#C9A961]" />
-                </div>
-              </div>
-            </Card>
-            <Card className="p-5" data-testid="card-today-orders">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Today's Orders</p>
-                  <p className="text-2xl font-bold font-serif text-[#2C3E50] dark:text-white" data-testid="text-today-orders">
-                    {stats?.todayOrders || 0}
-                  </p>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-                  <ShoppingBag className="h-5 w-5 text-blue-500" />
-                </div>
-              </div>
-            </Card>
-            <Card className="p-5 border-yellow-300/50 dark:border-yellow-600/30" data-testid="card-pending-orders">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs text-yellow-700 dark:text-yellow-400 mb-1">Pending Orders</p>
-                  <p className="text-2xl font-bold font-serif text-[#2C3E50] dark:text-white" data-testid="text-pending-orders">
-                    {stats?.pendingOrders || 0}
-                  </p>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center shrink-0">
-                  <Clock className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-                </div>
-              </div>
-            </Card>
-            <Card className="p-5 border-orange-300/50 dark:border-orange-600/30" data-testid="card-low-stock">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs text-orange-700 dark:text-orange-400 mb-1">Low Stock Products</p>
-                  <p className="text-2xl font-bold font-serif text-orange-600 dark:text-orange-400" data-testid="text-low-stock">
-                    {stats?.lowStockProducts || 0}
-                  </p>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center shrink-0">
-                  <AlertTriangle className="h-5 w-5 text-orange-500" />
-                </div>
-              </div>
-            </Card>
-          </>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {isLoading ? (
-          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-md" />)
-        ) : (
-          <>
             <Card className="p-5" data-testid="card-total-revenue">
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -126,9 +65,12 @@ export default function AdminDashboard() {
                   <p className="text-2xl font-bold font-serif text-[#2C3E50] dark:text-white" data-testid="text-total-revenue">
                     Rs. {(stats?.totalRevenue || 0).toLocaleString("en-IN")}
                   </p>
+                  {(stats?.todayRevenue || 0) > 0 && (
+                    <p className="text-xs text-green-600 mt-1">Today: Rs. {(stats?.todayRevenue || 0).toLocaleString("en-IN")}</p>
+                  )}
                 </div>
                 <div className="w-10 h-10 rounded-full bg-[#C9A961]/10 flex items-center justify-center shrink-0">
-                  <TrendingUp className="h-5 w-5 text-[#C9A961]" />
+                  <DollarSign className="h-5 w-5 text-[#C9A961]" />
                 </div>
               </div>
             </Card>
@@ -139,6 +81,9 @@ export default function AdminDashboard() {
                   <p className="text-2xl font-bold font-serif text-[#2C3E50] dark:text-white" data-testid="text-total-orders">
                     {stats?.totalOrders || 0}
                   </p>
+                  {(stats?.todayOrders || 0) > 0 && (
+                    <p className="text-xs text-green-600 mt-1">Today: {stats?.todayOrders}</p>
+                  )}
                 </div>
                 <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
                   <ShoppingBag className="h-5 w-5 text-blue-500" />
@@ -168,6 +113,52 @@ export default function AdminDashboard() {
                 </div>
                 <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
                   <Package className="h-5 w-5 text-green-500" />
+                </div>
+              </div>
+            </Card>
+          </>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        {!isLoading && (
+          <>
+            <Card className="p-5 border-yellow-300/50 dark:border-yellow-600/30" data-testid="card-pending-orders">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs text-yellow-700 dark:text-yellow-400 mb-1">Pending Orders</p>
+                  <p className="text-2xl font-bold font-serif text-[#2C3E50] dark:text-white" data-testid="text-pending-orders">
+                    {stats?.pendingOrders || 0}
+                  </p>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center shrink-0">
+                  <Clock className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                </div>
+              </div>
+            </Card>
+            <Card className="p-5 border-orange-300/50 dark:border-orange-600/30" data-testid="card-low-stock">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs text-orange-700 dark:text-orange-400 mb-1">Low Stock Products</p>
+                  <p className="text-2xl font-bold font-serif text-orange-600 dark:text-orange-400" data-testid="text-low-stock">
+                    {stats?.lowStockProducts || 0}
+                  </p>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-orange-500" />
+                </div>
+              </div>
+            </Card>
+            <Card className="p-5" data-testid="card-today-revenue">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Today's Revenue</p>
+                  <p className="text-2xl font-bold font-serif text-[#2C3E50] dark:text-white" data-testid="text-today-revenue">
+                    Rs. {(stats?.todayRevenue || 0).toLocaleString("en-IN")}
+                  </p>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-[#C9A961]/10 flex items-center justify-center shrink-0">
+                  <TrendingUp className="h-5 w-5 text-[#C9A961]" />
                 </div>
               </div>
             </Card>
