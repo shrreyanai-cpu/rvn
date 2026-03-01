@@ -230,6 +230,14 @@ export default function Header() {
             </Link>
 
             {isAuthenticated && (
+              <Link href="/wishlist">
+                <Button size="icon" variant="ghost" data-testid="button-wishlist">
+                  <Heart className="h-4 w-4" />
+                </Button>
+              </Link>
+            )}
+
+            {isAuthenticated && (
               <Link href="/cart">
                 <Button size="icon" variant="ghost" className="relative" data-testid="button-cart">
                   <ShoppingBag className="h-4 w-4" />
@@ -279,6 +287,12 @@ export default function Header() {
                     <DropdownMenuItem data-testid="link-my-orders">
                       <ShoppingBag className="mr-2 h-4 w-4" />
                       My Orders
+                    </DropdownMenuItem>
+                  </Link>
+                  <Link href="/wishlist">
+                    <DropdownMenuItem data-testid="link-my-wishlist">
+                      <Heart className="mr-2 h-4 w-4" />
+                      My Wishlist
                     </DropdownMenuItem>
                   </Link>
                   {isAdminRole((user as any)?.role || ((user as any)?.isAdmin ? "super_admin" : "customer")) && (

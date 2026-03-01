@@ -23,10 +23,12 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import type { Product, Category } from "@shared/schema";
 import ProductCard from "@/components/ProductCard";
 import SEOHead from "@/components/seo";
+import { useAuth } from "@/hooks/use-auth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface Filters {
   priceRange: [number, number];
@@ -275,6 +277,7 @@ function FilterContent({
 }
 
 export default function ShopPage() {
+  const { isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
   const searchString = useSearch();
   const params = new URLSearchParams(searchString);
@@ -286,6 +289,32 @@ export default function ShopPage() {
   const [sortBy, setSortBy] = useState("newest");
   const [filters, setFilters] = useState<Filters>(defaultFilters);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  const { data: wishlistItems } = useQuery<{ productId: number }[]>({
+    queryKey: ["/api/wishlist"],
+    enabled: isAuthenticated,
+  });
+
+  const wishlistedIds = useMemo(() => new Set(wishlistItems?.map(w => w.productId) || []), [wishlistItems]);
+
+  const addToWishlist = useMutation({
+    mutationFn: (productId: number) => apiRequest("POST", "/api/wishlist", { productId }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/wishlist"] }),
+  });
+
+  const removeFromWishlist = useMutation({
+    mutationFn: (productId: number) => apiRequest("DELETE", `/api/wishlist/${productId}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/wishlist"] }),
+  });
+
+  const handleWishlistToggle = useCallback((productId: number) => {
+    if (!isAuthenticated) return;
+    if (wishlistedIds.has(productId)) {
+      removeFromWishlist.mutate(productId);
+    } else {
+      addToWishlist.mutate(productId);
+    }
+  }, [isAuthenticated, wishlistedIds, addToWishlist, removeFromWishlist]);
 
   useEffect(() => {
     setSelectedCategory(initialCategory);
@@ -770,7 +799,7 @@ export default function ShopPage() {
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                 {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} rating={ratingsMap?.[product.id]} />
+                  <ProductCard key={product.id} product={product} rating={ratingsMap?.[product.id]} isWishlisted={wishlistedIds.has(product.id)} onWishlistToggle={isAuthenticated ? handleWishlistToggle : undefined} />
                 ))}
               </div>
             )}

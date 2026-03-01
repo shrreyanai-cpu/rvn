@@ -4,6 +4,14 @@
 A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium Indian clothing store. Built as a standalone solution with product catalog, shopping cart, checkout, order management, and admin dashboard.
 
 ## Recent Changes
+- 2026-03-01: Wishlist system: heart icon in header, wishlist toggle on all product cards (home/shop), /wishlist page, backend CRUD API
+- 2026-03-01: Seasonal sale banners: active banners displayed on homepage below hero, admin CRUD at /admin/banners
+- 2026-03-01: Recently viewed products: localStorage tracking, component displayed on homepage before CTA
+- 2026-03-01: FAQ page (/faq) with search + accordion UI
+- 2026-03-01: SEO structured data (JSON-LD) on home/shop/product/faq/contact pages
+- 2026-03-01: Enhanced admin dashboard: 8 stat cards with revenue comparison, low stock alerts
+- 2026-03-01: Abandoned cart email reminders: automatic detection + admin trigger, 24h dedup window
+- 2026-03-01: Schema tables added: wishlists, seasonalBanners, abandonedCartEmails
 - 2026-02-22: Admin notifications: bell icon in admin header shows real-time notifications when new orders are placed, with unread count badge, mark read/all read, auto-polls every 15s
 - 2026-02-22: Package customization: admin can edit package dimensions (length, width, height in cm) and weight (grams) per order from the order detail dialog
 - 2026-02-20: Advanced product filtering: price range slider, size toggles, color swatches, brand checkboxes, material filter, in-stock toggle, active filter badges, enhanced sorting (rating, popularity, discount)
