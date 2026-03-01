@@ -3,10 +3,10 @@ import { authStorage } from "./storage";
 import { isAuthenticated } from "./replitAuth";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
-import { db } from "../../db";
-import { emailVerifications } from "@shared/models/auth";
-import { eq, and, gt, desc } from "drizzle-orm";
+import { JsonCollection } from "../../file-db";
 import { sendOtpEmail } from "../../email";
+
+const emailVerificationsDb = new JsonCollection<any>("email_verifications");
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -28,19 +28,17 @@ function generateOtp(): string {
 }
 
 async function invalidateOldOtps(email: string) {
-  await db
-    .update(emailVerifications)
-    .set({ used: true })
-    .where(and(eq(emailVerifications.email, email), eq(emailVerifications.used, false)));
+  emailVerificationsDb.updateWhere(
+    (v: any) => v.email === email && !v.used,
+    { used: true }
+  );
 }
 
 async function canSendOtp(email: string): Promise<boolean> {
-  const [recent] = await db
-    .select()
-    .from(emailVerifications)
-    .where(eq(emailVerifications.email, email))
-    .orderBy(desc(emailVerifications.createdAt))
-    .limit(1);
+  const all = emailVerificationsDb
+    .find((v: any) => v.email === email)
+    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const recent = all[0];
   if (!recent || !recent.createdAt) return true;
   return Date.now() - new Date(recent.createdAt).getTime() > OTP_COOLDOWN_MS;
 }
@@ -49,7 +47,15 @@ async function createAndSendOtp(email: string): Promise<boolean> {
   await invalidateOldOtps(email);
   const otp = generateOtp();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-  await db.insert(emailVerifications).values({ email, otp, expiresAt });
+  emailVerificationsDb.insert({
+    id: emailVerificationsDb.nextId(),
+    email,
+    otp,
+    expiresAt,
+    used: false,
+    attempts: 0,
+    createdAt: new Date(),
+  });
   const result = await sendOtpEmail(email, otp);
   return !!result;
 }
@@ -130,46 +136,29 @@ export function registerAuthRoutes(app: Express): void {
       const { email, otp } = parsed.data;
       const now = new Date();
 
-      const [activeOtp] = await db
-        .select()
-        .from(emailVerifications)
-        .where(
-          and(
-            eq(emailVerifications.email, email),
-            eq(emailVerifications.used, false),
-            gt(emailVerifications.expiresAt, now)
-          )
-        )
-        .orderBy(desc(emailVerifications.createdAt))
-        .limit(1);
+      const activeOtps = emailVerificationsDb
+        .find((v: any) => v.email === email && !v.used && new Date(v.expiresAt) > now)
+        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const activeOtp = activeOtps[0];
 
       if (!activeOtp) {
         return res.status(400).json({ message: "No active verification code found. Please request a new one." });
       }
 
       if ((activeOtp.attempts || 0) >= MAX_OTP_ATTEMPTS) {
-        await db
-          .update(emailVerifications)
-          .set({ used: true })
-          .where(eq(emailVerifications.id, activeOtp.id));
+        emailVerificationsDb.update(activeOtp.id, { used: true });
         return res.status(429).json({ message: "Too many attempts. Please request a new code." });
       }
 
       if (activeOtp.otp !== otp) {
-        await db
-          .update(emailVerifications)
-          .set({ attempts: (activeOtp.attempts || 0) + 1 })
-          .where(eq(emailVerifications.id, activeOtp.id));
+        emailVerificationsDb.update(activeOtp.id, { attempts: (activeOtp.attempts || 0) + 1 });
         const remaining = MAX_OTP_ATTEMPTS - (activeOtp.attempts || 0) - 1;
         return res.status(400).json({
-          message: `Invalid code. ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining.`,
+          message: `Invalid code. ${remaining} attempt${remaining !== 1 ? "s" : ""} remaining.`,
         });
       }
 
-      await db
-        .update(emailVerifications)
-        .set({ used: true })
-        .where(eq(emailVerifications.id, activeOtp.id));
+      emailVerificationsDb.update(activeOtp.id, { used: true });
 
       const user = await authStorage.getUserByEmail(email);
       if (!user) {

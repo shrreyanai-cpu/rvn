@@ -1,25 +1,33 @@
 import { storage } from "./storage";
-import { db } from "./db";
-import { categories, products } from "@shared/schema";
-import { users } from "@shared/models/auth";
-import { eq } from "drizzle-orm";
+import { JsonCollection } from "./file-db";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
+
+const usersDb = new JsonCollection<any>("users");
 
 async function seedAdminUser() {
   const adminEmail = "shrreyango@gmail.com";
-  const [existing] = await db.select().from(users).where(eq(users.email, adminEmail));
+  const existing = usersDb.findOne((u: any) => u.email === adminEmail);
   if (!existing) {
     const hashedPassword = await bcrypt.hash("100808", 12);
-    await db.insert(users).values({
+    usersDb.insert({
+      id: crypto.randomUUID(),
       email: adminEmail,
       password: hashedPassword,
       firstName: "Admin",
       lastName: "User",
       isAdmin: true,
+      role: "super_admin",
+      phone: null,
+      emailVerified: true,
+      savedShippingAddress: null,
+      profileImageUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
     console.log("Admin user created: " + adminEmail);
   } else if (!existing.isAdmin) {
-    await db.update(users).set({ isAdmin: true }).where(eq(users.email, adminEmail));
+    usersDb.update(existing.id, { isAdmin: true, role: "super_admin" });
     console.log("Admin privileges granted to: " + adminEmail);
   }
 }
@@ -54,7 +62,6 @@ export async function seedDatabase() {
     { parentSlug: "sarees", name: "Designer Sarees", slug: "designer-sarees", description: "Premium designer sarees for special occasions" },
     { parentSlug: "sarees", name: "Printed Sarees", slug: "printed-sarees", description: "Beautiful printed sarees in various patterns" },
     { parentSlug: "sarees", name: "Georgette Sarees", slug: "georgette-sarees", description: "Flowy georgette sarees for a sophisticated look" },
-
     { parentSlug: "mens-wear", name: "Kurta", slug: "mens-kurta", description: "Traditional and modern kurtas for men" },
     { parentSlug: "mens-wear", name: "Sherwani", slug: "sherwani", description: "Regal sherwanis for grooms and special occasions" },
     { parentSlug: "mens-wear", name: "Nehru Jacket", slug: "nehru-jacket", description: "Classic Nehru jackets for a distinguished look" },
@@ -64,7 +71,6 @@ export async function seedDatabase() {
     { parentSlug: "mens-wear", name: "T-Shirt", slug: "mens-tshirt", description: "Casual t-shirts for everyday comfort" },
     { parentSlug: "mens-wear", name: "Pajama Set", slug: "mens-pajama-set", description: "Comfortable kurta pajama sets for men" },
     { parentSlug: "mens-wear", name: "Dhoti", slug: "dhoti", description: "Traditional dhotis in silk and cotton" },
-
     { parentSlug: "womens-wear", name: "Regular Wear Dresses", slug: "regular-wear-dresses", description: "Comfortable and stylish dresses for daily wear" },
     { parentSlug: "womens-wear", name: "Cord Set", slug: "cord-set", description: "Trendy matching cord sets for a coordinated look" },
     { parentSlug: "womens-wear", name: "Kurti", slug: "kurti", description: "Beautiful kurtis in various styles and patterns" },
@@ -77,7 +83,6 @@ export async function seedDatabase() {
     { parentSlug: "womens-wear", name: "Lehenga", slug: "lehenga", description: "Stunning lehenga cholis for weddings and celebrations" },
     { parentSlug: "womens-wear", name: "Anarkali", slug: "anarkali", description: "Graceful Anarkali suits in various designs" },
     { parentSlug: "womens-wear", name: "Dupatta", slug: "dupatta", description: "Beautiful dupattas and stoles as accessories" },
-
     { parentSlug: "kids-wear", name: "Boys Kurta", slug: "boys-kurta", description: "Traditional kurtas for boys" },
     { parentSlug: "kids-wear", name: "Girls Lehenga", slug: "girls-lehenga", description: "Mini lehengas and chaniya cholis for girls" },
     { parentSlug: "kids-wear", name: "Boys Shirt", slug: "boys-shirt", description: "Casual and formal shirts for boys" },

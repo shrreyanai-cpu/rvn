@@ -1,0 +1,17 @@
+[
+  {
+    "id": "31606020-5736-4535-98ae-33989274fe32",
+    "email": "shrreyango@gmail.com",
+    "password": "$2b$12$Svaka4vDgUyKhM2no044JuFU7ZAPHdP3wik.BiKFHqEDSziEtln7a",
+    "firstName": "Admin",
+    "lastName": "User",
+    "isAdmin": true,
+    "role": "super_admin",
+    "phone": null,
+    "emailVerified": true,
+    "savedShippingAddress": null,
+    "profileImageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.153Z",
+    "updatedAt": "2026-03-01T08:15:31.153Z"
+  }
+]

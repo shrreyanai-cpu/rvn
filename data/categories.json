@@ -1,0 +1,371 @@
+[
+  {
+    "id": 1,
+    "name": "Sarees",
+    "slug": "sarees",
+    "description": "Exquisite handcrafted sarees in silk, chiffon, and cotton",
+    "parentId": null,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.153Z"
+  },
+  {
+    "id": 2,
+    "name": "Men's Wear",
+    "slug": "mens-wear",
+    "description": "Premium clothing for men including kurtas, sherwanis, and more",
+    "parentId": null,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.154Z"
+  },
+  {
+    "id": 3,
+    "name": "Women's Wear",
+    "slug": "womens-wear",
+    "description": "Elegant women's clothing from casual wear to party outfits",
+    "parentId": null,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.154Z"
+  },
+  {
+    "id": 4,
+    "name": "Kids Wear",
+    "slug": "kids-wear",
+    "description": "Adorable and comfortable clothing for children",
+    "parentId": null,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.154Z"
+  },
+  {
+    "id": 5,
+    "name": "Silk Sarees",
+    "slug": "silk-sarees",
+    "description": "Pure silk sarees from Banarasi, Kanjivaram, and more",
+    "parentId": 1,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.154Z"
+  },
+  {
+    "id": 6,
+    "name": "Cotton Sarees",
+    "slug": "cotton-sarees",
+    "description": "Comfortable and elegant cotton sarees for daily and festive wear",
+    "parentId": 1,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.154Z"
+  },
+  {
+    "id": 7,
+    "name": "Chiffon Sarees",
+    "slug": "chiffon-sarees",
+    "description": "Lightweight and graceful chiffon sarees",
+    "parentId": 1,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.154Z"
+  },
+  {
+    "id": 8,
+    "name": "Designer Sarees",
+    "slug": "designer-sarees",
+    "description": "Premium designer sarees for special occasions",
+    "parentId": 1,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.154Z"
+  },
+  {
+    "id": 9,
+    "name": "Printed Sarees",
+    "slug": "printed-sarees",
+    "description": "Beautiful printed sarees in various patterns",
+    "parentId": 1,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.154Z"
+  },
+  {
+    "id": 10,
+    "name": "Georgette Sarees",
+    "slug": "georgette-sarees",
+    "description": "Flowy georgette sarees for a sophisticated look",
+    "parentId": 1,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.154Z"
+  },
+  {
+    "id": 11,
+    "name": "Kurta",
+    "slug": "mens-kurta",
+    "description": "Traditional and modern kurtas for men",
+    "parentId": 2,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.155Z"
+  },
+  {
+    "id": 12,
+    "name": "Sherwani",
+    "slug": "sherwani",
+    "description": "Regal sherwanis for grooms and special occasions",
+    "parentId": 2,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.155Z"
+  },
+  {
+    "id": 13,
+    "name": "Nehru Jacket",
+    "slug": "nehru-jacket",
+    "description": "Classic Nehru jackets for a distinguished look",
+    "parentId": 2,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.155Z"
+  },
+  {
+    "id": 14,
+    "name": "Shirt",
+    "slug": "mens-shirt",
+    "description": "Formal and casual shirts for men",
+    "parentId": 2,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.156Z"
+  },
+  {
+    "id": 15,
+    "name": "Trouser",
+    "slug": "mens-trouser",
+    "description": "Well-fitted trousers for all occasions",
+    "parentId": 2,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.156Z"
+  },
+  {
+    "id": 16,
+    "name": "Jeans",
+    "slug": "mens-jeans",
+    "description": "Stylish and comfortable jeans for men",
+    "parentId": 2,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.156Z"
+  },
+  {
+    "id": 17,
+    "name": "T-Shirt",
+    "slug": "mens-tshirt",
+    "description": "Casual t-shirts for everyday comfort",
+    "parentId": 2,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.157Z"
+  },
+  {
+    "id": 18,
+    "name": "Pajama Set",
+    "slug": "mens-pajama-set",
+    "description": "Comfortable kurta pajama sets for men",
+    "parentId": 2,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.157Z"
+  },
+  {
+    "id": 19,
+    "name": "Dhoti",
+    "slug": "dhoti",
+    "description": "Traditional dhotis in silk and cotton",
+    "parentId": 2,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.157Z"
+  },
+  {
+    "id": 20,
+    "name": "Regular Wear Dresses",
+    "slug": "regular-wear-dresses",
+    "description": "Comfortable and stylish dresses for daily wear",
+    "parentId": 3,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.158Z"
+  },
+  {
+    "id": 21,
+    "name": "Cord Set",
+    "slug": "cord-set",
+    "description": "Trendy matching cord sets for a coordinated look",
+    "parentId": 3,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.158Z"
+  },
+  {
+    "id": 22,
+    "name": "Kurti",
+    "slug": "kurti",
+    "description": "Beautiful kurtis in various styles and patterns",
+    "parentId": 3,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.158Z"
+  },
+  {
+    "id": 23,
+    "name": "Dress Material",
+    "slug": "dress-material",
+    "description": "Unstitched dress materials with dupatta",
+    "parentId": 3,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.159Z"
+  },
+  {
+    "id": 24,
+    "name": "Tops",
+    "slug": "womens-tops",
+    "description": "Trendy tops for casual and semi-formal wear",
+    "parentId": 3,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.159Z"
+  },
+  {
+    "id": 25,
+    "name": "Jeans",
+    "slug": "womens-jeans",
+    "description": "Comfortable and stylish jeans for women",
+    "parentId": 3,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.159Z"
+  },
+  {
+    "id": 26,
+    "name": "Night Pant",
+    "slug": "night-pant",
+    "description": "Soft and comfortable night pants for relaxation",
+    "parentId": 3,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.160Z"
+  },
+  {
+    "id": 27,
+    "name": "Gown",
+    "slug": "gown",
+    "description": "Elegant gowns for parties and special occasions",
+    "parentId": 3,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.161Z"
+  },
+  {
+    "id": 28,
+    "name": "Night Dress",
+    "slug": "night-dress",
+    "description": "Comfortable and stylish night dresses",
+    "parentId": 3,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.161Z"
+  },
+  {
+    "id": 29,
+    "name": "Lehenga",
+    "slug": "lehenga",
+    "description": "Stunning lehenga cholis for weddings and celebrations",
+    "parentId": 3,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.161Z"
+  },
+  {
+    "id": 30,
+    "name": "Anarkali",
+    "slug": "anarkali",
+    "description": "Graceful Anarkali suits in various designs",
+    "parentId": 3,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.162Z"
+  },
+  {
+    "id": 31,
+    "name": "Dupatta",
+    "slug": "dupatta",
+    "description": "Beautiful dupattas and stoles as accessories",
+    "parentId": 3,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.162Z"
+  },
+  {
+    "id": 32,
+    "name": "Boys Kurta",
+    "slug": "boys-kurta",
+    "description": "Traditional kurtas for boys",
+    "parentId": 4,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.162Z"
+  },
+  {
+    "id": 33,
+    "name": "Girls Lehenga",
+    "slug": "girls-lehenga",
+    "description": "Mini lehengas and chaniya cholis for girls",
+    "parentId": 4,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.163Z"
+  },
+  {
+    "id": 34,
+    "name": "Boys Shirt",
+    "slug": "boys-shirt",
+    "description": "Casual and formal shirts for boys",
+    "parentId": 4,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.163Z"
+  },
+  {
+    "id": 35,
+    "name": "Girls Dress",
+    "slug": "girls-dress",
+    "description": "Adorable frocks and dresses for girls",
+    "parentId": 4,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.163Z"
+  },
+  {
+    "id": 36,
+    "name": "Boys T-Shirt",
+    "slug": "boys-tshirt",
+    "description": "Fun and comfortable t-shirts for boys",
+    "parentId": 4,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.164Z"
+  },
+  {
+    "id": 37,
+    "name": "Girls Kurti",
+    "slug": "girls-kurti",
+    "description": "Pretty kurtis for girls",
+    "parentId": 4,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.164Z"
+  },
+  {
+    "id": 38,
+    "name": "Boys Jeans",
+    "slug": "boys-jeans",
+    "description": "Durable and stylish jeans for boys",
+    "parentId": 4,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.164Z"
+  },
+  {
+    "id": 39,
+    "name": "Girls Jeans",
+    "slug": "girls-jeans",
+    "description": "Trendy jeans for girls",
+    "parentId": 4,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.165Z"
+  },
+  {
+    "id": 40,
+    "name": "Kids Night Wear",
+    "slug": "kids-night-wear",
+    "description": "Soft and cozy night wear for children",
+    "parentId": 4,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.165Z"
+  },
+  {
+    "id": 41,
+    "name": "Kids Ethnic Set",
+    "slug": "kids-ethnic-set",
+    "description": "Traditional ethnic sets for kids",
+    "parentId": 4,
+    "imageUrl": null,
+    "createdAt": "2026-03-01T08:15:31.166Z"
+  }
+]

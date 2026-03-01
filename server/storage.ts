@@ -1,7 +1,4 @@
 import {
-  categories, products, cartItems, orders, coupons, deliverySettings, addresses, returnRequests, reviews,
-  newsletterSubscribers, instagramPosts, contactMessages, adminNotifications,
-  wishlists, seasonalBanners, abandonedCartEmails,
   type Category, type InsertCategory,
   type Product, type InsertProduct,
   type CartItem, type InsertCartItem,
@@ -18,9 +15,7 @@ import {
   type Wishlist, type InsertWishlist,
   type SeasonalBanner, type InsertSeasonalBanner,
 } from "@shared/schema";
-import { users } from "@shared/models/auth";
-import { db } from "./db";
-import { eq, and, desc, sql, count, inArray, gte, lte, isNull, or } from "drizzle-orm";
+import { JsonCollection } from "./file-db";
 
 export interface IStorage {
   getCategories(): Promise<Category[]>;
@@ -136,502 +131,554 @@ export interface IStorage {
   wasAbandonedCartEmailSent(userId: string, hoursAgo: number): Promise<boolean>;
 }
 
-export class DatabaseStorage implements IStorage {
+const categoriesDb = new JsonCollection<Category>("categories");
+const productsDb = new JsonCollection<Product>("products");
+const cartItemsDb = new JsonCollection<CartItem>("cart_items");
+const ordersDb = new JsonCollection<Order>("orders");
+const couponsDb = new JsonCollection<Coupon>("coupons");
+const deliverySettingsDb = new JsonCollection<DeliverySettings>("delivery_settings");
+const addressesDb = new JsonCollection<Address>("addresses");
+const returnRequestsDb = new JsonCollection<ReturnRequest>("return_requests");
+const reviewsDb = new JsonCollection<Review>("reviews");
+const newsletterDb = new JsonCollection<NewsletterSubscriber>("newsletter_subscribers");
+const instagramDb = new JsonCollection<InstagramPost>("instagram_posts");
+const contactDb = new JsonCollection<ContactMessage>("contact_messages");
+const notificationsDb = new JsonCollection<AdminNotification>("admin_notifications");
+const wishlistsDb = new JsonCollection<Wishlist>("wishlists");
+const bannersDb = new JsonCollection<SeasonalBanner>("seasonal_banners");
+const abandonedCartEmailsDb = new JsonCollection<any>("abandoned_cart_emails");
+const usersDb = new JsonCollection<any>("users");
+
+export class FileStorage implements IStorage {
   async getCategories(): Promise<Category[]> {
-    return db.select().from(categories).orderBy(categories.name);
+    return categoriesDb.getAll().sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async getCategoryBySlug(slug: string): Promise<Category | undefined> {
-    const [cat] = await db.select().from(categories).where(eq(categories.slug, slug));
-    return cat;
+    return categoriesDb.findOne((c) => c.slug === slug);
   }
 
   async createCategory(data: InsertCategory): Promise<Category> {
-    const [cat] = await db.insert(categories).values(data).returning();
-    return cat;
+    const cat: Category = {
+      id: categoriesDb.nextId(),
+      name: data.name,
+      slug: data.slug,
+      description: data.description || null,
+      parentId: data.parentId || null,
+      imageUrl: (data as any).imageUrl || null,
+      createdAt: new Date(),
+    };
+    return categoriesDb.insert(cat);
   }
 
   async getProducts(): Promise<Product[]> {
-    return db.select().from(products).orderBy(desc(products.createdAt));
+    return productsDb.getAll().sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   }
 
   async getFeaturedProducts(): Promise<Product[]> {
-    return db.select().from(products).where(eq(products.featured, true)).orderBy(desc(products.createdAt));
+    return productsDb.find((p) => p.featured === true).sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   }
 
   async getProductBySlug(slug: string): Promise<Product | undefined> {
-    const [product] = await db.select().from(products).where(eq(products.slug, slug));
-    return product;
+    return productsDb.findOne((p) => p.slug === slug);
   }
 
   async getProductById(id: number): Promise<Product | undefined> {
-    const [product] = await db.select().from(products).where(eq(products.id, id));
-    return product;
+    return productsDb.getById(id);
   }
 
   async createProduct(data: InsertProduct): Promise<Product> {
-    const [product] = await db.insert(products).values(data).returning();
-    return product;
+    const product: Product = {
+      id: productsDb.nextId(),
+      name: data.name,
+      slug: data.slug,
+      description: data.description || null,
+      price: data.price,
+      compareAtPrice: data.compareAtPrice || null,
+      categoryId: data.categoryId || null,
+      images: data.images || null,
+      sizes: data.sizes || null,
+      colors: data.colors || null,
+      material: data.material || null,
+      brand: (data as any).brand || null,
+      inStock: data.inStock ?? true,
+      stockQuantity: (data as any).stockQuantity ?? 0,
+      featured: data.featured ?? false,
+      weight: (data as any).weight || null,
+      flashSalePrice: (data as any).flashSalePrice || null,
+      flashSaleStart: (data as any).flashSaleStart || null,
+      flashSaleEnd: (data as any).flashSaleEnd || null,
+      createdAt: new Date(),
+    };
+    return productsDb.insert(product);
   }
 
   async updateProduct(id: number, data: Partial<InsertProduct>): Promise<Product | undefined> {
-    const [product] = await db.update(products).set(data).where(eq(products.id, id)).returning();
-    return product;
+    return productsDb.update(id, data as any);
   }
 
   async deleteProduct(id: number): Promise<void> {
-    await db.delete(products).where(eq(products.id, id));
+    productsDb.delete(id);
   }
 
   async getCartItems(userId: string): Promise<(CartItem & { product: Product })[]> {
-    const items = await db.select().from(cartItems).where(eq(cartItems.userId, userId));
+    const items = cartItemsDb.find((ci) => ci.userId === userId);
     const result: (CartItem & { product: Product })[] = [];
     for (const item of items) {
-      const [product] = await db.select().from(products).where(eq(products.id, item.productId));
-      if (product) {
-        result.push({ ...item, product });
-      }
+      const product = productsDb.getById(item.productId);
+      if (product) result.push({ ...item, product });
     }
     return result;
   }
 
   async addCartItem(data: InsertCartItem): Promise<CartItem> {
-    const predicates = [
-      eq(cartItems.userId, data.userId),
-      eq(cartItems.productId, data.productId),
-    ];
-    if (data.size) predicates.push(eq(cartItems.size, data.size));
-    if (data.color) predicates.push(eq(cartItems.color, data.color));
+    const existing = cartItemsDb.findOne((ci) =>
+      ci.userId === data.userId &&
+      ci.productId === data.productId &&
+      (!data.size || ci.size === data.size) &&
+      (!data.color || ci.color === data.color)
+    );
 
-    const existing = await db
-      .select()
-      .from(cartItems)
-      .where(and(...predicates));
-
-    if (existing.length > 0) {
-      const [updated] = await db
-        .update(cartItems)
-        .set({ quantity: existing[0].quantity + (data.quantity || 1) })
-        .where(eq(cartItems.id, existing[0].id))
-        .returning();
-      return updated;
+    if (existing) {
+      const updated = cartItemsDb.update(existing.id, { quantity: existing.quantity + (data.quantity || 1) });
+      return updated!;
     }
 
-    const [item] = await db.insert(cartItems).values(data).returning();
-    return item;
+    const item: CartItem = {
+      id: cartItemsDb.nextId(),
+      userId: data.userId,
+      productId: data.productId,
+      quantity: data.quantity || 1,
+      size: data.size || null,
+      color: data.color || null,
+      addedAt: new Date(),
+      whatsappNotifiedAt: null,
+    };
+    return cartItemsDb.insert(item);
   }
 
   async updateCartItem(id: number, userId: string, quantity: number): Promise<CartItem | undefined> {
-    const [item] = await db
-      .update(cartItems)
-      .set({ quantity })
-      .where(and(eq(cartItems.id, id), eq(cartItems.userId, userId)))
-      .returning();
-    return item;
+    const item = cartItemsDb.findOne((ci) => ci.id === id && ci.userId === userId);
+    if (!item) return undefined;
+    return cartItemsDb.update(id, { quantity });
   }
 
   async removeCartItem(id: number, userId: string): Promise<void> {
-    await db.delete(cartItems).where(and(eq(cartItems.id, id), eq(cartItems.userId, userId)));
+    cartItemsDb.deleteWhere((ci) => ci.id === id && ci.userId === userId);
   }
 
   async clearCart(userId: string): Promise<void> {
-    await db.delete(cartItems).where(eq(cartItems.userId, userId));
+    cartItemsDb.deleteWhere((ci) => ci.userId === userId);
   }
 
   async getOrders(userId: string): Promise<Order[]> {
-    return db.select().from(orders).where(eq(orders.userId, userId)).orderBy(desc(orders.createdAt));
+    return ordersDb.find((o) => o.userId === userId).sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   }
 
   async getAllOrders(): Promise<Order[]> {
-    return db.select().from(orders).orderBy(desc(orders.createdAt));
+    return ordersDb.getAll().sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   }
 
   async getOrderById(id: number): Promise<Order | undefined> {
-    const [order] = await db.select().from(orders).where(eq(orders.id, id));
-    return order;
+    return ordersDb.getById(id);
   }
 
   async createOrder(data: InsertOrder): Promise<Order> {
-    const [order] = await db.insert(orders).values(data).returning();
-    return order;
+    const order: Order = {
+      id: ordersDb.nextId(),
+      userId: data.userId,
+      items: data.items,
+      totalAmount: data.totalAmount,
+      status: data.status || "pending",
+      paymentStatus: data.paymentStatus || "pending",
+      shippingAddress: data.shippingAddress,
+      cashfreeOrderId: (data as any).cashfreeOrderId || null,
+      couponCode: (data as any).couponCode || null,
+      discountAmount: (data as any).discountAmount || null,
+      delhiveryWaybill: null,
+      delhiveryStatus: null,
+      trackingUrl: null,
+      packageLength: null,
+      packageWidth: null,
+      packageHeight: null,
+      packageWeight: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    return ordersDb.insert(order);
   }
 
   async updateOrderStatus(id: number, status: string): Promise<Order | undefined> {
-    const [order] = await db
-      .update(orders)
-      .set({ status, updatedAt: new Date() })
-      .where(eq(orders.id, id))
-      .returning();
-    return order;
+    return ordersDb.update(id, { status, updatedAt: new Date() } as any);
   }
 
   async updateOrderPayment(id: number, data: { paymentStatus: string; cashfreeOrderId?: string }): Promise<Order | undefined> {
     const updateData: any = { paymentStatus: data.paymentStatus, updatedAt: new Date() };
     if (data.cashfreeOrderId) updateData.cashfreeOrderId = data.cashfreeOrderId;
-    const [order] = await db.update(orders).set(updateData).where(eq(orders.id, id)).returning();
-    return order;
+    return ordersDb.update(id, updateData);
   }
 
   async deleteOrder(id: number, userId: string): Promise<void> {
-    await db.delete(orders).where(and(eq(orders.id, id), eq(orders.userId, userId)));
+    ordersDb.deleteWhere((o) => o.id === id && o.userId === userId);
   }
 
   async adminDeleteOrder(id: number): Promise<void> {
-    await db.delete(orders).where(eq(orders.id, id));
+    ordersDb.delete(id);
   }
 
   async updateCategory(id: number, data: Partial<InsertCategory>): Promise<Category | undefined> {
-    const [cat] = await db.update(categories).set(data).where(eq(categories.id, id)).returning();
-    return cat;
+    return categoriesDb.update(id, data as any);
   }
 
   async deleteCategory(id: number): Promise<void> {
-    await db.delete(categories).where(eq(categories.id, id));
+    categoriesDb.delete(id);
   }
 
   async getCoupons(): Promise<Coupon[]> {
-    return db.select().from(coupons).orderBy(desc(coupons.createdAt));
+    return couponsDb.getAll().sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   }
 
   async getCouponByCode(code: string): Promise<Coupon | undefined> {
-    const [coupon] = await db.select().from(coupons).where(eq(coupons.code, code.toUpperCase()));
-    return coupon;
+    return couponsDb.findOne((c) => c.code === code.toUpperCase());
   }
 
   async createCoupon(data: InsertCoupon): Promise<Coupon> {
-    const [coupon] = await db.insert(coupons).values({ ...data, code: data.code.toUpperCase() }).returning();
-    return coupon;
+    const coupon: Coupon = {
+      id: couponsDb.nextId(),
+      code: data.code.toUpperCase(),
+      discountType: data.discountType,
+      discountValue: data.discountValue,
+      minOrderAmount: data.minOrderAmount || null,
+      maxUses: data.maxUses || null,
+      usedCount: 0,
+      isActive: data.isActive ?? true,
+      expiresAt: data.expiresAt || null,
+      createdAt: new Date(),
+    };
+    return couponsDb.insert(coupon);
   }
 
   async updateCoupon(id: number, data: Partial<InsertCoupon>): Promise<Coupon | undefined> {
     const updateData: any = { ...data };
     if (data.code) updateData.code = data.code.toUpperCase();
-    const [coupon] = await db.update(coupons).set(updateData).where(eq(coupons.id, id)).returning();
-    return coupon;
+    return couponsDb.update(id, updateData);
   }
 
   async deleteCoupon(id: number): Promise<void> {
-    await db.delete(coupons).where(eq(coupons.id, id));
+    couponsDb.delete(id);
   }
 
   async getAllUsers(): Promise<any[]> {
-    const result = await db.select({
-      id: users.id,
-      email: users.email,
-      firstName: users.firstName,
-      lastName: users.lastName,
-      isAdmin: users.isAdmin,
-      role: users.role,
-      createdAt: users.createdAt,
-      phone: users.phone,
-    }).from(users).orderBy(desc(users.createdAt));
-    return result;
+    return usersDb.getAll().map(({ password, ...u }) => u).sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   }
 
   async getUserById(userId: string): Promise<any> {
-    const [user] = await db.select({
-      id: users.id,
-      email: users.email,
-      firstName: users.firstName,
-      lastName: users.lastName,
-      isAdmin: users.isAdmin,
-      role: users.role,
-      createdAt: users.createdAt,
-      phone: users.phone,
-      savedShippingAddress: users.savedShippingAddress,
-    }).from(users).where(eq(users.id, userId));
-    return user;
+    const user = usersDb.getById(userId);
+    if (!user) return undefined;
+    const { password, ...safe } = user;
+    return safe;
   }
 
   async getUserOrderCount(userId: string): Promise<number> {
-    const [result] = await db.select({ value: count() }).from(orders).where(eq(orders.userId, userId));
-    return result?.value || 0;
+    return ordersDb.count((o) => o.userId === userId);
   }
 
   async getOrdersByUserId(userId: string): Promise<Order[]> {
-    return await db.select().from(orders).where(eq(orders.userId, userId)).orderBy(desc(orders.createdAt));
+    return ordersDb.find((o) => o.userId === userId).sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   }
 
   async getAdminStats(): Promise<{ totalCustomers: number; totalRevenue: number; totalOrders: number; totalProducts: number }> {
-    const [customerCount] = await db.select({ value: count() }).from(users).where(eq(users.role, "customer"));
-    const [productCount] = await db.select({ value: count() }).from(products);
-    const [orderCount] = await db.select({ value: count() }).from(orders);
-    const revenueResult = await db.select({ total: sql<string>`COALESCE(SUM(total_amount::numeric), 0)` }).from(orders);
+    const allOrders = ordersDb.getAll();
+    const paidOrders = allOrders.filter((o) => o.paymentStatus === "paid");
+    const totalRevenue = paidOrders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
     return {
-      totalCustomers: customerCount?.value || 0,
-      totalProducts: productCount?.value || 0,
-      totalOrders: orderCount?.value || 0,
-      totalRevenue: Number(revenueResult[0]?.total) || 0,
+      totalCustomers: usersDb.count((u) => u.role === "customer" || !u.role),
+      totalProducts: productsDb.count(),
+      totalOrders: allOrders.length,
+      totalRevenue,
     };
   }
 
   async getDeliverySettings(): Promise<DeliverySettings | undefined> {
-    const [settings] = await db.select().from(deliverySettings).limit(1);
-    return settings;
+    const all = deliverySettingsDb.getAll();
+    return all[0];
   }
 
   async upsertDeliverySettings(data: Partial<DeliverySettings>): Promise<DeliverySettings> {
     const existing = await this.getDeliverySettings();
     if (existing) {
-      const [updated] = await db.update(deliverySettings).set({ ...data, updatedAt: new Date() }).where(eq(deliverySettings.id, existing.id)).returning();
-      return updated;
+      const updated = deliverySettingsDb.update(existing.id, { ...data, updatedAt: new Date() } as any);
+      return updated!;
     }
-    const [created] = await db.insert(deliverySettings).values(data as any).returning();
-    return created;
+    const settings: DeliverySettings = {
+      id: deliverySettingsDb.nextId(),
+      ...data,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any;
+    return deliverySettingsDb.insert(settings);
   }
 
   async updateOrderPackage(id: number, data: { packageLength?: string | null; packageWidth?: string | null; packageHeight?: string | null; packageWeight?: string | null }): Promise<Order | undefined> {
-    const [updated] = await db.update(orders).set({ ...data, updatedAt: new Date() }).where(eq(orders.id, id)).returning();
-    return updated;
+    return ordersDb.update(id, { ...data, updatedAt: new Date() } as any);
   }
 
   async updateOrderTracking(id: number, data: { delhiveryWaybill?: string; delhiveryStatus?: string; trackingUrl?: string }): Promise<Order | undefined> {
-    const [updated] = await db.update(orders).set({ ...data, updatedAt: new Date() }).where(eq(orders.id, id)).returning();
-    return updated;
+    return ordersDb.update(id, { ...data, updatedAt: new Date() } as any);
   }
 
   async getAddresses(userId: string): Promise<Address[]> {
-    return db.select().from(addresses).where(eq(addresses.userId, userId)).orderBy(desc(addresses.isDefault), desc(addresses.createdAt));
+    return addressesDb.find((a) => a.userId === userId).sort((a, b) => {
+      if (a.isDefault && !b.isDefault) return -1;
+      if (!a.isDefault && b.isDefault) return 1;
+      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+    });
   }
 
   async getAddressById(id: number, userId: string): Promise<Address | undefined> {
-    const [addr] = await db.select().from(addresses).where(and(eq(addresses.id, id), eq(addresses.userId, userId)));
-    return addr;
+    return addressesDb.findOne((a) => a.id === id && a.userId === userId);
   }
 
   async createAddress(data: InsertAddress): Promise<Address> {
-    const existing = await this.getAddresses(data.userId);
-    if (existing.length === 0) {
-      data.isDefault = true;
-    }
-    const [addr] = await db.insert(addresses).values(data).returning();
-    return addr;
+    const existing = addressesDb.find((a) => a.userId === data.userId);
+    const addr: Address = {
+      id: addressesDb.nextId(),
+      userId: data.userId,
+      label: data.label || null,
+      fullName: data.fullName,
+      phone: data.phone,
+      addressLine1: data.addressLine1,
+      addressLine2: data.addressLine2 || null,
+      city: data.city,
+      state: data.state,
+      pincode: data.pincode,
+      isDefault: existing.length === 0 ? true : (data.isDefault ?? false),
+      createdAt: new Date(),
+    };
+    return addressesDb.insert(addr);
   }
 
   async updateAddress(id: number, userId: string, data: Partial<InsertAddress>): Promise<Address | undefined> {
-    const [updated] = await db.update(addresses).set(data).where(and(eq(addresses.id, id), eq(addresses.userId, userId))).returning();
-    return updated;
+    const addr = addressesDb.findOne((a) => a.id === id && a.userId === userId);
+    if (!addr) return undefined;
+    return addressesDb.update(id, data as any);
   }
 
   async deleteAddress(id: number, userId: string): Promise<void> {
     const addr = await this.getAddressById(id, userId);
-    await db.delete(addresses).where(and(eq(addresses.id, id), eq(addresses.userId, userId)));
+    addressesDb.deleteWhere((a) => a.id === id && a.userId === userId);
     if (addr?.isDefault) {
-      const remaining = await this.getAddresses(userId);
+      const remaining = addressesDb.find((a) => a.userId === userId);
       if (remaining.length > 0) {
-        await db.update(addresses).set({ isDefault: true }).where(eq(addresses.id, remaining[0].id));
+        addressesDb.update(remaining[0].id, { isDefault: true });
       }
     }
   }
 
   async setDefaultAddress(id: number, userId: string): Promise<void> {
-    await db.update(addresses).set({ isDefault: false }).where(eq(addresses.userId, userId));
-    await db.update(addresses).set({ isDefault: true }).where(and(eq(addresses.id, id), eq(addresses.userId, userId)));
+    addressesDb.updateWhere((a) => a.userId === userId, { isDefault: false } as any);
+    addressesDb.updateWhere((a) => a.id === id && a.userId === userId, { isDefault: true } as any);
   }
 
   async createReturnRequest(data: InsertReturnRequest): Promise<ReturnRequest> {
-    const [req] = await db.insert(returnRequests).values(data).returning();
-    return req;
+    const req: ReturnRequest = {
+      id: returnRequestsDb.nextId(),
+      orderId: data.orderId,
+      userId: data.userId,
+      reason: data.reason,
+      damageVideoUrl: data.damageVideoUrl || null,
+      status: "pending",
+      adminNotes: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    return returnRequestsDb.insert(req);
   }
 
   async getReturnRequestsByUser(userId: string): Promise<ReturnRequest[]> {
-    return db.select().from(returnRequests).where(eq(returnRequests.userId, userId)).orderBy(desc(returnRequests.createdAt));
+    return returnRequestsDb.find((r) => r.userId === userId).sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   }
 
   async getReturnRequestByOrderId(orderId: number): Promise<ReturnRequest | undefined> {
-    const [req] = await db.select().from(returnRequests).where(eq(returnRequests.orderId, orderId)).limit(1);
-    return req;
+    return returnRequestsDb.findOne((r) => r.orderId === orderId);
   }
 
   async getAllReturnRequests(): Promise<ReturnRequest[]> {
-    return db.select().from(returnRequests).orderBy(desc(returnRequests.createdAt));
+    return returnRequestsDb.getAll().sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   }
 
   async updateReturnRequest(id: number, data: { status: string; adminNotes?: string }): Promise<ReturnRequest | undefined> {
-    const [updated] = await db.update(returnRequests).set({ ...data, updatedAt: new Date() }).where(eq(returnRequests.id, id)).returning();
-    return updated;
+    return returnRequestsDb.update(id, { ...data, updatedAt: new Date() } as any);
   }
 
   async getReviewsByProductId(productId: number): Promise<(Review & { userName: string })[]> {
-    const result = await db
-      .select({
-        id: reviews.id,
-        productId: reviews.productId,
-        userId: reviews.userId,
-        rating: reviews.rating,
-        title: reviews.title,
-        comment: reviews.comment,
-        createdAt: reviews.createdAt,
-        userName: sql<string>`COALESCE(NULLIF(TRIM(CONCAT(${users.firstName}, ' ', ${users.lastName})), ''), ${users.email}, 'Customer')`,
-      })
-      .from(reviews)
-      .leftJoin(users, eq(reviews.userId, users.id))
-      .where(eq(reviews.productId, productId))
-      .orderBy(desc(reviews.createdAt));
-    return result as (Review & { userName: string })[];
+    const revs = reviewsDb.find((r) => r.productId === productId).sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    return revs.map((r) => {
+      const user = usersDb.getById(r.userId);
+      const userName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email || "Customer" : "Customer";
+      return { ...r, userName };
+    });
   }
 
   async getReviewByUserAndProduct(userId: string, productId: number): Promise<Review | undefined> {
-    const [review] = await db.select().from(reviews)
-      .where(and(eq(reviews.userId, userId), eq(reviews.productId, productId)))
-      .limit(1);
-    return review;
+    return reviewsDb.findOne((r) => r.userId === userId && r.productId === productId);
   }
 
   async createReview(data: InsertReview): Promise<Review> {
-    const [review] = await db.insert(reviews).values(data).returning();
-    return review;
+    const review: Review = {
+      id: reviewsDb.nextId(),
+      productId: data.productId,
+      userId: data.userId,
+      rating: data.rating,
+      title: data.title || null,
+      comment: data.comment || null,
+      createdAt: new Date(),
+    };
+    return reviewsDb.insert(review);
   }
 
   async deleteReview(id: number, userId: string): Promise<void> {
-    await db.delete(reviews).where(and(eq(reviews.id, id), eq(reviews.userId, userId)));
+    reviewsDb.deleteWhere((r) => r.id === id && r.userId === userId);
   }
 
   async getProductAverageRating(productId: number): Promise<{ average: number; count: number }> {
-    const [result] = await db
-      .select({
-        average: sql<number>`COALESCE(AVG(${reviews.rating}), 0)`,
-        count: sql<number>`COUNT(*)::int`,
-      })
-      .from(reviews)
-      .where(eq(reviews.productId, productId));
-    return { average: Number(result.average), count: Number(result.count) };
+    const revs = reviewsDb.find((r) => r.productId === productId);
+    if (revs.length === 0) return { average: 0, count: 0 };
+    const avg = revs.reduce((sum, r) => sum + r.rating, 0) / revs.length;
+    return { average: avg, count: revs.length };
   }
 
   async getProductsAverageRatings(productIds: number[]): Promise<Record<number, { average: number; count: number }>> {
-    if (productIds.length === 0) return {};
-    const results = await db
-      .select({
-        productId: reviews.productId,
-        average: sql<number>`COALESCE(AVG(${reviews.rating}), 0)`,
-        count: sql<number>`COUNT(*)::int`,
-      })
-      .from(reviews)
-      .where(inArray(reviews.productId, productIds))
-      .groupBy(reviews.productId);
     const map: Record<number, { average: number; count: number }> = {};
-    for (const r of results) {
-      map[r.productId] = { average: Number(r.average), count: Number(r.count) };
+    for (const pid of productIds) {
+      const revs = reviewsDb.find((r) => r.productId === pid);
+      if (revs.length > 0) {
+        const avg = revs.reduce((sum, r) => sum + r.rating, 0) / revs.length;
+        map[pid] = { average: avg, count: revs.length };
+      }
     }
     return map;
   }
 
   async getAbandonedCarts(minutesThreshold: number) {
     const threshold = new Date(Date.now() - minutesThreshold * 60 * 1000);
-    const result = await db
-      .select({
-        userId: cartItems.userId,
-        productName: products.name,
-        quantity: cartItems.quantity,
-        price: products.price,
-        addedAt: cartItems.addedAt,
-        whatsappNotifiedAt: cartItems.whatsappNotifiedAt,
-      })
-      .from(cartItems)
-      .innerJoin(products, eq(cartItems.productId, products.id))
-      .where(sql`${cartItems.addedAt} < ${threshold} AND ${cartItems.whatsappNotifiedAt} IS NULL`);
+    const abandoned = cartItemsDb.find((ci) =>
+      ci.addedAt && new Date(ci.addedAt) < threshold && !ci.whatsappNotifiedAt
+    );
 
-    const grouped: Record<string, typeof result> = {};
-    for (const row of result) {
-      if (!grouped[row.userId]) grouped[row.userId] = [];
-      grouped[row.userId].push(row);
+    const grouped: Record<string, typeof abandoned> = {};
+    for (const item of abandoned) {
+      if (!grouped[item.userId]) grouped[item.userId] = [];
+      grouped[item.userId].push(item);
     }
 
     const carts = [];
     for (const [userId, items] of Object.entries(grouped)) {
-      const user = await this.getUserById(userId);
+      const user = usersDb.getById(userId);
       if (!user) continue;
-
-      const totalValue = items.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0).toFixed(2);
+      const totalValue = items.reduce((sum, item) => {
+        const prod = productsDb.getById(item.productId);
+        return sum + (prod ? Number(prod.price) * item.quantity : 0);
+      }, 0).toFixed(2);
       const savedAddr = user.savedShippingAddress as any;
-
       carts.push({
         userId,
-        customerName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'Customer',
-        customerPhone: savedAddr?.phone || '',
-        items: items.map((item) => ({
-          name: item.productName,
-          quantity: item.quantity,
-          price: item.price,
-        })),
+        customerName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email || "Customer",
+        customerPhone: savedAddr?.phone || "",
+        items: items.map((item) => {
+          const prod = productsDb.getById(item.productId);
+          return { name: prod?.name || "Unknown", quantity: item.quantity, price: prod?.price || "0" };
+        }),
         totalValue,
       });
     }
-
     return carts;
   }
 
-  async markCartNotified(userId: string) {
-    await db
-      .update(cartItems)
-      .set({ whatsappNotifiedAt: new Date() })
-      .where(eq(cartItems.userId, userId));
+  async markCartNotified(userId: string): Promise<void> {
+    cartItemsDb.updateWhere((ci) => ci.userId === userId, { whatsappNotifiedAt: new Date() } as any);
   }
 
   async getNewsletterSubscribers(): Promise<NewsletterSubscriber[]> {
-    return db.select().from(newsletterSubscribers).orderBy(desc(newsletterSubscribers.createdAt));
+    return newsletterDb.getAll().sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   }
 
   async addNewsletterSubscriber(data: InsertNewsletterSubscriber): Promise<NewsletterSubscriber> {
-    const [sub] = await db.insert(newsletterSubscribers).values(data).returning();
-    return sub;
+    const sub: NewsletterSubscriber = {
+      id: newsletterDb.nextId(),
+      email: data.email,
+      createdAt: new Date(),
+    };
+    return newsletterDb.insert(sub);
   }
 
   async deleteNewsletterSubscriber(id: number): Promise<void> {
-    await db.delete(newsletterSubscribers).where(eq(newsletterSubscribers.id, id));
+    newsletterDb.delete(id);
   }
 
   async getInstagramPosts(): Promise<InstagramPost[]> {
-    return db.select().from(instagramPosts).orderBy(instagramPosts.sortOrder);
+    return instagramDb.getAll().sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
   }
 
   async createInstagramPost(data: InsertInstagramPost): Promise<InstagramPost> {
-    const [post] = await db.insert(instagramPosts).values(data).returning();
-    return post;
+    const post: InstagramPost = {
+      id: instagramDb.nextId(),
+      imageUrl: data.imageUrl,
+      postUrl: data.postUrl || null,
+      caption: data.caption || null,
+      sortOrder: data.sortOrder || 0,
+      createdAt: new Date(),
+    };
+    return instagramDb.insert(post);
   }
 
   async deleteInstagramPost(id: number): Promise<void> {
-    await db.delete(instagramPosts).where(eq(instagramPosts.id, id));
+    instagramDb.delete(id);
   }
 
   async getContactMessages(): Promise<ContactMessage[]> {
-    return db.select().from(contactMessages).orderBy(desc(contactMessages.createdAt));
+    return contactDb.getAll().sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   }
 
   async createContactMessage(data: InsertContactMessage): Promise<ContactMessage> {
-    const [msg] = await db.insert(contactMessages).values(data).returning();
-    return msg;
+    const msg: ContactMessage = {
+      id: contactDb.nextId(),
+      name: data.name,
+      email: data.email,
+      phone: data.phone || null,
+      subject: data.subject || null,
+      message: data.message,
+      isRead: false,
+      createdAt: new Date(),
+    };
+    return contactDb.insert(msg);
   }
 
   async markContactMessageRead(id: number): Promise<void> {
-    await db.update(contactMessages).set({ isRead: true }).where(eq(contactMessages.id, id));
+    contactDb.update(id, { isRead: true } as any);
   }
 
   async getFlashSaleProducts(): Promise<Product[]> {
     const now = new Date();
-    const allProducts = await db.select().from(products);
-    return allProducts.filter(p =>
+    return productsDb.find((p) =>
       p.flashSalePrice && p.flashSaleStart && p.flashSaleEnd &&
       new Date(p.flashSaleStart) <= now && new Date(p.flashSaleEnd) >= now
     );
   }
 
   async getSalesAnalytics() {
-    const allOrders = await db.select().from(orders).orderBy(desc(orders.createdAt));
-    const paidOrders = allOrders.filter(o => o.paymentStatus === 'paid');
+    const allOrders = ordersDb.getAll().sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    const paidOrders = allOrders.filter((o) => o.paymentStatus === "paid");
 
     const dailyMap = new Map<string, { revenue: number; orders: number }>();
     for (const o of paidOrders) {
-      const date = new Date(o.createdAt || new Date()).toISOString().split('T')[0];
+      const date = new Date(o.createdAt || new Date()).toISOString().split("T")[0];
       const existing = dailyMap.get(date) || { revenue: 0, orders: 0 };
       existing.revenue += Number(o.totalAmount);
       existing.orders += 1;
       dailyMap.set(date, existing);
     }
-    const dailyRevenue = Array.from(dailyMap.entries())
-      .map(([date, data]) => ({ date, ...data }))
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .slice(-30);
+    const dailyRevenue = Array.from(dailyMap.entries()).map(([date, data]) => ({ date, ...data })).sort((a, b) => a.date.localeCompare(b.date)).slice(-30);
 
     const productSales = new Map<string, { sold: number; revenue: number }>();
     for (const o of paidOrders) {
@@ -645,21 +692,18 @@ export class DatabaseStorage implements IStorage {
         }
       }
     }
-    const topProducts = Array.from(productSales.entries())
-      .map(([name, data]) => ({ name, ...data }))
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 10);
+    const topProducts = Array.from(productSales.entries()).map(([name, data]) => ({ name, ...data })).sort((a, b) => b.revenue - a.revenue).slice(0, 10);
 
-    const allCats = await db.select().from(categories);
-    const catMap = new Map(allCats.map(c => [c.id, c.name]));
-    const allProds = await db.select().from(products);
-    const prodCatMap = new Map(allProds.map(p => [p.name, catMap.get(p.categoryId || 0) || 'Uncategorized']));
+    const allCats = categoriesDb.getAll();
+    const catMap = new Map(allCats.map((c) => [c.id, c.name]));
+    const allProds = productsDb.getAll();
+    const prodCatMap = new Map(allProds.map((p) => [p.name, catMap.get(p.categoryId || 0) || "Uncategorized"]));
     const catBreakdown = new Map<string, { revenue: number; orders: number }>();
     for (const o of paidOrders) {
       const items = o.items as Array<{ name: string; quantity: number; price: string }>;
       if (Array.isArray(items)) {
         for (const item of items) {
-          const cat = prodCatMap.get(item.name) || 'Uncategorized';
+          const cat = prodCatMap.get(item.name) || "Uncategorized";
           const existing = catBreakdown.get(cat) || { revenue: 0, orders: 0 };
           existing.revenue += Number(item.price) * item.quantity;
           existing.orders += 1;
@@ -667,129 +711,142 @@ export class DatabaseStorage implements IStorage {
         }
       }
     }
-    const categoryBreakdown = Array.from(catBreakdown.entries())
-      .map(([category, data]) => ({ category, ...data }))
-      .sort((a, b) => b.revenue - a.revenue);
+    const categoryBreakdown = Array.from(catBreakdown.entries()).map(([category, data]) => ({ category, ...data })).sort((a, b) => b.revenue - a.revenue);
 
     const statusMap = new Map<string, number>();
     for (const o of allOrders) {
-      const s = o.status || 'pending';
+      const s = o.status || "pending";
       statusMap.set(s, (statusMap.get(s) || 0) + 1);
     }
-    const orderStatusBreakdown = Array.from(statusMap.entries())
-      .map(([status, count]) => ({ status, count }));
+    const orderStatusBreakdown = Array.from(statusMap.entries()).map(([status, count]) => ({ status, count }));
 
     return { dailyRevenue, topProducts, categoryBreakdown, orderStatusBreakdown };
   }
 
   async getAdminNotifications(limit = 50): Promise<AdminNotification[]> {
-    return db.select().from(adminNotifications).orderBy(desc(adminNotifications.createdAt)).limit(limit);
+    return notificationsDb.getAll().sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()).slice(0, limit);
   }
 
   async getUnreadNotificationCount(): Promise<number> {
-    const [result] = await db.select({ count: count() }).from(adminNotifications).where(eq(adminNotifications.isRead, false));
-    return result?.count || 0;
+    return notificationsDb.count((n) => n.isRead === false);
   }
 
   async createAdminNotification(data: { type: string; title: string; message: string; orderId?: number }): Promise<AdminNotification> {
-    const [notif] = await db.insert(adminNotifications).values(data).returning();
-    return notif;
+    const notif: AdminNotification = {
+      id: notificationsDb.nextId(),
+      type: data.type,
+      title: data.title,
+      message: data.message,
+      orderId: data.orderId || null,
+      isRead: false,
+      createdAt: new Date(),
+    };
+    return notificationsDb.insert(notif);
   }
 
   async markNotificationRead(id: number): Promise<void> {
-    await db.update(adminNotifications).set({ isRead: true }).where(eq(adminNotifications.id, id));
+    notificationsDb.update(id, { isRead: true } as any);
   }
 
   async markAllNotificationsRead(): Promise<void> {
-    await db.update(adminNotifications).set({ isRead: true }).where(eq(adminNotifications.isRead, false));
+    notificationsDb.updateWhere((n) => n.isRead === false, { isRead: true } as any);
   }
 
   async getWishlist(userId: string): Promise<(Wishlist & { product: Product })[]> {
-    const items = await db.select().from(wishlists).where(eq(wishlists.userId, userId)).orderBy(desc(wishlists.createdAt));
+    const items = wishlistsDb.find((w) => w.userId === userId).sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
     const result: (Wishlist & { product: Product })[] = [];
     for (const item of items) {
-      const [product] = await db.select().from(products).where(eq(products.id, item.productId));
+      const product = productsDb.getById(item.productId);
       if (product) result.push({ ...item, product });
     }
     return result;
   }
 
   async addToWishlist(data: InsertWishlist): Promise<Wishlist> {
-    const existing = await db.select().from(wishlists).where(and(eq(wishlists.userId, data.userId), eq(wishlists.productId, data.productId)));
-    if (existing.length > 0) return existing[0];
-    const [item] = await db.insert(wishlists).values(data).returning();
-    return item;
+    const existing = wishlistsDb.findOne((w) => w.userId === data.userId && w.productId === data.productId);
+    if (existing) return existing;
+    const item: Wishlist = {
+      id: wishlistsDb.nextId(),
+      userId: data.userId,
+      productId: data.productId,
+      createdAt: new Date(),
+    };
+    return wishlistsDb.insert(item);
   }
 
   async removeFromWishlist(userId: string, productId: number): Promise<void> {
-    await db.delete(wishlists).where(and(eq(wishlists.userId, userId), eq(wishlists.productId, productId)));
+    wishlistsDb.deleteWhere((w) => w.userId === userId && w.productId === productId);
   }
 
   async isInWishlist(userId: string, productId: number): Promise<boolean> {
-    const [item] = await db.select().from(wishlists).where(and(eq(wishlists.userId, userId), eq(wishlists.productId, productId)));
-    return !!item;
+    return !!wishlistsDb.findOne((w) => w.userId === userId && w.productId === productId);
   }
 
   async getActiveBanners(): Promise<SeasonalBanner[]> {
     const now = new Date();
-    const all = await db.select().from(seasonalBanners).where(eq(seasonalBanners.isActive, true)).orderBy(seasonalBanners.sortOrder);
-    return all.filter(b => {
+    return bannersDb.find((b) => {
+      if (!b.isActive) return false;
       if (b.startDate && new Date(b.startDate) > now) return false;
       if (b.endDate && new Date(b.endDate) < now) return false;
       return true;
-    });
+    }).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
   }
 
   async getAllBanners(): Promise<SeasonalBanner[]> {
-    return db.select().from(seasonalBanners).orderBy(desc(seasonalBanners.createdAt));
+    return bannersDb.getAll().sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   }
 
   async createBanner(data: InsertSeasonalBanner): Promise<SeasonalBanner> {
-    const [banner] = await db.insert(seasonalBanners).values(data).returning();
-    return banner;
+    const banner: SeasonalBanner = {
+      id: bannersDb.nextId(),
+      title: data.title,
+      subtitle: data.subtitle || null,
+      imageUrl: data.imageUrl || null,
+      linkUrl: data.linkUrl || null,
+      isActive: data.isActive ?? true,
+      startDate: data.startDate || null,
+      endDate: data.endDate || null,
+      sortOrder: data.sortOrder || 0,
+      createdAt: new Date(),
+    };
+    return bannersDb.insert(banner);
   }
 
   async updateBanner(id: number, data: Partial<InsertSeasonalBanner>): Promise<SeasonalBanner | undefined> {
-    const [banner] = await db.update(seasonalBanners).set(data).where(eq(seasonalBanners.id, id)).returning();
-    return banner;
+    return bannersDb.update(id, data as any);
   }
 
   async deleteBanner(id: number): Promise<void> {
-    await db.delete(seasonalBanners).where(eq(seasonalBanners.id, id));
+    bannersDb.delete(id);
   }
 
   async getEnhancedStats() {
-    const [customerCount] = await db.select({ count: count() }).from(users);
-    const [productCount] = await db.select({ count: count() }).from(products);
-    const allOrders = await db.select().from(orders);
-    const paidOrders = allOrders.filter(o => o.paymentStatus === "paid");
-
+    const allOrders = ordersDb.getAll();
+    const paidOrders = allOrders.filter((o) => o.paymentStatus === "paid");
     const totalRevenue = paidOrders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
     const avgOrderValue = paidOrders.length > 0 ? totalRevenue / paidOrders.length : 0;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayOrders = paidOrders.filter(o => o.createdAt && new Date(o.createdAt) >= today);
+    const todayOrders = paidOrders.filter((o) => o.createdAt && new Date(o.createdAt) >= today);
     const todayRevenue = todayOrders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
-
-    const pendingOrders = allOrders.filter(o => o.status === "pending").length;
-
-    const [lowStock] = await db.select({ count: count() }).from(products).where(and(eq(products.inStock, true), lte(products.stockQuantity, 5)));
+    const pendingOrders = allOrders.filter((o) => o.status === "pending").length;
+    const lowStockProducts = productsDb.count((p) => p.inStock === true && (p.stockQuantity || 0) <= 5);
 
     const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
     const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    const thisMonthRevenue = paidOrders.filter(o => o.createdAt && new Date(o.createdAt) >= thisMonthStart).reduce((sum, o) => sum + Number(o.totalAmount), 0);
-    const lastMonthRevenue = paidOrders.filter(o => o.createdAt && new Date(o.createdAt) >= lastMonthStart && new Date(o.createdAt!) < thisMonthStart).reduce((sum, o) => sum + Number(o.totalAmount), 0);
+    const thisMonthRevenue = paidOrders.filter((o) => o.createdAt && new Date(o.createdAt) >= thisMonthStart).reduce((sum, o) => sum + Number(o.totalAmount), 0);
+    const lastMonthRevenue = paidOrders.filter((o) => o.createdAt && new Date(o.createdAt) >= lastMonthStart && new Date(o.createdAt!) < thisMonthStart).reduce((sum, o) => sum + Number(o.totalAmount), 0);
 
     return {
-      totalCustomers: customerCount?.count || 0,
+      totalCustomers: usersDb.count(),
       totalRevenue,
       totalOrders: allOrders.length,
-      totalProducts: productCount?.count || 0,
+      totalProducts: productsDb.count(),
       todayRevenue,
       todayOrders: todayOrders.length,
       pendingOrders,
-      lowStockProducts: lowStock?.count || 0,
+      lowStockProducts,
       thisMonthRevenue,
       lastMonthRevenue,
       avgOrderValue: Math.round(avgOrderValue),
@@ -798,7 +855,7 @@ export class DatabaseStorage implements IStorage {
 
   async getAbandonedCartsForEmail(hoursThreshold: number) {
     const threshold = new Date(Date.now() - hoursThreshold * 60 * 60 * 1000);
-    const carts = await db.select().from(cartItems).where(lte(cartItems.addedAt, threshold));
+    const carts = cartItemsDb.find((ci) => ci.addedAt && new Date(ci.addedAt) <= threshold);
     const userMap = new Map<string, typeof carts>();
     for (const item of carts) {
       if (!userMap.has(item.userId)) userMap.set(item.userId, []);
@@ -807,12 +864,12 @@ export class DatabaseStorage implements IStorage {
 
     const result: Array<{ userId: string; email: string; items: Array<{ name: string; quantity: number; price: string; imageUrl?: string }>; totalValue: string }> = [];
     for (const [userId, items] of Array.from(userMap.entries())) {
-      const user = await db.select().from(users).where(eq(users.id, userId)).then(r => r[0]);
+      const user = usersDb.getById(userId);
       if (!user?.email) continue;
       const enrichedItems: Array<{ name: string; quantity: number; price: string; imageUrl?: string }> = [];
       let total = 0;
       for (const ci of items) {
-        const [prod] = await db.select().from(products).where(eq(products.id, ci.productId));
+        const prod = productsDb.getById(ci.productId);
         if (prod) {
           enrichedItems.push({ name: prod.name, quantity: ci.quantity, price: String(prod.price), imageUrl: prod.images?.[0] });
           total += Number(prod.price) * ci.quantity;
@@ -826,15 +883,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async recordAbandonedCartEmail(userId: string, email: string, cartValue: string): Promise<void> {
-    await db.insert(abandonedCartEmails).values({ userId, email, cartValue });
+    abandonedCartEmailsDb.insert({ id: abandonedCartEmailsDb.nextId(), userId, email, cartValue, sentAt: new Date() });
   }
 
   async wasAbandonedCartEmailSent(userId: string, hoursAgo: number): Promise<boolean> {
     const threshold = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
-    const [result] = await db.select({ count: count() }).from(abandonedCartEmails)
-      .where(and(eq(abandonedCartEmails.userId, userId), gte(abandonedCartEmails.sentAt, threshold)));
-    return (result?.count || 0) > 0;
+    return abandonedCartEmailsDb.count((e: any) => e.userId === userId && e.sentAt && new Date(e.sentAt) >= threshold) > 0;
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new FileStorage();

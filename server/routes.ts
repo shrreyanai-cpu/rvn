@@ -96,8 +96,7 @@ const updateOrderStatusSchema = z.object({
   status: z.enum(["pending", "confirmed", "shipped", "delivered", "cancelled"]),
 });
 
-import { insertCouponSchema, insertCategorySchema, newsletterSubscribers } from "@shared/schema";
-import { db } from "./db";
+import { insertCouponSchema, insertCategorySchema } from "@shared/schema";
 
 export async function registerRoutes(
   httpServer: Server,
