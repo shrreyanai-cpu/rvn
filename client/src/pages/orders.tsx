@@ -113,10 +113,9 @@ export default function OrdersPage() {
                   razorpaySignature: response.razorpay_signature,
                 });
                 const result = await verifyRes.json();
-                if (result.success) {
+                if (result.paymentStatus === "paid") {
                   queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
                   toast({ title: "Payment successful!", description: "Your order has been confirmed." });
-                  navigate("/orders");
                 } else {
                   toast({ title: "Payment verification failed", description: result.message || "Please contact support.", variant: "destructive" });
                 }
