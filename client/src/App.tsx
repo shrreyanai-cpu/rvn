@@ -130,15 +130,19 @@ function AdminRouter() {
 
 function MaintenanceGate({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const { data: maintenance } = useQuery<{ enabled: boolean; title: string; message: string }>({
+  const { data: maintenance } = useQuery<{ enabled: boolean; title: string; message: string; allowedRoles: string[]; allowedUserIds: string[] }>({
     queryKey: ["/api/maintenance"],
     refetchInterval: 60000,
   });
 
   const userRole = (user as any)?.role || ((user as any)?.isAdmin ? "super_admin" : "customer");
-  const isAdmin = user && isAdminRole(userRole);
+  const userId = (user as any)?.id as string | undefined;
 
-  if (maintenance?.enabled && !isAdmin) {
+  const allowedRoles = maintenance?.allowedRoles ?? ["super_admin", "manager", "staff"];
+  const allowedUserIds = maintenance?.allowedUserIds ?? [];
+  const canAccess = allowedRoles.includes(userRole) || (!!userId && allowedUserIds.includes(userId));
+
+  if (maintenance?.enabled && !canAccess) {
     return <MaintenancePage title={maintenance.title} message={maintenance.message} />;
   }
   return <>{children}</>;

@@ -2382,9 +2382,11 @@ export async function registerRoutes(
         enabled: settings.maintenanceMode,
         title: settings.maintenanceTitle,
         message: settings.maintenanceMessage,
+        allowedRoles: settings.allowedRoles ?? ["super_admin", "manager", "staff"],
+        allowedUserIds: settings.allowedUserIds ?? [],
       });
     } catch (error) {
-      res.json({ enabled: false, title: "", message: "" });
+      res.json({ enabled: false, title: "", message: "", allowedRoles: ["super_admin", "manager", "staff"], allowedUserIds: [] });
     }
   });
 
@@ -2399,11 +2401,13 @@ export async function registerRoutes(
 
   app.put("/api/admin/site-settings", isAuthenticated, requirePermission("manage_products"), async (req, res) => {
     try {
-      const { maintenanceMode, maintenanceTitle, maintenanceMessage } = req.body;
+      const { maintenanceMode, maintenanceTitle, maintenanceMessage, allowedRoles, allowedUserIds } = req.body;
       const updated = await storage.updateSiteSettings({
         ...(maintenanceMode !== undefined && { maintenanceMode }),
         ...(maintenanceTitle !== undefined && { maintenanceTitle }),
         ...(maintenanceMessage !== undefined && { maintenanceMessage }),
+        ...(allowedRoles !== undefined && { allowedRoles }),
+        ...(allowedUserIds !== undefined && { allowedUserIds }),
       });
       res.json(updated);
     } catch (error) {

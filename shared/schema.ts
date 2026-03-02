@@ -350,6 +350,8 @@ export const siteSettings = pgTable("site_settings", {
   maintenanceMode: boolean("maintenance_mode").notNull().default(false),
   maintenanceTitle: text("maintenance_title").default("We'll Be Right Back"),
   maintenanceMessage: text("maintenance_message").default("Our site is currently undergoing scheduled maintenance. We'll be back shortly."),
+  allowedRoles: text("allowed_roles").array().default(["super_admin", "manager", "staff"]),
+  allowedUserIds: text("allowed_user_ids").array().default([]),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
