@@ -1607,8 +1607,9 @@ export async function registerRoutes(
       const pickupName = settings.delhiveryWarehouseName || "default";
 
       // Use admin-set package dimensions if available, else fall back to product weights
-      const packageWeightKg = (order as any).packageWeight
-        ? Number((order as any).packageWeight)
+      const rawWeight = (order as any).packageWeight;
+      const packageWeightKg = rawWeight
+        ? Number(rawWeight) / 1000
         : (() => {
             const grams = items.reduce((sum: number, i: any) => sum + ((i.weight || 0) * (i.quantity || 1)), 0);
             return grams > 0 ? grams / 1000 : 0.5;
@@ -1616,6 +1617,8 @@ export async function registerRoutes(
       const packageLength = Number((order as any).packageLength) || 10;
       const packageWidth = Number((order as any).packageWidth) || 10;
       const packageHeight = Number((order as any).packageHeight) || 10;
+
+      console.log(`[Delhivery] Order #${order.id} dimensions: L=${packageLength}, W=${packageWidth}, H=${packageHeight}, Weight=${packageWeightKg}kg (raw DB: L=${(order as any).packageLength}, W=${(order as any).packageWidth}, H=${(order as any).packageHeight}, Wt=${rawWeight})`);
 
       const shipmentData = {
         shipments: [{
@@ -1643,9 +1646,9 @@ export async function registerRoutes(
           seller_inv: `INV-${order.id}`,
           quantity: String(items.reduce((s: number, i: any) => s + (i.quantity || 1), 0)),
           weight: String(packageWeightKg),
-          l: String(packageLength),
-          breadth: String(packageWidth),
-          height: String(packageHeight),
+          shipment_length: String(packageLength),
+          shipment_width: String(packageWidth),
+          shipment_height: String(packageHeight),
           waybill: "",
           shipping_mode: "Surface",
           address_type: "home",

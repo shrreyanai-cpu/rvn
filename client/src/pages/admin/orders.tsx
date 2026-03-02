@@ -81,10 +81,10 @@ export default function AdminOrders() {
   useEffect(() => {
     if (selectedOrder) {
       setPkgForm({
-        packageLength: selectedOrder.packageLength || "",
-        packageWidth: selectedOrder.packageWidth || "",
-        packageHeight: selectedOrder.packageHeight || "",
-        packageWeight: selectedOrder.packageWeight || "",
+        packageLength: selectedOrder.packageLength || "10",
+        packageWidth: selectedOrder.packageWidth || "10",
+        packageHeight: selectedOrder.packageHeight || "10",
+        packageWeight: selectedOrder.packageWeight || "500",
       });
       if (!justSavedRef.current) {
         setPkgSaved(false);
@@ -364,21 +364,21 @@ export default function AdminOrders() {
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <Label className="text-xs text-muted-foreground">Length (cm)</Label>
-                      <Input type="number" placeholder="0" value={pkgForm.packageLength} onChange={(e) => setPkgForm((p) => ({ ...p, packageLength: e.target.value }))} className="h-8 text-sm mt-1" data-testid="input-package-length" />
+                      <Input type="number" min="1" placeholder="10" value={pkgForm.packageLength} onChange={(e) => setPkgForm((p) => ({ ...p, packageLength: e.target.value }))} className="h-8 text-sm mt-1" data-testid="input-package-length" />
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Width (cm)</Label>
-                      <Input type="number" placeholder="0" value={pkgForm.packageWidth} onChange={(e) => setPkgForm((p) => ({ ...p, packageWidth: e.target.value }))} className="h-8 text-sm mt-1" data-testid="input-package-width" />
+                      <Input type="number" min="1" placeholder="10" value={pkgForm.packageWidth} onChange={(e) => setPkgForm((p) => ({ ...p, packageWidth: e.target.value }))} className="h-8 text-sm mt-1" data-testid="input-package-width" />
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Height (cm)</Label>
-                      <Input type="number" placeholder="0" value={pkgForm.packageHeight} onChange={(e) => setPkgForm((p) => ({ ...p, packageHeight: e.target.value }))} className="h-8 text-sm mt-1" data-testid="input-package-height" />
+                      <Input type="number" min="1" placeholder="10" value={pkgForm.packageHeight} onChange={(e) => setPkgForm((p) => ({ ...p, packageHeight: e.target.value }))} className="h-8 text-sm mt-1" data-testid="input-package-height" />
                     </div>
                   </div>
                   <div className="flex items-end gap-2">
                     <div className="flex-1">
                       <Label className="text-xs text-muted-foreground">Weight (grams)</Label>
-                      <Input type="number" placeholder="0" value={pkgForm.packageWeight} onChange={(e) => setPkgForm((p) => ({ ...p, packageWeight: e.target.value }))} className="h-8 text-sm mt-1" data-testid="input-package-weight" />
+                      <Input type="number" min="1" placeholder="500" value={pkgForm.packageWeight} onChange={(e) => setPkgForm((p) => ({ ...p, packageWeight: e.target.value }))} className="h-8 text-sm mt-1" data-testid="input-package-weight" />
                     </div>
                     <Button size="sm" className="h-8 px-3" onClick={() => updatePackageMutation.mutate({ id: selectedOrder.id, data: pkgForm })} disabled={updatePackageMutation.isPending} data-testid="button-save-package">
                       {updatePackageMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : pkgSaved ? <><Check className="h-3.5 w-3.5 mr-1" /> Saved</> : <><Save className="h-3.5 w-3.5 mr-1" /> Save</>}
