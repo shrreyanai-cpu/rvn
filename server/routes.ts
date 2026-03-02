@@ -12,7 +12,7 @@ import { hasPermission, isAdminRole, type Permission } from "@shared/models/auth
 import { orders as ordersTable } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
-import { sendOrderConfirmation, sendShippingUpdate, sendPromotionalEmail, sendReturnRequestEmail } from "./email";
+import { sendOrderConfirmation, sendShippingUpdate, sendPromotionalEmail, sendReturnRequestEmail, sendAdminOrderNotification } from "./email";
 import { sendOrderNotification, startAbandonedCartChecker } from "./whatsapp";
 
 function getCashfreeInstance() {
@@ -30,6 +30,17 @@ function getRazorpayInstance(keyId: string, keySecret: string) {
 
 function getUserId(req: any): string {
   return (req.session as any)?.userId;
+}
+
+async function getAdminEmails(): Promise<string[]> {
+  try {
+    const { users: usersTable } = await import("@shared/schema");
+    const { inArray } = await import("drizzle-orm");
+    const adminUsers = await db.select({ email: usersTable.email }).from(usersTable).where(inArray(usersTable.role, ["super_admin", "manager", "staff"]));
+    return adminUsers.map(u => u.email).filter(Boolean) as string[];
+  } catch {
+    return [];
+  }
 }
 
 async function isAdmin(req: any, res: Response, next: NextFunction) {
@@ -343,6 +354,8 @@ export async function registerRoutes(
         message: `Order #${order.id} placed by ${orderUser?.firstName || orderUser?.email || "Customer"} for Rs. ${Number(order.totalAmount).toLocaleString("en-IN")}${selectedMethod === "cod" ? " (COD)" : ""}`,
         orderId: order.id,
       }).catch(err => console.error("Notification error:", err));
+
+      getAdminEmails().then(emails => sendAdminOrderNotification(emails, order as any)).catch(() => {});
 
       if (selectedMethod === "cod") {
         if (orderUser?.email) {
@@ -718,6 +731,8 @@ export async function registerRoutes(
         orderId: order.id,
       }).catch(err => console.error("Notification error:", err));
 
+      getAdminEmails().then(emails => sendAdminOrderNotification(emails, order as any)).catch(() => {});
+
       if (selectedMethod === "cod") {
         if (orderUser?.email) {
           sendOrderConfirmation(orderUser.email, order as any).catch(err => console.error("Order confirmation email error:", err));
@@ -857,6 +872,7 @@ export async function registerRoutes(
         const updatedOrder = await storage.getOrderById(order.id);
         if (updatedOrder) {
           sendOrderNotification(updatedOrder as any).catch(err => console.error("WhatsApp order notification error:", err));
+          getAdminEmails().then(emails => sendAdminOrderNotification(emails, updatedOrder as any)).catch(() => {});
         }
       }
 
@@ -905,6 +921,7 @@ export async function registerRoutes(
         const updatedOrder = await storage.getOrderById(order.id);
         if (updatedOrder) {
           sendOrderNotification(updatedOrder as any).catch(err => console.error("WhatsApp order notification error:", err));
+          getAdminEmails().then(emails => sendAdminOrderNotification(emails, updatedOrder as any)).catch(() => {});
         }
 
         res.json({ paymentStatus: "paid", orderStatus: "confirmed" });

@@ -147,6 +147,31 @@ function NotificationBell() {
     refetchInterval: 15000,
   });
 
+  const prevUnreadRef = useRef<number>(0);
+
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  useEffect(() => {
+    const unreadCount = data?.unreadCount || 0;
+    if (unreadCount > prevUnreadRef.current && prevUnreadRef.current !== -1) {
+      if (Notification.permission === "granted") {
+        const latest = data?.notifications?.find(n => !n.isRead);
+        if (latest) {
+          new Notification("Ravindrra Vastra Niketan", {
+            body: latest.message,
+            icon: "/favicon.ico",
+            tag: `order-${latest.orderId || latest.id}`,
+          });
+        }
+      }
+    }
+    prevUnreadRef.current = unreadCount;
+  }, [data?.unreadCount]);
+
   const markAllRead = useMutation({
     mutationFn: async () => {
       await apiRequest("POST", "/api/admin/notifications/mark-all-read");

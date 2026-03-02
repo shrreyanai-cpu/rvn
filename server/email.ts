@@ -391,6 +391,62 @@ export async function sendOrderConfirmation(email: string, order: OrderData) {
   return sendEmail(email, subject, html);
 }
 
+export async function sendAdminOrderNotification(adminEmails: string[], order: OrderData) {
+  if (!adminEmails.length) return;
+  const itemsList = (order.items || [])
+    .map((item: any) => `<tr>
+      <td style="padding:6px 0; border-bottom:1px solid #eee; color:#374151; font-size:13px;">${item.name}${item.size ? ` (${item.size})` : ""}${item.color ? ` – ${item.color}` : ""}</td>
+      <td style="padding:6px 0; border-bottom:1px solid #eee; text-align:right; color:#374151; font-size:13px;">x${item.quantity}</td>
+      <td style="padding:6px 0; border-bottom:1px solid #eee; text-align:right; color:#374151; font-size:13px;">Rs. ${(Number(item.price) * item.quantity).toLocaleString("en-IN")}</td>
+    </tr>`).join("");
+
+  const addr = order.shippingAddress as any;
+  const content = `
+    <div style="margin-bottom:20px;">
+      <h2 style="margin:0 0 4px; color:#2C3E50; font-size:20px; font-family:Georgia,serif;">🛍️ New Order Received</h2>
+      <p style="margin:0; color:#6B7280; font-size:14px;">Order <strong>#${order.id}</strong> has been placed on your store.</p>
+    </div>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px; background:#F9FAFB; border-radius:8px; overflow:hidden;">
+      <tr><td style="padding:16px;">
+        <p style="margin:0 0 6px; font-size:13px; color:#6B7280; text-transform:uppercase; letter-spacing:0.5px;">Customer</p>
+        <p style="margin:0; font-size:15px; font-weight:600; color:#111827;">${addr?.fullName || "—"}</p>
+        <p style="margin:2px 0 0; font-size:13px; color:#6B7280;">${addr?.phone || ""}</p>
+      </td></tr>
+      <tr><td style="padding:0 16px 16px;">
+        <p style="margin:0 0 6px; font-size:13px; color:#6B7280; text-transform:uppercase; letter-spacing:0.5px;">Ship To</p>
+        <p style="margin:0; font-size:13px; color:#374151;">${addr?.address || ""}${addr?.city ? `, ${addr.city}` : ""}${addr?.state ? `, ${addr.state}` : ""}${addr?.pincode ? ` – ${addr.pincode}` : ""}</p>
+      </td></tr>
+    </table>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+      <thead>
+        <tr>
+          <th style="text-align:left; padding:8px 0; border-bottom:2px solid #C9A961; font-size:12px; color:#6B7280; text-transform:uppercase; letter-spacing:0.5px;">Item</th>
+          <th style="text-align:right; padding:8px 0; border-bottom:2px solid #C9A961; font-size:12px; color:#6B7280; text-transform:uppercase; letter-spacing:0.5px;">Qty</th>
+          <th style="text-align:right; padding:8px 0; border-bottom:2px solid #C9A961; font-size:12px; color:#6B7280; text-transform:uppercase; letter-spacing:0.5px;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>${itemsList}</tbody>
+    </table>
+    <div style="text-align:right; padding:12px 0; border-top:2px solid #2C3E50;">
+      <span style="font-size:18px; font-weight:700; color:#2C3E50;">Total: Rs. ${Number(order.totalAmount).toLocaleString("en-IN")}</span>
+    </div>
+    <div style="margin-top:20px; padding:12px 16px; background:#F0FDF4; border-radius:6px; border-left:4px solid #22C55E;">
+      <p style="margin:0; font-size:13px; color:#166534;">
+        <strong>Payment:</strong> ${order.paymentStatus === "paid" ? "✅ Paid" : order.paymentStatus === "pending" ? "⏳ Pending" : "💵 Cash on Delivery"}
+      </p>
+    </div>
+    <div style="margin-top:16px; text-align:center;">
+      <a href="${process.env.APP_URL || "https://your-store.com"}/admin" style="display:inline-block; padding:10px 24px; background:#2C3E50; color:#C9A961; text-decoration:none; border-radius:6px; font-size:14px; font-weight:600;">View in Admin Panel →</a>
+    </div>
+  `;
+  const html = baseLayout(content, `New order #${order.id} — Rs. ${Number(order.totalAmount).toLocaleString("en-IN")}`);
+  const subject = `🛍️ New Order #${order.id} — Rs. ${Number(order.totalAmount).toLocaleString("en-IN")}`;
+
+  for (const email of adminEmails) {
+    sendEmail(email, subject, html).catch(err => console.error("Admin order email error:", err));
+  }
+}
+
 export async function sendShippingUpdate(email: string, order: OrderData, status: string, trackingUrl?: string | null, waybill?: string | null) {
   const { subject, html } = buildShippingUpdateEmail(order, status, trackingUrl, waybill);
   return sendEmail(email, subject, html);

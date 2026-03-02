@@ -22,6 +22,7 @@ import PaymentCallbackPage from "@/pages/payment-callback";
 import ProfilePage from "@/pages/profile";
 import NotFound from "@/pages/not-found";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import CookieBanner from "@/components/CookieBanner";
 import AdminLayout from "@/pages/admin/admin-layout";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AdminAnalytics from "@/pages/admin/analytics";
@@ -195,6 +196,7 @@ function App() {
         <ScrollToTop />
         <Toaster />
         <NewsletterPopup />
+        <CookieBanner />
         <AppRouter />
       </TooltipProvider>
     </QueryClientProvider>
