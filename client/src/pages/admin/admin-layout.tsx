@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Tag, FolderOpen,
   LogOut, ChevronLeft, Truck, Shield, Mail, RotateCcw, BarChart3,
-  Bell, CheckCheck, Megaphone, CreditCard
+  Bell, CheckCheck, Megaphone, CreditCard, Settings
 } from "lucide-react";
 import { hasPermission, isAdminRole, type Permission } from "@shared/models/auth";
 import { useAuth } from "@/hooks/use-auth";
@@ -42,6 +42,7 @@ const navItems: { href: string; label: string; icon: any; permission: Permission
   { href: "/admin/returns", label: "Returns", icon: RotateCcw, permission: "manage_orders" },
   { href: "/admin/emails", label: "Emails", icon: Mail, permission: "manage_customers" },
   { href: "/admin/roles", label: "Roles", icon: Shield, permission: "manage_roles" },
+  { href: "/admin/site-settings", label: "Site Settings", icon: Settings, permission: "manage_products" },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3, permission: "view_dashboard" },
 ];
 

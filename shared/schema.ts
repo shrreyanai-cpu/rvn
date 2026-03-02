@@ -344,3 +344,13 @@ export const abandonedCartEmails = pgTable("abandoned_cart_emails", {
   sentAt: timestamp("sent_at").defaultNow(),
   cartValue: numeric("cart_value", { precision: 10, scale: 2 }),
 });
+
+export const siteSettings = pgTable("site_settings", {
+  id: serial("id").primaryKey(),
+  maintenanceMode: boolean("maintenance_mode").notNull().default(false),
+  maintenanceTitle: text("maintenance_title").default("We'll Be Right Back"),
+  maintenanceMessage: text("maintenance_message").default("Our site is currently undergoing scheduled maintenance. We'll be back shortly."),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type SiteSettings = typeof siteSettings.$inferSelect;

@@ -4,6 +4,7 @@
 A comprehensive e-commerce website for Ravindrra Vastra Niketan, a premium Indian clothing store. Built as a standalone solution with product catalog, shopping cart, checkout, order management, and admin dashboard.
 
 ## Recent Changes
+- 2026-03-02: Maintenance Mode: admin can enable/disable from /admin/site-settings, shows branded full-screen page to all visitors; admins/staff bypass automatically; login page always accessible for staff sign-in; site_settings DB table added
 - 2026-03-01: Sale Banner feature: thin strip or dismissible popup, shown globally below navbar on all pages; admin manages from /admin/banners (display type: bar/popup, custom colors, optional link); replaces the old homepage seasonal banner grid; displayType column added to seasonal_banners table
 - 2026-03-01: Razorpay payment gateway: dual gateway support (Cashfree + Razorpay), admin payment settings page (/admin/payment-settings), COD toggle, gateway selector on checkout
 - 2026-03-01: Google OAuth login: passport-google-oauth20, state-based CSRF protection, manual session assignment matching existing auth pattern

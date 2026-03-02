@@ -15,6 +15,7 @@ import {
   type Wishlist, type InsertWishlist, wishlists,
   type SeasonalBanner, type InsertSeasonalBanner, seasonalBanners,
   type PaymentSettings, paymentSettings,
+  type SiteSettings, siteSettings,
   abandonedCartEmails,
 } from "@shared/schema";
 import { users } from "@shared/models/auth";
@@ -136,6 +137,9 @@ export interface IStorage {
 
   getPaymentSettings(): Promise<PaymentSettings>;
   updatePaymentSettings(data: Partial<Omit<PaymentSettings, 'id' | 'updatedAt'>>): Promise<PaymentSettings>;
+
+  getSiteSettings(): Promise<SiteSettings>;
+  updateSiteSettings(data: Partial<Omit<SiteSettings, 'id' | 'updatedAt'>>): Promise<SiteSettings>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -808,6 +812,22 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db.update(paymentSettings)
       .set({ ...data, updatedAt: new Date() })
       .where(eq(paymentSettings.id, existing.id))
+      .returning();
+    return updated;
+  }
+
+  async getSiteSettings(): Promise<SiteSettings> {
+    const rows = await db.select().from(siteSettings).limit(1);
+    if (rows.length > 0) return rows[0];
+    const [created] = await db.insert(siteSettings).values({}).returning();
+    return created;
+  }
+
+  async updateSiteSettings(data: Partial<Omit<SiteSettings, 'id' | 'updatedAt'>>): Promise<SiteSettings> {
+    const existing = await this.getSiteSettings();
+    const [updated] = await db.update(siteSettings)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(siteSettings.id, existing.id))
       .returning();
     return updated;
   }

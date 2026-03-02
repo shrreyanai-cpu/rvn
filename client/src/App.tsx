@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import { isAdminRole } from "@shared/models/auth";
+import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import LandingPage from "@/pages/landing";
@@ -35,7 +36,9 @@ import AdminEmails from "@/pages/admin/emails";
 import AdminReturns from "@/pages/admin/returns";
 import AdminBanners from "@/pages/admin/banners";
 import AdminPaymentSettings from "@/pages/admin/payment-settings";
+import AdminSiteSettings from "@/pages/admin/site-settings";
 import AdminCustomerDetail from "@/pages/admin/customer-detail";
+import MaintenancePage from "@/pages/maintenance";
 import ReturnPolicyPage from "@/pages/return-policy";
 import TermsConditionsPage from "@/pages/terms-conditions";
 import PrivacyPolicyPage from "@/pages/privacy-policy";
@@ -117,11 +120,28 @@ function AdminRouter() {
         <Route path="/admin/returns" component={AdminReturns} />
         <Route path="/admin/banners" component={AdminBanners} />
         <Route path="/admin/payment-settings" component={AdminPaymentSettings} />
+        <Route path="/admin/site-settings" component={AdminSiteSettings} />
         <Route path="/admin/roles" component={AdminRoles} />
         <Route component={NotFound} />
       </Switch>
     </AdminLayout>
   );
+}
+
+function MaintenanceGate({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const { data: maintenance } = useQuery<{ enabled: boolean; title: string; message: string }>({
+    queryKey: ["/api/maintenance"],
+    refetchInterval: 60000,
+  });
+
+  const userRole = (user as any)?.role || ((user as any)?.isAdmin ? "super_admin" : "customer");
+  const isAdmin = user && isAdminRole(userRole);
+
+  if (maintenance?.enabled && !isAdmin) {
+    return <MaintenancePage title={maintenance.title} message={maintenance.message} />;
+  }
+  return <>{children}</>;
 }
 
 function AppRouter() {
@@ -136,29 +156,31 @@ function AppRouter() {
   }
 
   return (
-    <MainLayout>
-      <Switch>
-        <Route path="/" component={HomeOrLanding} />
-        <Route path="/shop" component={ShopPage} />
-        <Route path="/flash-sale" component={FlashSalePage} />
-        <Route path="/product/:slug" component={ProductDetailPage} />
-        <Route path="/search" component={SearchPage} />
-        <Route path="/cart" component={CartPage} />
-        <Route path="/checkout" component={CheckoutPage} />
-        <Route path="/payment/callback" component={PaymentCallbackPage} />
-        <Route path="/orders" component={OrdersPage} />
-        <Route path="/track-order" component={TrackOrderPage} />
-        <Route path="/profile" component={ProfilePage} />
-        <Route path="/wishlist" component={WishlistPage} />
-        <Route path="/return-policy" component={ReturnPolicyPage} />
-        <Route path="/terms-conditions" component={TermsConditionsPage} />
-        <Route path="/privacy-policy" component={PrivacyPolicyPage} />
-        <Route path="/shipping-delivery" component={ShippingDeliveryPage} />
-        <Route path="/contact" component={ContactPage} />
-        <Route path="/faq" component={FAQPage} />
-        <Route component={NotFound} />
-      </Switch>
-    </MainLayout>
+    <MaintenanceGate>
+      <MainLayout>
+        <Switch>
+          <Route path="/" component={HomeOrLanding} />
+          <Route path="/shop" component={ShopPage} />
+          <Route path="/flash-sale" component={FlashSalePage} />
+          <Route path="/product/:slug" component={ProductDetailPage} />
+          <Route path="/search" component={SearchPage} />
+          <Route path="/cart" component={CartPage} />
+          <Route path="/checkout" component={CheckoutPage} />
+          <Route path="/payment/callback" component={PaymentCallbackPage} />
+          <Route path="/orders" component={OrdersPage} />
+          <Route path="/track-order" component={TrackOrderPage} />
+          <Route path="/profile" component={ProfilePage} />
+          <Route path="/wishlist" component={WishlistPage} />
+          <Route path="/return-policy" component={ReturnPolicyPage} />
+          <Route path="/terms-conditions" component={TermsConditionsPage} />
+          <Route path="/privacy-policy" component={PrivacyPolicyPage} />
+          <Route path="/shipping-delivery" component={ShippingDeliveryPage} />
+          <Route path="/contact" component={ContactPage} />
+          <Route path="/faq" component={FAQPage} />
+          <Route component={NotFound} />
+        </Switch>
+      </MainLayout>
+    </MaintenanceGate>
   );
 }
 

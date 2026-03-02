@@ -2374,5 +2374,42 @@ export async function registerRoutes(
     }
   });
 
+  // ===== Site Settings / Maintenance Mode =====
+  app.get("/api/maintenance", async (_req, res) => {
+    try {
+      const settings = await storage.getSiteSettings();
+      res.json({
+        enabled: settings.maintenanceMode,
+        title: settings.maintenanceTitle,
+        message: settings.maintenanceMessage,
+      });
+    } catch (error) {
+      res.json({ enabled: false, title: "", message: "" });
+    }
+  });
+
+  app.get("/api/admin/site-settings", isAuthenticated, requirePermission("manage_products"), async (_req, res) => {
+    try {
+      const settings = await storage.getSiteSettings();
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch site settings" });
+    }
+  });
+
+  app.put("/api/admin/site-settings", isAuthenticated, requirePermission("manage_products"), async (req, res) => {
+    try {
+      const { maintenanceMode, maintenanceTitle, maintenanceMessage } = req.body;
+      const updated = await storage.updateSiteSettings({
+        ...(maintenanceMode !== undefined && { maintenanceMode }),
+        ...(maintenanceTitle !== undefined && { maintenanceTitle }),
+        ...(maintenanceMessage !== undefined && { maintenanceMessage }),
+      });
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update site settings" });
+    }
+  });
+
   return httpServer;
 }
