@@ -884,48 +884,32 @@ export default function CheckoutPage() {
               Please read and accept our terms before proceeding to payment.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <ul className="text-sm text-muted-foreground space-y-3 leading-relaxed">
-              <li className="flex items-start gap-2">
-                <span className="text-[#C9A961] font-bold mt-0.5 shrink-0">1.</span>
-                You must <strong className="text-foreground">record an unboxing video</strong> while opening your parcel. Without a valid unboxing video, no return request will be processed.
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#C9A961] font-bold mt-0.5 shrink-0">2.</span>
-                <strong className="text-foreground">Colour/shade changes are not eligible</strong> for return or exchange. Slight colour variations may occur due to screen settings.
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#C9A961] font-bold mt-0.5 shrink-0">3.</span>
-                <strong className="text-foreground">Size exchanges are not available.</strong> Please check the size guide before ordering.
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#C9A961] font-bold mt-0.5 shrink-0">4.</span>
-                Returns are accepted <strong className="text-foreground">only for damaged or defective items</strong> within 2 days of delivery.
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#C9A961] font-bold mt-0.5 shrink-0">5.</span>
-                Change of mind, wrong selection, or personal preference is <strong className="text-foreground">not a valid reason</strong> for return.
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#C9A961] font-bold mt-0.5 shrink-0">6.</span>
-                Innerwear, undergarments, customized, and tailored products are <strong className="text-foreground">non-returnable</strong>.
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#C9A961] font-bold mt-0.5 shrink-0">7.</span>
-                Items must be unused with <strong className="text-foreground">original tags and packaging intact</strong>.
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#C9A961] font-bold mt-0.5 shrink-0">8.</span>
-                Shipping charges are <strong className="text-foreground">non-refundable</strong>.
-              </li>
-            </ul>
-            <div className="pt-2 border-t">
-              <p className="text-xs text-muted-foreground">
-                By clicking "I Accept & Continue", you confirm that you have read, understood, and agree to these terms. View the full{" "}
+          <div className="space-y-4 py-1">
+            <div className="space-y-2">
+              {[
+                "You must record an unboxing video while opening your parcel. Without a valid video, no return request will be processed.",
+                "Colour/shade changes are not eligible for return or exchange. Slight colour variations may occur due to screen settings.",
+                "Size exchanges are not available. Please check the size guide carefully before ordering.",
+                "Returns are accepted only for damaged or defective items within 2 days of delivery.",
+                "Change of mind, wrong selection, or personal preference is not a valid reason for return.",
+                "Innerwear, undergarments, customized, and tailored products are non-returnable.",
+                "Items must be unused with original tags and packaging intact.",
+                "Shipping charges are non-refundable.",
+              ].map((term, i) => (
+                <div key={i} className="flex items-start gap-3 rounded-md bg-muted/40 px-3 py-2.5">
+                  <span className="shrink-0 w-5 h-5 rounded-full bg-[#2C3E50] text-white text-[10px] font-bold flex items-center justify-center mt-0.5">
+                    {i + 1}
+                  </span>
+                  <p className="text-sm text-foreground/80 leading-snug">{term}</p>
+                </div>
+              ))}
+            </div>
+            <div className="pt-1 border-t">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                By clicking "I Accept & Continue" you confirm you have read and agree to these terms. View the full{" "}
                 <Link href="/return-policy">
-                  <span className="text-[#C9A961] hover:underline">Return & Refund Policy</span>
-                </Link>
-                .
+                  <span className="text-[#C9A961] hover:underline cursor-pointer">Return & Refund Policy</span>
+                </Link>.
               </p>
             </div>
           </div>
