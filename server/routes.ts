@@ -487,6 +487,78 @@ export async function registerRoutes(
     }
   });
 
+  // Retry payment for a pending order
+  app.post("/api/orders/:id/retry-payment", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      const orderId = Number(req.params.id);
+      const order = await storage.getOrderById(orderId);
+      if (!order) return res.status(404).json({ message: "Order not found" });
+      if (order.userId !== userId) return res.status(403).json({ message: "Forbidden" });
+      if ((order as any).paymentStatus === "paid") return res.status(400).json({ message: "Order already paid" });
+
+      const ps = await storage.getPaymentSettings();
+
+      if (ps.razorpayEnabled && ps.razorpayKeyId && ps.razorpayKeySecret) {
+        try {
+          const rzp = getRazorpayInstance(ps.razorpayKeyId, ps.razorpayKeySecret);
+          const rzpOrder = await rzp.orders.create({
+            amount: Math.round(Number(order.totalAmount) * 100),
+            currency: "INR",
+            receipt: `rvn_retry_${order.id}_${Date.now()}`,
+          });
+          await db.update(ordersTable).set({ razorpayOrderId: rzpOrder.id }).where(eq(ordersTable.id, order.id));
+          return res.json({
+            paymentMethod: "razorpay",
+            razorpayOrderId: rzpOrder.id,
+            razorpayKeyId: ps.razorpayKeyId,
+            amountInPaise: Math.round(Number(order.totalAmount) * 100),
+            orderId: order.id,
+          });
+        } catch (rzpError: any) {
+          console.error("Razorpay retry error:", rzpError?.error || rzpError);
+          return res.status(500).json({ message: "Could not initiate Razorpay payment" });
+        }
+      }
+
+      if (ps.cashfreeEnabled) {
+        const clientId = process.env.CASHFREE_APP_ID;
+        const clientSecret = process.env.CASHFREE_SECRET_KEY;
+        if (!clientId || !clientSecret) return res.status(500).json({ message: "Cashfree not configured" });
+
+        const user = await storage.getUser(userId);
+        const cashfree = getCashfreeInstance();
+        const baseUrl = `${req.protocol}://${req.get("host")}`;
+        const cfOrderId = `rvn_${order.id}_${Date.now()}`;
+
+        const cfRequest = {
+          order_amount: Number(order.totalAmount),
+          order_currency: "INR",
+          order_id: cfOrderId,
+          customer_details: {
+            customer_id: String(userId),
+            customer_name: (user as any)?.name || "Customer",
+            customer_email: (user as any)?.email || "customer@example.com",
+            customer_phone: (order as any).shippingAddress?.phone || "9999999999",
+          },
+          order_meta: {
+            return_url: `${baseUrl}/payment/callback?order_id=${order.id}&cf_order_id={order_id}`,
+          },
+        };
+
+        const cfResponse = await (cashfree as any).PGCreateOrder(cfRequest);
+        const paymentSessionId = cfResponse?.data?.payment_session_id;
+        await storage.updateOrderPayment(order.id, { paymentStatus: "pending", cashfreeOrderId: cfOrderId });
+        return res.json({ paymentMethod: "cashfree", paymentSessionId, cfOrderId, orderId: order.id });
+      }
+
+      return res.status(400).json({ message: "No payment gateway configured" });
+    } catch (error) {
+      console.error("Retry payment error:", error);
+      res.status(500).json({ message: "Failed to initiate payment" });
+    }
+  });
+
   // Admin: Delete order
   app.delete("/api/admin/orders/:id", isAuthenticated, requirePermission("manage_orders"), async (req, res) => {
     try {

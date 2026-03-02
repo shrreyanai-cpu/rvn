@@ -19,6 +19,35 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Order, OrderItem } from "@shared/schema";
 
+declare global {
+  interface Window {
+    Razorpay: any;
+    Cashfree: any;
+  }
+}
+
+function loadRazorpayScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector('script[src*="razorpay"]')) return resolve();
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve();
+    script.onerror = reject;
+    document.body.appendChild(script);
+  });
+}
+
+function loadCashfreeScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (window.Cashfree) return resolve();
+    const script = document.createElement("script");
+    script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
+    script.onload = () => resolve();
+    script.onerror = reject;
+    document.body.appendChild(script);
+  });
+}
+
 const statusConfig: Record<string, { label: string; icon: any; className: string }> = {
   pending: { label: "Pending", icon: Clock, className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" },
   confirmed: { label: "Confirmed", icon: CheckCircle, className: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" },
@@ -42,6 +71,7 @@ export default function OrdersPage() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [reorderingId, setReorderingId] = useState<number | null>(null);
+  const [payingOrderId, setPayingOrderId] = useState<number | null>(null);
   const [returnOrderId, setReturnOrderId] = useState<number | null>(null);
   const [returnReason, setReturnReason] = useState("");
   const [damageVideoUrl, setDamageVideoUrl] = useState("");
@@ -51,6 +81,80 @@ export default function OrdersPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: orders, isLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
+  });
+
+  const retryPaymentMutation = useMutation({
+    mutationFn: async (orderId: number) => {
+      const res = await apiRequest("POST", `/api/orders/${orderId}/retry-payment`);
+      return res.json();
+    },
+    onSuccess: async (data: any) => {
+      if (data.message) {
+        toast({ title: "Error", description: data.message, variant: "destructive" });
+        setPayingOrderId(null);
+        return;
+      }
+      if (data.paymentMethod === "razorpay" && data.razorpayOrderId) {
+        try {
+          await loadRazorpayScript();
+          const options = {
+            key: data.razorpayKeyId,
+            amount: data.amountInPaise,
+            currency: "INR",
+            name: "Ravindrra Vastra Niketan",
+            description: `Order #${data.orderId} Payment`,
+            order_id: data.razorpayOrderId,
+            handler: async (response: any) => {
+              try {
+                const verifyRes = await apiRequest("POST", "/api/payments/verify-razorpay", {
+                  orderId: data.orderId,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpaySignature: response.razorpay_signature,
+                });
+                const result = await verifyRes.json();
+                if (result.success) {
+                  queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+                  toast({ title: "Payment successful!", description: "Your order has been confirmed." });
+                  navigate("/orders");
+                } else {
+                  toast({ title: "Payment verification failed", description: result.message || "Please contact support.", variant: "destructive" });
+                }
+              } catch {
+                toast({ title: "Verification error", description: "Could not verify payment. Please contact support.", variant: "destructive" });
+              }
+              setPayingOrderId(null);
+            },
+            theme: { color: "#2C3E50" },
+          };
+          const rzp = new window.Razorpay(options);
+          rzp.on("payment.failed", () => {
+            toast({ title: "Payment failed", description: "Please try again.", variant: "destructive" });
+            setPayingOrderId(null);
+          });
+          rzp.open();
+        } catch {
+          toast({ title: "Error", description: "Could not open payment window.", variant: "destructive" });
+          setPayingOrderId(null);
+        }
+      } else if (data.paymentMethod === "cashfree" && data.paymentSessionId) {
+        try {
+          await loadCashfreeScript();
+          const cashfree = window.Cashfree({ mode: "production" });
+          await cashfree.checkout({ paymentSessionId: data.paymentSessionId, redirectTarget: "_self" });
+        } catch {
+          toast({ title: "Error", description: "Could not open payment window.", variant: "destructive" });
+          setPayingOrderId(null);
+        }
+      } else {
+        toast({ title: "Error", description: "No payment gateway available.", variant: "destructive" });
+        setPayingOrderId(null);
+      }
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Could not initiate payment. Please try again.", variant: "destructive" });
+      setPayingOrderId(null);
+    },
   });
 
   const reorderMutation = useMutation({
@@ -194,10 +298,29 @@ export default function OrdersPage() {
                       Placed on {new Date(order.createdAt!).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" })}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap justify-end">
                     <span className="font-semibold" data-testid={`text-order-total-${order.id}`}>
                       Rs. {Number(order.totalAmount).toLocaleString("en-IN")}
                     </span>
+                    {(order as any).paymentStatus === "pending" && (order as any).paymentMethod !== "cod" && (
+                      <Button
+                        size="sm"
+                        className="bg-[#C9A961] hover:bg-[#b8944e] text-white border-0"
+                        disabled={payingOrderId === order.id}
+                        onClick={() => {
+                          setPayingOrderId(order.id);
+                          retryPaymentMutation.mutate(order.id);
+                        }}
+                        data-testid={`button-pay-now-${order.id}`}
+                      >
+                        {payingOrderId === order.id ? (
+                          <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <CreditCard className="mr-1.5 h-3.5 w-3.5" />
+                        )}
+                        Pay Now
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
