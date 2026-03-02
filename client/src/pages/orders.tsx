@@ -81,6 +81,8 @@ export default function OrdersPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: orders, isLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
+    refetchOnMount: "always",
+    staleTime: 0,
   });
 
   const retryPaymentMutation = useMutation({

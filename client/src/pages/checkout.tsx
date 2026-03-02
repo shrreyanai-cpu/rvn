@@ -267,7 +267,7 @@ export default function CheckoutPage() {
                 razorpaySignature: response.razorpay_signature,
               });
               const verifyData = await verifyRes.json();
-              queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+              await queryClient.refetchQueries({ queryKey: ["/api/orders"] });
               queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
               if (verifyData.paymentStatus === "paid") {
                 toast({ title: "Payment Successful!", description: `Order #${data.id} has been placed.` });
