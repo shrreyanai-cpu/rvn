@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import { Link } from "wouter";
 import { Search, Eye, Truck, ExternalLink, Trash2, Loader2, ChevronDown, ChevronRight, Package, Ruler, Weight, Save, Check } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -44,6 +44,7 @@ export default function AdminOrders() {
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
   const [pkgForm, setPkgForm] = useState({ packageLength: "", packageWidth: "", packageHeight: "", packageWeight: "" });
   const [pkgSaved, setPkgSaved] = useState(false);
+  const justSavedRef = useRef(false);
 
   const { data: orders, isLoading } = useQuery<OrderWithCustomer[]>({ queryKey: ["/api/admin/orders"] });
 
@@ -85,7 +86,10 @@ export default function AdminOrders() {
         packageHeight: selectedOrder.packageHeight || "",
         packageWeight: selectedOrder.packageWeight || "",
       });
-      setPkgSaved(false);
+      if (!justSavedRef.current) {
+        setPkgSaved(false);
+      }
+      justSavedRef.current = false;
     }
   }, [selectedOrder]);
 
@@ -94,8 +98,10 @@ export default function AdminOrders() {
       const res = await apiRequest("PATCH", `/api/admin/orders/${id}/package`, data);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/orders"] });
+      justSavedRef.current = true;
+      setSelectedOrder((prev) => (prev ? { ...prev, ...data } : prev));
       setPkgSaved(true);
       setTimeout(() => setPkgSaved(false), 2000);
       toast({ title: "Package details saved" });
