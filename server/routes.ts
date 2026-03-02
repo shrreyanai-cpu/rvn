@@ -1652,7 +1652,52 @@ export async function registerRoutes(
         },
         body: formBody,
       });
-      const result = await response.json();
+      let result = await response.json();
+
+      // Auto-register warehouse and retry if it doesn't exist
+      const warehouseMissing = result?.rmk?.toLowerCase().includes("warehouse") ||
+        result?.error_message?.toLowerCase().includes("warehouse") ||
+        JSON.stringify(result).toLowerCase().includes("clientwarehouse matching query does not exist");
+
+      if (warehouseMissing) {
+        console.log("Warehouse not found, auto-registering with Delhivery...");
+        try {
+          await fetch(`${baseUrl}/api/backend/clientwarehouse/create/`, {
+            method: "POST",
+            headers: {
+              Authorization: `Token ${settings.delhiveryApiToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name: pickupName,
+              phone: settings.delhiveryPickupPhone || "",
+              address: settings.delhiveryPickupAddress || "",
+              city: settings.delhiveryPickupCity || "",
+              state: settings.delhiveryPickupState || "",
+              pin: settings.delhiveryPickupPincode || "",
+              country: "India",
+              registered_name: settings.sellerName || "Ravindrra Vastra Niketan",
+              return_address: settings.delhiveryPickupAddress || "",
+              return_pin: settings.delhiveryPickupPincode || "",
+              return_city: settings.delhiveryPickupCity || "",
+              return_state: settings.delhiveryPickupState || "",
+              return_country: "India",
+            }),
+          });
+          // Retry shipment creation after warehouse registration
+          const retryResponse = await fetch(`${baseUrl}/api/cmu/create.json`, {
+            method: "POST",
+            headers: {
+              Authorization: `Token ${settings.delhiveryApiToken}`,
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: formBody,
+          });
+          result = await retryResponse.json();
+        } catch (regErr) {
+          console.error("Auto warehouse registration error:", regErr);
+        }
+      }
 
       if (result?.packages?.[0]?.waybill) {
         const waybill = result.packages[0].waybill;
@@ -1672,7 +1717,8 @@ export async function registerRoutes(
 
         res.json({ success: true, waybill, trackingUrl, result });
       } else {
-        res.json({ success: false, result });
+        const errorMsg = result?.rmk || result?.error || result?.detail || result?.message || "Shipment creation failed";
+        res.json({ success: false, result, errorMessage: errorMsg });
       }
     } catch (error) {
       console.error("Delhivery shipment creation error:", error);
