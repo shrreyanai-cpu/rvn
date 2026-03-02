@@ -233,7 +233,7 @@ export default function CheckoutPage() {
         title: "Order Placed!",
         description: `Order #${data.id} placed successfully. Pay on delivery.`,
       });
-      navigate("/orders");
+      window.location.href = "/orders";
       return;
     }
 
@@ -267,17 +267,16 @@ export default function CheckoutPage() {
                 razorpaySignature: response.razorpay_signature,
               });
               const verifyData = await verifyRes.json();
-              await queryClient.refetchQueries({ queryKey: ["/api/orders"] });
               queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
               if (verifyData.paymentStatus === "paid") {
                 toast({ title: "Payment Successful!", description: `Order #${data.id} has been placed.` });
               } else {
                 toast({ title: "Payment Verification Issue", description: "Please check your order status.", variant: "destructive" });
               }
-              navigate("/orders");
+              window.location.href = "/orders";
             } catch {
               toast({ title: "Payment Error", description: "Verification failed. Check your order status.", variant: "destructive" });
-              navigate("/orders");
+              window.location.href = "/orders";
             }
           },
           prefill: {
@@ -294,7 +293,7 @@ export default function CheckoutPage() {
         rzp.open();
       } catch {
         toast({ title: "Payment Error", description: "Could not open payment page. Your order has been saved.", variant: "destructive" });
-        navigate("/orders");
+        window.location.href = "/orders";
       }
       return;
     }
@@ -311,7 +310,7 @@ export default function CheckoutPage() {
           description: "Could not open payment page. Your order has been saved.",
           variant: "destructive",
         });
-        navigate("/orders");
+        window.location.href = "/orders";
       }
     }
   }
@@ -342,7 +341,7 @@ export default function CheckoutPage() {
           description: `Order #${data.id} created. Payment could not be initiated.`,
           variant: "destructive",
         });
-        navigate("/orders");
+        window.location.href = "/orders";
       }
     },
     onError: () => {
@@ -373,7 +372,7 @@ export default function CheckoutPage() {
           description: `Order #${data.id} created. Payment could not be initiated.`,
           variant: "destructive",
         });
-        navigate("/orders");
+        window.location.href = "/orders";
       }
     },
     onError: () => {

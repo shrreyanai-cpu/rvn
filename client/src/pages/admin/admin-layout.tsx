@@ -144,7 +144,7 @@ function NotificationBell() {
 
   const { data } = useQuery<{ notifications: AdminNotification[]; unreadCount: number }>({
     queryKey: ["/api/admin/notifications"],
-    refetchInterval: 15000,
+    refetchInterval: 3000,
   });
 
   const prevUnreadRef = useRef<number>(0);
