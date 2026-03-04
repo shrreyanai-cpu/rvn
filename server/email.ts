@@ -184,69 +184,295 @@ export function buildOrderConfirmationEmail(order: OrderData) {
   };
 }
 
-export function buildShippingUpdateEmail(order: OrderData, status: string, trackingUrl?: string | null, waybill?: string | null) {
-  const statusConfig: Record<string, { label: string; color: string; icon: string; message: string }> = {
+export function buildShippingUpdateEmail(order: OrderData, rawStatus: string, trackingUrl?: string | null, waybill?: string | null) {
+  const status = rawStatus.toLowerCase().trim();
+  const statusConfig: Record<string, { label: string; heading: string; message: string }> = {
     shipped: {
       label: "Shipped",
-      color: "#2196F3",
-      icon: "&#128230;",
-      message: "Your order has been shipped and is on its way to you!",
+      heading: "YOUR ORDER HAS BEEN SHIPPED!",
+      message: "Your order is on its way! You can track your package using the button below.",
     },
     delivered: {
       label: "Delivered",
-      color: "#4CAF50",
-      icon: "&#10003;",
+      heading: "YOUR ORDER HAS BEEN DELIVERED!",
       message: "Your order has been delivered. We hope you love your purchase!",
     },
     cancelled: {
       label: "Cancelled",
-      color: "#F44336",
-      icon: "&#10007;",
-      message: "Your order has been cancelled. If you have any questions, please contact us.",
+      heading: "YOUR ORDER HAS BEEN CANCELLED",
+      message: "Your order has been cancelled. If you have any questions, please contact our support team.",
     },
     confirmed: {
       label: "Confirmed",
-      color: "#FF9800",
-      icon: "&#9733;",
-      message: "Your order has been confirmed and is being processed.",
+      heading: "YOUR ORDER WILL BE SHIPPED SOON!",
+      message: "We have received your order and are preparing it for shipment. You will be notified once it's on its way.",
     },
   };
 
-  const cfg = statusConfig[status] || { label: status, color: BRAND.navy, icon: "&#9679;", message: `Your order status has been updated to: ${status}` };
+  const cfg = statusConfig[status] || { label: status, heading: `ORDER ${status.toUpperCase()}`, message: `Your order status has been updated to: ${status}` };
 
-  const trackingSection = trackingUrl ? `
-    <div style="text-align:center; margin:20px 0;">
-      <a href="${trackingUrl}" style="display:inline-block; background:${BRAND.navy}; color:${BRAND.gold}; padding:12px 32px; border-radius:6px; text-decoration:none; font-weight:600; font-size:14px;">
-        Track Your Order
-      </a>
-      ${waybill ? `<p style="margin:8px 0 0; color:${BRAND.gray}; font-size:12px;">Waybill: ${waybill}</p>` : ''}
-    </div>
-  ` : '';
+  const confirmedActive = ["confirmed", "shipped", "delivered"].includes(status);
+  const shippedActive = ["shipped", "delivered"].includes(status);
+  const deliveredActive = status === "delivered";
 
-  const content = `
-    <div style="text-align:center; margin-bottom:24px;">
-      <div style="width:56px; height:56px; border-radius:50%; background:${cfg.color}20; display:inline-flex; align-items:center; justify-content:center; margin-bottom:12px;">
-        <span style="font-size:28px; color:${cfg.color};">${cfg.icon}</span>
-      </div>
-      <h2 style="margin:0; color:${BRAND.navy}; font-size:22px; font-family:Georgia,serif;">Order ${cfg.label}</h2>
-      <p style="margin:8px 0 0; color:${BRAND.gray};">Order #${order.id}</p>
-    </div>
+  const stepColor = (active: boolean) => active ? "#C9A961" : "#e1cabf";
+  const stepWeight = (active: boolean) => active ? "700" : "400";
+  const lineColor = (active: boolean) => active ? "#C9A961" : "#e1cabf";
 
-    <p style="color:#374151; line-height:1.6;">${cfg.message}</p>
+  const items = (Array.isArray(order.items) ? order.items : []) as any[];
+  const addr = order.shippingAddress as any;
 
-    ${trackingSection}
+  const itemsHtml = items.map(item => `
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:16px;">
+      <tr>
+        <td width="100" style="vertical-align:top; padding-right:16px;">
+          ${item.imageUrl ? `<img src="${item.imageUrl}" width="100" height="100" style="display:block; border-radius:8px; object-fit:cover;" alt="${item.name}" />` : `<div style="width:100px;height:100px;background:#e1cabf;border-radius:8px;"></div>`}
+        </td>
+        <td style="vertical-align:top;">
+          <p style="margin:0 0 4px; font-family:'Open Sans',Helvetica,Arial,sans-serif; font-size:16px; font-weight:700; color:#000000;">${item.name}</p>
+          <p style="margin:0 0 4px; font-family:'Open Sans',Helvetica,Arial,sans-serif; font-size:14px; color:#666666;">
+            Qty: ${item.quantity || 1}${item.size ? ` &bull; Size: ${item.size}` : ''}${item.color ? ` &bull; Color: ${item.color}` : ''}
+          </p>
+          <p style="margin:0; font-family:'Open Sans',Helvetica,Arial,sans-serif; font-size:16px; font-weight:700; color:#2C3E50;">
+            ${formatCurrency(Number(item.price) * (item.quantity || 1))}
+          </p>
+        </td>
+      </tr>
+    </table>
+  `).join('');
 
-    <div style="background:#f9fafb; border-radius:6px; padding:16px; margin:20px 0;">
-      <h3 style="margin:0 0 8px; color:${BRAND.navy}; font-size:14px;">Order Summary</h3>
-      <p style="margin:0; color:${BRAND.gray}; font-size:14px;">
-        Total: <strong style="color:${BRAND.navy};">${formatCurrency(order.totalAmount)}</strong>
-      </p>
-    </div>
-  `;
+  const subtotal = items.reduce((sum, i) => sum + Number(i.price) * (i.quantity || 1), 0);
+  const delivery = Number(order.deliveryCharge || 0);
+
+  const appUrl = process.env.APP_URL || "https://ravindrra-vastra-niketan.replit.app";
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${BRAND.name}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { margin:0; padding:0; background:#ffffff; font-family:'Open Sans',Helvetica,Arial,sans-serif; }
+    .preview { display:none; max-height:0; overflow:hidden; }
+    @media (max-width:700px) {
+      .email-container { width:100% !important; }
+      .mobile-pad { padding:20px !important; }
+      .heading-main { font-size:26px !important; }
+      .step-label { font-size:12px !important; }
+      .item-img { width:80px !important; height:80px !important; }
+      .addr-col { display:block !important; width:100% !important; padding:10px 0 !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="preview">Your order #${order.id} - ${cfg.label} | ${BRAND.name}</div>
+  <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background:#ffffff;">
+    <tr><td align="center">
+      <table class="email-container" width="680" border="0" cellpadding="0" cellspacing="0" style="max-width:680px; width:100%; margin:0 auto;">
+
+        <!-- LOGO BAR -->
+        <tr>
+          <td style="background:#f7f1ed; border-radius:0 0 20px 20px; padding:20px; text-align:center;">
+            <img src="https://cdn.discordapp.com/attachments/1421094631709343754/1478722381005717505/rvnlogo.png?ex=69a96f08&is=69a81d88&hm=52bbf3bd1d13d11708d3b5cfc564587ae3826049fbdebf77639eb90fcc14e0e9" width="180" height="auto" alt="${BRAND.name}" style="display:inline-block;" />
+          </td>
+        </tr>
+
+        <!-- HEADING -->
+        <tr>
+          <td class="mobile-pad" style="padding:40px 60px 10px; text-align:center;">
+            <h1 class="heading-main" style="margin:0; font-family:'Open Sans',Helvetica,Arial,sans-serif; font-size:36px; font-weight:800; letter-spacing:-1px; line-height:1.2; color:#000000;">
+              ${cfg.heading}
+            </h1>
+          </td>
+        </tr>
+
+        <!-- PROGRESS BAR -->
+        ${status !== "cancelled" ? `
+        <tr>
+          <td style="padding:20px 50px 10px;">
+            <table width="100%" border="0" cellpadding="0" cellspacing="0">
+              <tr>
+                <td width="25%" style="text-align:center; vertical-align:top;">
+                  <div style="width:16px; height:16px; border-radius:50%; background:${stepColor(confirmedActive)}; margin:0 auto 8px;"></div>
+                  <p class="step-label" style="margin:0; font-size:14px; font-weight:${stepWeight(confirmedActive)}; color:${stepColor(confirmedActive)};">Confirmed</p>
+                </td>
+                <td width="16%" style="vertical-align:top; padding-top:7px;">
+                  <div style="border-top:2px solid ${lineColor(shippedActive)}; margin:0 4px;"></div>
+                </td>
+                <td width="17%" style="text-align:center; vertical-align:top;">
+                  <div style="width:16px; height:16px; border-radius:50%; background:${stepColor(shippedActive)}; margin:0 auto 8px;"></div>
+                  <p class="step-label" style="margin:0; font-size:14px; font-weight:${stepWeight(shippedActive)}; color:${stepColor(shippedActive)};">Shipped</p>
+                </td>
+                <td width="16%" style="vertical-align:top; padding-top:7px;">
+                  <div style="border-top:2px solid ${lineColor(deliveredActive)}; margin:0 4px;"></div>
+                </td>
+                <td width="25%" style="text-align:center; vertical-align:top;">
+                  <div style="width:16px; height:16px; border-radius:50%; background:${stepColor(deliveredActive)}; margin:0 auto 8px;"></div>
+                  <p class="step-label" style="margin:0; font-size:14px; font-weight:${stepWeight(deliveredActive)}; color:${stepColor(deliveredActive)};">Delivered</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        ` : ''}
+
+        <!-- MESSAGE + VIEW ORDER BUTTON -->
+        <tr>
+          <td class="mobile-pad" style="padding:20px 60px 10px; text-align:center;">
+            <p style="margin:0 0 24px; font-size:15px; color:#555555; line-height:1.6;">${cfg.message}</p>
+            <a href="${appUrl}/orders" style="display:inline-block; background:${BRAND.gold}; color:#ffffff; padding:12px 36px; border-radius:30px; text-decoration:none; font-weight:700; font-size:16px; letter-spacing:1px;">VIEW MY ORDER</a>
+          </td>
+        </tr>
+
+        <!-- ORDER DETAILS SECTION -->
+        <tr>
+          <td style="padding:40px 0 0;">
+            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background:#f7f1ed; border-radius:20px 20px 0 0;">
+              <tr>
+                <td class="mobile-pad" style="padding:40px 50px 10px;">
+                  <h2 style="margin:0 0 4px; font-size:26px; font-weight:800; letter-spacing:-1px; text-align:center; color:#000000;">WHAT'S IN YOUR ORDER?</h2>
+                  <p style="margin:0; text-align:center; font-size:16px; font-weight:700; color:${BRAND.gold};">Order #${order.id}</p>
+                  <div style="margin:20px 0; border-top:1px solid #000000;"></div>
+                </td>
+              </tr>
+              <tr>
+                <td class="mobile-pad" style="padding:0 50px 20px;">
+                  ${itemsHtml}
+                </td>
+              </tr>
+              <!-- TOTALS -->
+              <tr>
+                <td class="mobile-pad" style="padding:0 50px 10px;">
+                  <div style="border-top:1px solid #ccbbaa; margin-bottom:12px;"></div>
+                  <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="padding:4px 0; font-size:14px; color:#666666;">Subtotal</td>
+                      <td style="padding:4px 0; font-size:14px; color:#666666; text-align:right;">${formatCurrency(subtotal)}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:4px 0; font-size:14px; color:#666666;">Delivery</td>
+                      <td style="padding:4px 0; font-size:14px; color:#666666; text-align:right;">${delivery > 0 ? formatCurrency(delivery) : 'FREE'}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding:8px 0 0; border-top:2px solid #2C3E50; font-size:18px; font-weight:800; color:#000000;">Total</td>
+                      <td style="padding:8px 0 0; border-top:2px solid #2C3E50; font-size:18px; font-weight:800; color:#000000; text-align:right;">${formatCurrency(order.totalAmount)}</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- SHIPPING ADDRESS -->
+        <tr>
+          <td>
+            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background:#f7f1ed;">
+              <tr>
+                <td class="mobile-pad" style="padding:20px 50px 30px;">
+                  <div style="border-top:1px solid #ccbbaa; margin-bottom:20px;"></div>
+                  <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td class="addr-col" width="50%" style="vertical-align:top; padding-right:20px;">
+                        <p style="margin:0 0 8px; font-size:18px; font-weight:800; color:#000000;">Shipping Address</p>
+                        <p style="margin:0; font-size:14px; color:#444444; line-height:1.6;">
+                          ${addr?.fullName || ''}<br/>
+                          ${addr?.addressLine1 || addr?.address || ''}${addr?.addressLine2 ? '<br/>' + addr.addressLine2 : ''}<br/>
+                          ${addr?.city || ''}, ${addr?.state || ''} ${addr?.pincode || ''}<br/>
+                          ${addr?.phone ? 'Phone: ' + addr.phone : ''}
+                        </p>
+                      </td>
+                      <td class="addr-col" width="50%" style="vertical-align:top;">
+                        <p style="margin:0 0 8px; font-size:18px; font-weight:800; color:#000000;">Order Info</p>
+                        <p style="margin:0; font-size:14px; color:#444444; line-height:1.6;">
+                          Order #${order.id}<br/>
+                          Date: ${formatDate(order.createdAt || new Date())}
+                          ${waybill ? '<br/>Waybill: ' + waybill : ''}
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- TRACK ORDER BUTTON -->
+        ${trackingUrl ? `
+        <tr>
+          <td style="background:#f7f1ed; border-radius:0 0 20px 20px; padding:10px 50px 40px; text-align:center;">
+            <a href="${trackingUrl}" style="display:inline-block; background:${BRAND.gold}; color:#ffffff; padding:12px 36px; border-radius:30px; text-decoration:none; font-weight:700; font-size:16px; letter-spacing:1px;">TRACK YOUR ORDER</a>
+            ${waybill ? `<p style="margin:10px 0 0; font-size:12px; color:#888888;">Waybill: ${waybill}</p>` : ''}
+          </td>
+        </tr>
+        ` : `
+        <tr>
+          <td style="background:#f7f1ed; border-radius:0 0 20px 20px; padding:0 0 30px;">&nbsp;</td>
+        </tr>
+        `}
+
+        <!-- SPACER -->
+        <tr><td style="height:20px;"></td></tr>
+
+        <!-- FOOTER -->
+        <tr>
+          <td>
+            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background:#2C3E50; border-radius:20px 20px 0 0;">
+              <tr>
+                <td style="padding:30px 50px 20px;">
+                  <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="font-size:14px; font-weight:700; letter-spacing:2px; color:#C9A961; line-height:1.4;">
+                        CRAFTED WITH TRADITION<br/>SINCE 1963
+                      </td>
+                      <td style="text-align:right; vertical-align:top;">
+                        <a href="https://www.instagram.com/ravindrra_vastra_niketan/" style="display:inline-block; margin:0 4px;"><img src="https://app-rsrc.getbee.io/public/resources/social-networks-icon-sets/t-only-logo-white/instagram@2x.png" width="28" height="auto" alt="Instagram" style="display:inline-block;" /></a>
+                        <a href="https://www.facebook.com/" style="display:inline-block; margin:0 4px;"><img src="https://app-rsrc.getbee.io/public/resources/social-networks-icon-sets/t-only-logo-white/facebook@2x.png" width="28" height="auto" alt="Facebook" style="display:inline-block;" /></a>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:0 50px;">
+                  <div style="border-top:1px solid #3a5060;"></div>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:20px 50px;">
+                  <p style="margin:0 0 10px; font-size:15px; color:#ffffff; line-height:1.4;">
+                    <strong>Have a question?</strong> We'd love to help. Email us at <a href="mailto:support@ravindrra.com" style="color:#C9A961; text-decoration:none;">support@ravindrra.com</a>
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:0 50px;">
+                  <div style="border-top:1px solid #3a5060;"></div>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:20px 50px 30px;">
+                  <p style="margin:0; font-size:12px; color:#8899aa; text-align:center;">
+                    &copy; ${new Date().getFullYear()} ${BRAND.name}. All rights reserved. &bull; Premium Indian Clothing
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 
   return {
     subject: `Order ${cfg.label} - #${order.id} | ${BRAND.name}`,
-    html: baseLayout(content, `Your order #${order.id} is now ${cfg.label.toLowerCase()}.`),
+    html,
   };
 }
 
