@@ -40,55 +40,124 @@ async function getResendClient() {
 
 const BRAND = {
   name: "Ravindrra Vastra Niketan",
-  navy: "#2C3E50",
+  navy: "#1a1a2e",
   gold: "#C9A961",
   white: "#FFFFFF",
-  lightGold: "#F5EFE0",
-  gray: "#6B7280",
+  cream: "#FAF7F2",
+  warmGray: "#f5f0eb",
+  darkText: "#1a1a1a",
+  bodyText: "#4a4a4a",
+  mutedText: "#8a8a8a",
+  emerald: "#0d9465",
+  emeraldLight: "#ecfdf3",
+  red: "#dc2626",
+  redLight: "#fef2f2",
+  amber: "#d97706",
+  amberLight: "#fffbeb",
+  blue: "#2563eb",
+  blueLight: "#eff6ff",
 };
 
-function baseLayout(content: string, previewText: string) {
+const APP_URL = process.env.APP_URL || "https://ravindrra-vastra-niketan.replit.app";
+const LOGO_URL = "https://cdn.discordapp.com/attachments/1421094631709343754/1478722381005717505/rvnlogo.png?ex=69a96f08&is=69a81d88&hm=52bbf3bd1d13d11708d3b5cfc564587ae3826049fbdebf77639eb90fcc14e0e9";
+
+function premiumLayout(content: string, previewText: string) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${BRAND.name}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    body { margin: 0; padding: 0; background: #f4f4f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    .preview { display: none; max-height: 0; overflow: hidden; }
+    body { margin:0; padding:0; background:#f0ece6; font-family:'Inter',Helvetica,Arial,sans-serif; -webkit-text-size-adjust:none; }
+    .preview { display:none; max-height:0; overflow:hidden; mso-hide:all; }
+    @media (max-width:680px) {
+      .email-wrap { width:100% !important; }
+      .mob-pad { padding-left:20px !important; padding-right:20px !important; }
+      .mob-stack { display:block !important; width:100% !important; padding:8px 0 !important; }
+      .mob-heading { font-size:26px !important; }
+      .mob-hide { display:none !important; }
+    }
   </style>
 </head>
-<body>
+<body style="margin:0; padding:0; background:#f0ece6;">
   <div class="preview">${previewText}</div>
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5; padding:24px 0;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="background:${BRAND.white}; border-radius:8px; overflow:hidden; max-width:600px; width:100%;">
+  <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background:#f0ece6;">
+    <tr><td align="center" style="padding:30px 10px;">
+      <table class="email-wrap" width="620" border="0" cellpadding="0" cellspacing="0" style="max-width:620px; width:100%; margin:0 auto;">
+
         <tr>
-          <td style="background:${BRAND.navy}; padding:24px 32px; text-align:center;">
-            <h1 style="margin:0; color:${BRAND.gold}; font-size:24px; font-family:Georgia,'Times New Roman',serif; letter-spacing:1px;">${BRAND.name}</h1>
+          <td style="padding:0 0 24px; text-align:center;">
+            <img src="${LOGO_URL}" width="160" height="auto" alt="${BRAND.name}" style="display:inline-block;" />
           </td>
         </tr>
+
         <tr>
-          <td style="padding:32px;">
-            ${content}
+          <td>
+            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,0.06);">
+              ${content}
+            </table>
           </td>
         </tr>
+
         <tr>
-          <td style="background:${BRAND.lightGold}; padding:20px 32px; text-align:center; border-top:1px solid #e5e5e5;">
-            <p style="margin:0; color:${BRAND.gray}; font-size:12px;">
-              &copy; ${new Date().getFullYear()} ${BRAND.name}. All rights reserved.
-            </p>
-            <p style="margin:4px 0 0; color:${BRAND.gray}; font-size:12px;">
-              Premium Indian Clothing &bull; Crafted with Tradition
-            </p>
+          <td style="padding:28px 0 0;">
+            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background:${BRAND.navy}; border-radius:16px; overflow:hidden;">
+              <tr>
+                <td style="padding:28px 36px 20px;">
+                  <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="font-family:'Playfair Display',Georgia,serif; font-size:15px; font-weight:700; letter-spacing:1px; color:${BRAND.gold}; line-height:1.5;">
+                        CRAFTED WITH TRADITION<br/>SINCE 1963
+                      </td>
+                      <td style="text-align:right; vertical-align:middle;">
+                        <a href="https://www.instagram.com/ravindrra_vastra_niketan/" style="display:inline-block; margin:0 3px;"><img src="https://app-rsrc.getbee.io/public/resources/social-networks-icon-sets/t-only-logo-white/instagram@2x.png" width="24" height="auto" alt="Instagram" style="display:inline-block;" /></a>
+                        <a href="https://www.facebook.com/" style="display:inline-block; margin:0 3px;"><img src="https://app-rsrc.getbee.io/public/resources/social-networks-icon-sets/t-only-logo-white/facebook@2x.png" width="24" height="auto" alt="Facebook" style="display:inline-block;" /></a>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:0 36px;"><div style="border-top:1px solid #2a2a42;"></div></td>
+              </tr>
+              <tr>
+                <td style="padding:18px 36px;">
+                  <p style="margin:0; font-size:13px; color:#b0b0c0; line-height:1.5;">
+                    Need help? Email us at <a href="mailto:support@ravindrra.com" style="color:${BRAND.gold}; text-decoration:none;">support@ravindrra.com</a>
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:0 36px;"><div style="border-top:1px solid #2a2a42;"></div></td>
+              </tr>
+              <tr>
+                <td style="padding:16px 36px 24px; text-align:center;">
+                  <p style="margin:0; font-size:11px; color:#6a6a80;">
+                    &copy; ${new Date().getFullYear()} ${BRAND.name}. All rights reserved.
+                  </p>
+                </td>
+              </tr>
+            </table>
           </td>
         </tr>
+
       </table>
     </td></tr>
   </table>
 </body>
 </html>`;
+}
+
+function accentButton(text: string, href: string, color: string = BRAND.emerald) {
+  return `<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin:0 auto;">
+    <tr>
+      <td style="border-radius:8px; background:${color};" align="center">
+        <a href="${href}" target="_blank" style="display:inline-block; padding:14px 40px; font-family:'Inter',Helvetica,Arial,sans-serif; font-size:14px; font-weight:700; color:#ffffff; text-decoration:none; letter-spacing:0.8px; text-transform:uppercase;">${text}</a>
+      </td>
+    </tr>
+  </table>`;
 }
 
 function formatCurrency(amount: number | string) {
@@ -110,394 +179,323 @@ interface OrderData {
   shippingAddress: any;
   deliveryCharge?: string | number;
   createdAt?: Date | string;
+  paymentStatus?: string;
+}
+
+function buildItemsBlock(items: any[]) {
+  return items.map(item => `
+    <tr>
+      <td style="padding:14px 0; border-bottom:1px solid #f0ece6;">
+        <table width="100%" border="0" cellpadding="0" cellspacing="0">
+          <tr>
+            <td width="72" style="vertical-align:top;">
+              ${item.imageUrl
+                ? `<img src="${item.imageUrl}" width="64" height="64" style="display:block; border-radius:10px; object-fit:cover; border:1px solid #f0ece6;" alt="${item.name}" />`
+                : `<div style="width:64px;height:64px;background:${BRAND.cream};border-radius:10px;border:1px solid #e8e0d6;"></div>`}
+            </td>
+            <td style="vertical-align:top; padding-left:4px;">
+              <p style="margin:0 0 3px; font-size:14px; font-weight:600; color:${BRAND.darkText};">${item.name}</p>
+              <p style="margin:0; font-size:12px; color:${BRAND.mutedText};">
+                Qty: ${item.quantity || 1}${item.size ? ` &middot; Size: ${item.size}` : ''}${item.color ? ` &middot; ${item.color}` : ''}
+              </p>
+            </td>
+            <td style="vertical-align:top; text-align:right; white-space:nowrap;">
+              <p style="margin:0; font-size:14px; font-weight:700; color:${BRAND.darkText};">${formatCurrency(Number(item.price) * (item.quantity || 1))}</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function buildTotalsBlock(items: any[], deliveryCharge: number | string, totalAmount: number | string) {
+  const subtotal = items.reduce((sum: number, i: any) => sum + Number(i.price) * (i.quantity || 1), 0);
+  const delivery = Number(deliveryCharge || 0);
+  return `
+    <tr>
+      <td style="padding:12px 0 4px;">
+        <table width="100%" border="0" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="font-size:13px; color:${BRAND.mutedText}; padding:3px 0;">Subtotal</td>
+            <td style="font-size:13px; color:${BRAND.mutedText}; padding:3px 0; text-align:right;">${formatCurrency(subtotal)}</td>
+          </tr>
+          <tr>
+            <td style="font-size:13px; color:${BRAND.mutedText}; padding:3px 0;">Shipping</td>
+            <td style="font-size:13px; color:${delivery > 0 ? BRAND.mutedText : BRAND.emerald}; padding:3px 0; text-align:right; font-weight:${delivery > 0 ? '400' : '600'};">${delivery > 0 ? formatCurrency(delivery) : 'FREE'}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:10px 0 0;">
+        <div style="border-top:2px solid ${BRAND.darkText};"></div>
+        <table width="100%" border="0" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="font-size:16px; font-weight:800; color:${BRAND.darkText}; padding:12px 0;">Total</td>
+            <td style="font-size:16px; font-weight:800; color:${BRAND.darkText}; padding:12px 0; text-align:right;">${formatCurrency(totalAmount)}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>`;
+}
+
+function buildAddressBlock(addr: any, orderId: number, orderDate: Date | string, waybill?: string | null) {
+  return `
+    <tr>
+      <td style="padding:20px 0 0;">
+        <table width="100%" border="0" cellpadding="0" cellspacing="0">
+          <tr>
+            <td class="mob-stack" width="50%" style="vertical-align:top; padding-right:16px;">
+              <p style="margin:0 0 6px; font-size:11px; font-weight:700; color:${BRAND.mutedText}; text-transform:uppercase; letter-spacing:1px;">Ship To</p>
+              <p style="margin:0; font-size:13px; color:${BRAND.bodyText}; line-height:1.6;">
+                ${addr?.fullName || ''}<br/>
+                ${addr?.addressLine1 || addr?.address || ''}${addr?.addressLine2 ? '<br/>' + addr.addressLine2 : ''}<br/>
+                ${addr?.city || ''}, ${addr?.state || ''} ${addr?.pincode || ''}<br/>
+                ${addr?.phone ? addr.phone : ''}
+              </p>
+            </td>
+            <td class="mob-stack" width="50%" style="vertical-align:top;">
+              <p style="margin:0 0 6px; font-size:11px; font-weight:700; color:${BRAND.mutedText}; text-transform:uppercase; letter-spacing:1px;">Order Details</p>
+              <p style="margin:0; font-size:13px; color:${BRAND.bodyText}; line-height:1.6;">
+                Order #${orderId}<br/>
+                ${formatDate(orderDate || new Date())}
+                ${waybill ? '<br/>AWB: ' + waybill : ''}
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>`;
 }
 
 export function buildOrderConfirmationEmail(order: OrderData) {
   const items = (Array.isArray(order.items) ? order.items : []) as any[];
   const addr = order.shippingAddress as any;
 
-  const itemsHtml = items.map(item => `
+  const content = `
     <tr>
-      <td style="padding:12px 0; border-bottom:1px solid #f0f0f0;">
-        <div style="display:flex; align-items:center; gap:12px;">
-          ${item.imageUrl ? `<img src="${item.imageUrl}" width="60" height="60" style="border-radius:4px; object-fit:cover;" alt="${item.name}" />` : ''}
-          <div>
-            <p style="margin:0; font-weight:600; color:${BRAND.navy};">${item.name}</p>
-            <p style="margin:2px 0 0; color:${BRAND.gray}; font-size:13px;">
-              Qty: ${item.quantity}${item.size ? ` | Size: ${item.size}` : ''}${item.color ? ` | Color: ${item.color}` : ''}
-            </p>
-          </div>
+      <td style="padding:48px 40px 0; text-align:center;">
+        <div style="width:64px; height:64px; border-radius:50%; background:${BRAND.emeraldLight}; display:inline-block; line-height:64px; text-align:center; margin-bottom:16px;">
+          <span style="font-size:30px; color:${BRAND.emerald};">&#10003;</span>
         </div>
-      </td>
-      <td style="padding:12px 0; border-bottom:1px solid #f0f0f0; text-align:right; vertical-align:top; font-weight:600; color:${BRAND.navy};">
-        ${formatCurrency(Number(item.price) * (item.quantity || 1))}
+        <h1 class="mob-heading" style="margin:0; font-family:'Playfair Display',Georgia,serif; font-size:32px; font-weight:800; color:${BRAND.darkText}; line-height:1.2;">
+          Order Confirmed
+        </h1>
+        <p style="margin:10px 0 0; font-size:14px; color:${BRAND.mutedText};">
+          Order #${order.id} &middot; ${formatDate(order.createdAt || new Date())}
+        </p>
       </td>
     </tr>
-  `).join('');
 
-  const subtotal = items.reduce((sum, i) => sum + Number(i.price) * (i.quantity || 1), 0);
-  const delivery = Number(order.deliveryCharge || 0);
+    <tr>
+      <td class="mob-pad" style="padding:24px 40px 0; text-align:center;">
+        <p style="margin:0 0 28px; font-size:15px; color:${BRAND.bodyText}; line-height:1.7;">
+          Thank you for your order! We're preparing your items with care and will notify you once they're shipped.
+        </p>
+        ${accentButton('View My Order', `${APP_URL}/orders`)}
+      </td>
+    </tr>
 
-  const content = `
-    <div style="text-align:center; margin-bottom:24px;">
-      <div style="width:56px; height:56px; border-radius:50%; background:#E8F5E9; display:inline-flex; align-items:center; justify-content:center; margin-bottom:12px;">
-        <span style="font-size:28px; color:#4CAF50;">&#10003;</span>
-      </div>
-      <h2 style="margin:0; color:${BRAND.navy}; font-size:22px; font-family:Georgia,serif;">Order Confirmed!</h2>
-      <p style="margin:8px 0 0; color:${BRAND.gray};">Order #${order.id} &bull; ${formatDate(order.createdAt || new Date())}</p>
-    </div>
+    <tr><td style="padding:32px 40px 0;"><div style="border-top:1px solid #f0ece6;"></div></td></tr>
 
-    <p style="color:#374151; line-height:1.6;">
-      Thank you for your order! We're preparing your items with care and will notify you once they're shipped.
-    </p>
+    <tr>
+      <td class="mob-pad" style="padding:24px 40px 0;">
+        <p style="margin:0 0 16px; font-family:'Playfair Display',Georgia,serif; font-size:20px; font-weight:700; color:${BRAND.darkText};">Your Items</p>
+        <table width="100%" border="0" cellpadding="0" cellspacing="0">
+          ${buildItemsBlock(items)}
+          ${buildTotalsBlock(items, order.deliveryCharge || 0, order.totalAmount)}
+        </table>
+      </td>
+    </tr>
 
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
-      ${itemsHtml}
-      <tr>
-        <td style="padding:8px 0; color:${BRAND.gray};">Subtotal</td>
-        <td style="padding:8px 0; text-align:right; color:${BRAND.gray};">${formatCurrency(subtotal)}</td>
-      </tr>
-      <tr>
-        <td style="padding:8px 0; color:${BRAND.gray};">Delivery</td>
-        <td style="padding:8px 0; text-align:right; color:${BRAND.gray};">${delivery > 0 ? formatCurrency(delivery) : 'FREE'}</td>
-      </tr>
-      <tr>
-        <td style="padding:12px 0; border-top:2px solid ${BRAND.navy}; font-weight:700; color:${BRAND.navy}; font-size:16px;">Total</td>
-        <td style="padding:12px 0; border-top:2px solid ${BRAND.navy}; text-align:right; font-weight:700; color:${BRAND.navy}; font-size:16px;">${formatCurrency(order.totalAmount)}</td>
-      </tr>
-    </table>
+    <tr><td style="padding:20px 40px 0;"><div style="border-top:1px solid #f0ece6;"></div></td></tr>
 
-    <div style="background:${BRAND.lightGold}; border-radius:6px; padding:16px; margin:20px 0;">
-      <h3 style="margin:0 0 8px; color:${BRAND.navy}; font-size:14px;">Shipping Address</h3>
-      <p style="margin:0; color:#374151; font-size:14px; line-height:1.5;">
-        ${addr?.fullName || ''}<br/>
-        ${addr?.addressLine1 || ''}${addr?.addressLine2 ? '<br/>' + addr.addressLine2 : ''}<br/>
-        ${addr?.city || ''}, ${addr?.state || ''} ${addr?.pincode || ''}<br/>
-        Phone: ${addr?.phone || ''}
-      </p>
-    </div>
+    <tr>
+      <td class="mob-pad" style="padding:0 40px 40px;">
+        <table width="100%" border="0" cellpadding="0" cellspacing="0">
+          ${buildAddressBlock(addr, order.id, order.createdAt || new Date())}
+        </table>
+      </td>
+    </tr>
   `;
 
   return {
     subject: `Order Confirmed - #${order.id} | ${BRAND.name}`,
-    html: baseLayout(content, `Your order #${order.id} has been confirmed! Total: ${formatCurrency(order.totalAmount)}`),
+    html: premiumLayout(content, `Your order #${order.id} has been confirmed! Total: ${formatCurrency(order.totalAmount)}`),
   };
 }
 
 export function buildShippingUpdateEmail(order: OrderData, rawStatus: string, trackingUrl?: string | null, waybill?: string | null) {
   const status = rawStatus.toLowerCase().trim();
-  const statusConfig: Record<string, { label: string; heading: string; message: string }> = {
+  const statusConfig: Record<string, { label: string; heading: string; message: string; accentColor: string; accentBg: string; icon: string }> = {
+    confirmed: {
+      label: "Confirmed",
+      heading: "Your Order Will Be Shipped Soon",
+      message: "We have received your order and are preparing it for shipment. You'll be notified once it's on its way.",
+      accentColor: BRAND.emerald,
+      accentBg: BRAND.emeraldLight,
+      icon: "&#10003;",
+    },
     shipped: {
       label: "Shipped",
-      heading: "YOUR ORDER HAS BEEN SHIPPED!",
-      message: "Your order is on its way! You can track your package using the button below.",
+      heading: "Your Order Is On Its Way",
+      message: "Great news! Your order has been shipped and is heading to you. Track your package below.",
+      accentColor: BRAND.blue,
+      accentBg: BRAND.blueLight,
+      icon: "&#9992;",
     },
     delivered: {
       label: "Delivered",
-      heading: "YOUR ORDER HAS BEEN DELIVERED!",
-      message: "Your order has been delivered. We hope you love your purchase!",
+      heading: "Your Order Has Been Delivered",
+      message: "Your order has been delivered successfully. We hope you love your purchase!",
+      accentColor: BRAND.emerald,
+      accentBg: BRAND.emeraldLight,
+      icon: "&#10003;",
     },
     cancelled: {
       label: "Cancelled",
-      heading: "YOUR ORDER HAS BEEN CANCELLED",
-      message: "Your order has been cancelled. If you have any questions, please contact our support team.",
-    },
-    confirmed: {
-      label: "Confirmed",
-      heading: "YOUR ORDER WILL BE SHIPPED SOON!",
-      message: "We have received your order and are preparing it for shipment. You will be notified once it's on its way.",
+      heading: "Your Order Has Been Cancelled",
+      message: "Your order has been cancelled. If you have any questions, please don't hesitate to reach out to our support team.",
+      accentColor: BRAND.red,
+      accentBg: BRAND.redLight,
+      icon: "&#10007;",
     },
   };
 
-  const cfg = statusConfig[status] || { label: status, heading: `ORDER ${status.toUpperCase()}`, message: `Your order status has been updated to: ${status}` };
+  const cfg = statusConfig[status] || {
+    label: rawStatus,
+    heading: `Order Update: ${rawStatus}`,
+    message: `Your order status has been updated to: ${rawStatus}`,
+    accentColor: BRAND.navy,
+    accentBg: BRAND.cream,
+    icon: "&#9679;",
+  };
 
-  const confirmedActive = ["confirmed", "shipped", "delivered"].includes(status);
-  const shippedActive = ["shipped", "delivered"].includes(status);
-  const deliveredActive = status === "delivered";
+  const confirmedDone = ["confirmed", "shipped", "delivered"].includes(status);
+  const shippedDone = ["shipped", "delivered"].includes(status);
+  const deliveredDone = status === "delivered";
 
-  const stepColor = (active: boolean) => active ? "#C9A961" : "#e1cabf";
-  const stepWeight = (active: boolean) => active ? "700" : "400";
-  const lineColor = (active: boolean) => active ? "#C9A961" : "#e1cabf";
+  const stepDot = (done: boolean) => done ? BRAND.emerald : "#d4d4d4";
+  const stepLine = (done: boolean) => done ? BRAND.emerald : "#e5e5e5";
+  const stepTextColor = (done: boolean) => done ? BRAND.darkText : "#b0b0b0";
+  const stepTextWeight = (done: boolean) => done ? "700" : "400";
 
   const items = (Array.isArray(order.items) ? order.items : []) as any[];
   const addr = order.shippingAddress as any;
 
-  const itemsHtml = items.map(item => `
-    <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:16px;">
-      <tr>
-        <td width="100" style="vertical-align:top; padding-right:16px;">
-          ${item.imageUrl ? `<img src="${item.imageUrl}" width="100" height="100" style="display:block; border-radius:8px; object-fit:cover;" alt="${item.name}" />` : `<div style="width:100px;height:100px;background:#e1cabf;border-radius:8px;"></div>`}
-        </td>
-        <td style="vertical-align:top;">
-          <p style="margin:0 0 4px; font-family:'Open Sans',Helvetica,Arial,sans-serif; font-size:16px; font-weight:700; color:#000000;">${item.name}</p>
-          <p style="margin:0 0 4px; font-family:'Open Sans',Helvetica,Arial,sans-serif; font-size:14px; color:#666666;">
-            Qty: ${item.quantity || 1}${item.size ? ` &bull; Size: ${item.size}` : ''}${item.color ? ` &bull; Color: ${item.color}` : ''}
-          </p>
-          <p style="margin:0; font-family:'Open Sans',Helvetica,Arial,sans-serif; font-size:16px; font-weight:700; color:#2C3E50;">
-            ${formatCurrency(Number(item.price) * (item.quantity || 1))}
-          </p>
-        </td>
-      </tr>
-    </table>
-  `).join('');
+  const progressBar = status !== "cancelled" ? `
+    <tr>
+      <td class="mob-pad" style="padding:28px 40px 0;">
+        <table width="100%" border="0" cellpadding="0" cellspacing="0">
+          <tr>
+            <td width="28%" style="text-align:center; vertical-align:top;">
+              <div style="width:20px; height:20px; border-radius:50%; background:${stepDot(confirmedDone)}; margin:0 auto 8px; ${confirmedDone ? 'box-shadow:0 0 0 4px ' + BRAND.emeraldLight + ';' : ''}"></div>
+              <p style="margin:0; font-size:12px; font-weight:${stepTextWeight(confirmedDone)}; color:${stepTextColor(confirmedDone)};">Confirmed</p>
+            </td>
+            <td width="22%" style="vertical-align:top; padding-top:9px;">
+              <div style="height:3px; background:${stepLine(shippedDone)}; border-radius:2px; margin:0 2px;"></div>
+            </td>
+            <td width="22%" style="text-align:center; vertical-align:top;">
+              <div style="width:20px; height:20px; border-radius:50%; background:${stepDot(shippedDone)}; margin:0 auto 8px; ${shippedDone ? 'box-shadow:0 0 0 4px ' + BRAND.emeraldLight + ';' : ''}"></div>
+              <p style="margin:0; font-size:12px; font-weight:${stepTextWeight(shippedDone)}; color:${stepTextColor(shippedDone)};">Shipped</p>
+            </td>
+            <td width="22%" style="vertical-align:top; padding-top:9px;">
+              <div style="height:3px; background:${stepLine(deliveredDone)}; border-radius:2px; margin:0 2px;"></div>
+            </td>
+            <td width="28%" style="text-align:center; vertical-align:top;">
+              <div style="width:20px; height:20px; border-radius:50%; background:${stepDot(deliveredDone)}; margin:0 auto 8px; ${deliveredDone ? 'box-shadow:0 0 0 4px ' + BRAND.emeraldLight + ';' : ''}"></div>
+              <p style="margin:0; font-size:12px; font-weight:${stepTextWeight(deliveredDone)}; color:${stepTextColor(deliveredDone)};">Delivered</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>` : '';
 
-  const subtotal = items.reduce((sum, i) => sum + Number(i.price) * (i.quantity || 1), 0);
-  const delivery = Number(order.deliveryCharge || 0);
+  const trackSection = trackingUrl ? `
+    <tr>
+      <td style="padding:24px 40px 0; text-align:center;">
+        ${accentButton('Track Your Order', trackingUrl, BRAND.blue)}
+        ${waybill ? `<p style="margin:10px 0 0; font-size:12px; color:${BRAND.mutedText};">AWB: ${waybill}</p>` : ''}
+      </td>
+    </tr>` : '';
 
-  const appUrl = process.env.APP_URL || "https://ravindrra-vastra-niketan.replit.app";
+  const content = `
+    <tr>
+      <td style="padding:48px 40px 0; text-align:center;">
+        <div style="width:64px; height:64px; border-radius:50%; background:${cfg.accentBg}; display:inline-block; line-height:64px; text-align:center; margin-bottom:16px;">
+          <span style="font-size:28px; color:${cfg.accentColor};">${cfg.icon}</span>
+        </div>
+        <h1 class="mob-heading" style="margin:0; font-family:'Playfair Display',Georgia,serif; font-size:30px; font-weight:800; color:${BRAND.darkText}; line-height:1.2;">
+          ${cfg.heading}
+        </h1>
+        <p style="margin:10px 0 0; font-size:14px; color:${BRAND.mutedText};">Order #${order.id}</p>
+      </td>
+    </tr>
 
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${BRAND.name}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    body { margin:0; padding:0; background:#ffffff; font-family:'Open Sans',Helvetica,Arial,sans-serif; }
-    .preview { display:none; max-height:0; overflow:hidden; }
-    @media (max-width:700px) {
-      .email-container { width:100% !important; }
-      .mobile-pad { padding:20px !important; }
-      .heading-main { font-size:26px !important; }
-      .step-label { font-size:12px !important; }
-      .item-img { width:80px !important; height:80px !important; }
-      .addr-col { display:block !important; width:100% !important; padding:10px 0 !important; }
-    }
-  </style>
-</head>
-<body>
-  <div class="preview">Your order #${order.id} - ${cfg.label} | ${BRAND.name}</div>
-  <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background:#ffffff;">
-    <tr><td align="center">
-      <table class="email-container" width="680" border="0" cellpadding="0" cellspacing="0" style="max-width:680px; width:100%; margin:0 auto;">
+    ${progressBar}
 
-        <!-- LOGO BAR -->
-        <tr>
-          <td style="background:#f7f1ed; border-radius:0 0 20px 20px; padding:20px; text-align:center;">
-            <img src="https://cdn.discordapp.com/attachments/1421094631709343754/1478722381005717505/rvnlogo.png?ex=69a96f08&is=69a81d88&hm=52bbf3bd1d13d11708d3b5cfc564587ae3826049fbdebf77639eb90fcc14e0e9" width="180" height="auto" alt="${BRAND.name}" style="display:inline-block;" />
-          </td>
-        </tr>
+    <tr>
+      <td class="mob-pad" style="padding:24px 40px 0; text-align:center;">
+        <p style="margin:0 0 24px; font-size:15px; color:${BRAND.bodyText}; line-height:1.7;">${cfg.message}</p>
+        ${accentButton('View My Order', `${APP_URL}/orders`)}
+      </td>
+    </tr>
 
-        <!-- HEADING -->
-        <tr>
-          <td class="mobile-pad" style="padding:40px 60px 10px; text-align:center;">
-            <h1 class="heading-main" style="margin:0; font-family:'Open Sans',Helvetica,Arial,sans-serif; font-size:36px; font-weight:800; letter-spacing:-1px; line-height:1.2; color:#000000;">
-              ${cfg.heading}
-            </h1>
-          </td>
-        </tr>
+    ${trackSection}
 
-        <!-- PROGRESS BAR -->
-        ${status !== "cancelled" ? `
-        <tr>
-          <td style="padding:20px 50px 10px;">
-            <table width="100%" border="0" cellpadding="0" cellspacing="0">
-              <tr>
-                <td width="25%" style="text-align:center; vertical-align:top;">
-                  <div style="width:16px; height:16px; border-radius:50%; background:${stepColor(confirmedActive)}; margin:0 auto 8px;"></div>
-                  <p class="step-label" style="margin:0; font-size:14px; font-weight:${stepWeight(confirmedActive)}; color:${stepColor(confirmedActive)};">Confirmed</p>
-                </td>
-                <td width="16%" style="vertical-align:top; padding-top:7px;">
-                  <div style="border-top:2px solid ${lineColor(shippedActive)}; margin:0 4px;"></div>
-                </td>
-                <td width="17%" style="text-align:center; vertical-align:top;">
-                  <div style="width:16px; height:16px; border-radius:50%; background:${stepColor(shippedActive)}; margin:0 auto 8px;"></div>
-                  <p class="step-label" style="margin:0; font-size:14px; font-weight:${stepWeight(shippedActive)}; color:${stepColor(shippedActive)};">Shipped</p>
-                </td>
-                <td width="16%" style="vertical-align:top; padding-top:7px;">
-                  <div style="border-top:2px solid ${lineColor(deliveredActive)}; margin:0 4px;"></div>
-                </td>
-                <td width="25%" style="text-align:center; vertical-align:top;">
-                  <div style="width:16px; height:16px; border-radius:50%; background:${stepColor(deliveredActive)}; margin:0 auto 8px;"></div>
-                  <p class="step-label" style="margin:0; font-size:14px; font-weight:${stepWeight(deliveredActive)}; color:${stepColor(deliveredActive)};">Delivered</p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-        ` : ''}
+    <tr><td style="padding:32px 40px 0;"><div style="border-top:1px solid #f0ece6;"></div></td></tr>
 
-        <!-- MESSAGE + VIEW ORDER BUTTON -->
-        <tr>
-          <td class="mobile-pad" style="padding:20px 60px 10px; text-align:center;">
-            <p style="margin:0 0 24px; font-size:15px; color:#555555; line-height:1.6;">${cfg.message}</p>
-            <a href="${appUrl}/orders" style="display:inline-block; background:${BRAND.gold}; color:#ffffff; padding:12px 36px; border-radius:30px; text-decoration:none; font-weight:700; font-size:16px; letter-spacing:1px;">VIEW MY ORDER</a>
-          </td>
-        </tr>
+    <tr>
+      <td class="mob-pad" style="padding:24px 40px 0;">
+        <p style="margin:0 0 4px; font-family:'Playfair Display',Georgia,serif; font-size:20px; font-weight:700; color:${BRAND.darkText};">Order Summary</p>
+        <p style="margin:0 0 16px; font-size:13px; font-weight:600; color:${BRAND.gold};">Order #${order.id}</p>
+        <table width="100%" border="0" cellpadding="0" cellspacing="0">
+          ${buildItemsBlock(items)}
+          ${buildTotalsBlock(items, order.deliveryCharge || 0, order.totalAmount)}
+        </table>
+      </td>
+    </tr>
 
-        <!-- ORDER DETAILS SECTION -->
-        <tr>
-          <td style="padding:40px 0 0;">
-            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background:#f7f1ed; border-radius:20px 20px 0 0;">
-              <tr>
-                <td class="mobile-pad" style="padding:40px 50px 10px;">
-                  <h2 style="margin:0 0 4px; font-size:26px; font-weight:800; letter-spacing:-1px; text-align:center; color:#000000;">WHAT'S IN YOUR ORDER?</h2>
-                  <p style="margin:0; text-align:center; font-size:16px; font-weight:700; color:${BRAND.gold};">Order #${order.id}</p>
-                  <div style="margin:20px 0; border-top:1px solid #000000;"></div>
-                </td>
-              </tr>
-              <tr>
-                <td class="mobile-pad" style="padding:0 50px 20px;">
-                  ${itemsHtml}
-                </td>
-              </tr>
-              <!-- TOTALS -->
-              <tr>
-                <td class="mobile-pad" style="padding:0 50px 10px;">
-                  <div style="border-top:1px solid #ccbbaa; margin-bottom:12px;"></div>
-                  <table width="100%" border="0" cellpadding="0" cellspacing="0">
-                    <tr>
-                      <td style="padding:4px 0; font-size:14px; color:#666666;">Subtotal</td>
-                      <td style="padding:4px 0; font-size:14px; color:#666666; text-align:right;">${formatCurrency(subtotal)}</td>
-                    </tr>
-                    <tr>
-                      <td style="padding:4px 0; font-size:14px; color:#666666;">Delivery</td>
-                      <td style="padding:4px 0; font-size:14px; color:#666666; text-align:right;">${delivery > 0 ? formatCurrency(delivery) : 'FREE'}</td>
-                    </tr>
-                    <tr>
-                      <td style="padding:8px 0 0; border-top:2px solid #2C3E50; font-size:18px; font-weight:800; color:#000000;">Total</td>
-                      <td style="padding:8px 0 0; border-top:2px solid #2C3E50; font-size:18px; font-weight:800; color:#000000; text-align:right;">${formatCurrency(order.totalAmount)}</td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
+    <tr><td style="padding:20px 40px 0;"><div style="border-top:1px solid #f0ece6;"></div></td></tr>
 
-        <!-- SHIPPING ADDRESS -->
-        <tr>
-          <td>
-            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background:#f7f1ed;">
-              <tr>
-                <td class="mobile-pad" style="padding:20px 50px 30px;">
-                  <div style="border-top:1px solid #ccbbaa; margin-bottom:20px;"></div>
-                  <table width="100%" border="0" cellpadding="0" cellspacing="0">
-                    <tr>
-                      <td class="addr-col" width="50%" style="vertical-align:top; padding-right:20px;">
-                        <p style="margin:0 0 8px; font-size:18px; font-weight:800; color:#000000;">Shipping Address</p>
-                        <p style="margin:0; font-size:14px; color:#444444; line-height:1.6;">
-                          ${addr?.fullName || ''}<br/>
-                          ${addr?.addressLine1 || addr?.address || ''}${addr?.addressLine2 ? '<br/>' + addr.addressLine2 : ''}<br/>
-                          ${addr?.city || ''}, ${addr?.state || ''} ${addr?.pincode || ''}<br/>
-                          ${addr?.phone ? 'Phone: ' + addr.phone : ''}
-                        </p>
-                      </td>
-                      <td class="addr-col" width="50%" style="vertical-align:top;">
-                        <p style="margin:0 0 8px; font-size:18px; font-weight:800; color:#000000;">Order Info</p>
-                        <p style="margin:0; font-size:14px; color:#444444; line-height:1.6;">
-                          Order #${order.id}<br/>
-                          Date: ${formatDate(order.createdAt || new Date())}
-                          ${waybill ? '<br/>Waybill: ' + waybill : ''}
-                        </p>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-        <!-- TRACK ORDER BUTTON -->
-        ${trackingUrl ? `
-        <tr>
-          <td style="background:#f7f1ed; border-radius:0 0 20px 20px; padding:10px 50px 40px; text-align:center;">
-            <a href="${trackingUrl}" style="display:inline-block; background:${BRAND.gold}; color:#ffffff; padding:12px 36px; border-radius:30px; text-decoration:none; font-weight:700; font-size:16px; letter-spacing:1px;">TRACK YOUR ORDER</a>
-            ${waybill ? `<p style="margin:10px 0 0; font-size:12px; color:#888888;">Waybill: ${waybill}</p>` : ''}
-          </td>
-        </tr>
-        ` : `
-        <tr>
-          <td style="background:#f7f1ed; border-radius:0 0 20px 20px; padding:0 0 30px;">&nbsp;</td>
-        </tr>
-        `}
-
-        <!-- SPACER -->
-        <tr><td style="height:20px;"></td></tr>
-
-        <!-- FOOTER -->
-        <tr>
-          <td>
-            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background:#2C3E50; border-radius:20px 20px 0 0;">
-              <tr>
-                <td style="padding:30px 50px 20px;">
-                  <table width="100%" border="0" cellpadding="0" cellspacing="0">
-                    <tr>
-                      <td style="font-size:14px; font-weight:700; letter-spacing:2px; color:#C9A961; line-height:1.4;">
-                        CRAFTED WITH TRADITION<br/>SINCE 1963
-                      </td>
-                      <td style="text-align:right; vertical-align:top;">
-                        <a href="https://www.instagram.com/ravindrra_vastra_niketan/" style="display:inline-block; margin:0 4px;"><img src="https://app-rsrc.getbee.io/public/resources/social-networks-icon-sets/t-only-logo-white/instagram@2x.png" width="28" height="auto" alt="Instagram" style="display:inline-block;" /></a>
-                        <a href="https://www.facebook.com/" style="display:inline-block; margin:0 4px;"><img src="https://app-rsrc.getbee.io/public/resources/social-networks-icon-sets/t-only-logo-white/facebook@2x.png" width="28" height="auto" alt="Facebook" style="display:inline-block;" /></a>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:0 50px;">
-                  <div style="border-top:1px solid #3a5060;"></div>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:20px 50px;">
-                  <p style="margin:0 0 10px; font-size:15px; color:#ffffff; line-height:1.4;">
-                    <strong>Have a question?</strong> We'd love to help. Email us at <a href="mailto:support@ravindrra.com" style="color:#C9A961; text-decoration:none;">support@ravindrra.com</a>
-                  </p>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:0 50px;">
-                  <div style="border-top:1px solid #3a5060;"></div>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:20px 50px 30px;">
-                  <p style="margin:0; font-size:12px; color:#8899aa; text-align:center;">
-                    &copy; ${new Date().getFullYear()} ${BRAND.name}. All rights reserved. &bull; Premium Indian Clothing
-                  </p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+    <tr>
+      <td class="mob-pad" style="padding:0 40px 40px;">
+        <table width="100%" border="0" cellpadding="0" cellspacing="0">
+          ${buildAddressBlock(addr, order.id, order.createdAt || new Date(), waybill)}
+        </table>
+      </td>
+    </tr>
+  `;
 
   return {
     subject: `Order ${cfg.label} - #${order.id} | ${BRAND.name}`,
-    html,
+    html: premiumLayout(content, `Your order #${order.id} is now ${cfg.label.toLowerCase()}.`),
   };
 }
 
 export function buildPromotionalEmail(subject: string, heading: string, body: string, ctaText?: string, ctaUrl?: string) {
-  const ctaSection = ctaText && ctaUrl ? `
-    <div style="text-align:center; margin:28px 0;">
-      <a href="${ctaUrl}" style="display:inline-block; background:${BRAND.navy}; color:${BRAND.gold}; padding:14px 40px; border-radius:6px; text-decoration:none; font-weight:600; font-size:15px; letter-spacing:0.5px;">
-        ${ctaText}
-      </a>
-    </div>
-  ` : '';
-
   const content = `
-    <div style="text-align:center; margin-bottom:20px;">
-      <h2 style="margin:0; color:${BRAND.navy}; font-size:24px; font-family:Georgia,serif;">${heading}</h2>
-    </div>
-    <div style="color:#374151; line-height:1.7; font-size:15px;">
-      ${body}
-    </div>
-    ${ctaSection}
+    <tr>
+      <td style="padding:48px 40px 0; text-align:center;">
+        <h1 class="mob-heading" style="margin:0; font-family:'Playfair Display',Georgia,serif; font-size:30px; font-weight:800; color:${BRAND.darkText}; line-height:1.3;">
+          ${heading}
+        </h1>
+      </td>
+    </tr>
+    <tr>
+      <td class="mob-pad" style="padding:20px 40px 40px;">
+        <div style="font-size:15px; color:${BRAND.bodyText}; line-height:1.8;">
+          ${body}
+        </div>
+        ${ctaText && ctaUrl ? `<div style="text-align:center; padding-top:28px;">${accentButton(ctaText, ctaUrl, BRAND.gold)}</div>` : ''}
+      </td>
+    </tr>
   `;
 
   return {
     subject: `${subject} | ${BRAND.name}`,
-    html: baseLayout(content, subject),
+    html: premiumLayout(content, subject),
   };
 }
 
@@ -526,25 +524,39 @@ export async function sendEmail(to: string, subject: string, html: string, from?
 
 export function buildOtpEmail(otp: string) {
   const content = `
-    <div style="text-align:center; margin-bottom:24px;">
-      <h2 style="margin:0; color:${BRAND.navy}; font-size:22px; font-family:Georgia,serif;">Verify Your Email</h2>
-      <p style="margin:8px 0 0; color:${BRAND.gray};">Use the code below to verify your email address</p>
-    </div>
-
-    <div style="text-align:center; margin:32px 0;">
-      <div style="display:inline-block; background:${BRAND.lightGold}; border:2px dashed ${BRAND.gold}; border-radius:8px; padding:20px 40px;">
-        <span style="font-size:36px; font-weight:700; letter-spacing:8px; color:${BRAND.navy}; font-family:monospace;">${otp}</span>
-      </div>
-    </div>
-
-    <p style="color:#374151; line-height:1.6; text-align:center;">
-      This code expires in <strong>10 minutes</strong>. If you didn't create an account with us, you can safely ignore this email.
-    </p>
+    <tr>
+      <td style="padding:48px 40px 0; text-align:center;">
+        <div style="width:64px; height:64px; border-radius:50%; background:${BRAND.amberLight}; display:inline-block; line-height:64px; text-align:center; margin-bottom:16px;">
+          <span style="font-size:28px; color:${BRAND.amber};">&#128274;</span>
+        </div>
+        <h1 class="mob-heading" style="margin:0; font-family:'Playfair Display',Georgia,serif; font-size:30px; font-weight:800; color:${BRAND.darkText}; line-height:1.2;">
+          Verify Your Email
+        </h1>
+        <p style="margin:12px 0 0; font-size:14px; color:${BRAND.mutedText}; line-height:1.5;">
+          Enter the code below to verify your email address
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:32px 40px; text-align:center;">
+        <div style="display:inline-block; background:${BRAND.cream}; border:2px solid ${BRAND.gold}; border-radius:12px; padding:24px 48px;">
+          <span style="font-size:40px; font-weight:800; letter-spacing:10px; color:${BRAND.darkText}; font-family:'Inter',monospace;">${otp}</span>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:0 40px 48px; text-align:center;">
+        <p style="margin:0; font-size:14px; color:${BRAND.bodyText}; line-height:1.6;">
+          This code expires in <strong>10 minutes</strong>.<br/>
+          If you didn't create an account, you can safely ignore this email.
+        </p>
+      </td>
+    </tr>
   `;
 
   return {
     subject: `Your Verification Code - ${BRAND.name}`,
-    html: baseLayout(content, `Your verification code is ${otp}`),
+    html: premiumLayout(content, `Your verification code is ${otp}`),
   };
 }
 
@@ -554,22 +566,25 @@ export async function sendOtpEmail(email: string, otp: string) {
 }
 
 export function buildReturnRequestEmail(orderId: number, status: string, adminNotes?: string | null) {
-  const statusConfig: Record<string, { label: string; color: string; icon: string; message: string }> = {
+  const statusConfig: Record<string, { label: string; accentColor: string; accentBg: string; icon: string; message: string }> = {
     pending: {
       label: "Received",
-      color: "#FF9800",
+      accentColor: BRAND.amber,
+      accentBg: BRAND.amberLight,
       icon: "&#128230;",
       message: "We have received your return request and will review it shortly. You will be notified once it is processed.",
     },
     approved: {
       label: "Approved",
-      color: "#4CAF50",
+      accentColor: BRAND.emerald,
+      accentBg: BRAND.emeraldLight,
       icon: "&#10003;",
-      message: "Your return request has been approved. Please ship the item(s) back within 3 days. Once received and inspected, your refund will be processed.",
+      message: "Your return request has been approved. Please ship the item(s) back within 3 days. Once received and inspected, your refund will be processed within 5-7 business days.",
     },
     rejected: {
       label: "Rejected",
-      color: "#F44336",
+      accentColor: BRAND.red,
+      accentBg: BRAND.redLight,
       icon: "&#10007;",
       message: "Unfortunately, your return request has been declined. Please contact our support team if you have any questions.",
     },
@@ -577,33 +592,48 @@ export function buildReturnRequestEmail(orderId: number, status: string, adminNo
 
   const cfg = statusConfig[status] || statusConfig.pending;
 
-  const notesSection = adminNotes ? `
-    <div style="background:#f9fafb; border-radius:6px; padding:16px; margin:20px 0;">
-      <h3 style="margin:0 0 8px; color:${BRAND.navy}; font-size:14px;">Notes from our team</h3>
-      <p style="margin:0; color:${BRAND.gray}; font-size:14px;">${adminNotes}</p>
-    </div>
-  ` : '';
+  const notesBlock = adminNotes ? `
+    <tr>
+      <td class="mob-pad" style="padding:0 40px 20px;">
+        <div style="background:${BRAND.cream}; border-radius:10px; padding:16px 20px; border-left:4px solid ${cfg.accentColor};">
+          <p style="margin:0 0 4px; font-size:11px; font-weight:700; color:${BRAND.mutedText}; text-transform:uppercase; letter-spacing:1px;">Note from our team</p>
+          <p style="margin:0; font-size:14px; color:${BRAND.bodyText}; line-height:1.6;">${adminNotes}</p>
+        </div>
+      </td>
+    </tr>` : '';
 
   const content = `
-    <div style="text-align:center; margin-bottom:24px;">
-      <div style="width:56px; height:56px; border-radius:50%; background:${cfg.color}20; display:inline-flex; align-items:center; justify-content:center; margin-bottom:12px;">
-        <span style="font-size:28px; color:${cfg.color};">${cfg.icon}</span>
-      </div>
-      <h2 style="margin:0; color:${BRAND.navy}; font-size:22px; font-family:Georgia,serif;">Return Request ${cfg.label}</h2>
-      <p style="margin:8px 0 0; color:${BRAND.gray};">Order #${orderId}</p>
-    </div>
-    <p style="color:#374151; line-height:1.6;">${cfg.message}</p>
-    ${notesSection}
-    <div style="background:${BRAND.lightGold}; border-radius:6px; padding:16px; margin:20px 0;">
-      <p style="margin:0; color:${BRAND.navy}; font-size:14px; line-height:1.5;">
-        <strong>Return Policy:</strong> Items must be unused, in original packaging, and returned within 2 days of delivery. Refunds are processed within 5-7 business days after inspection.
-      </p>
-    </div>
+    <tr>
+      <td style="padding:48px 40px 0; text-align:center;">
+        <div style="width:64px; height:64px; border-radius:50%; background:${cfg.accentBg}; display:inline-block; line-height:64px; text-align:center; margin-bottom:16px;">
+          <span style="font-size:28px; color:${cfg.accentColor};">${cfg.icon}</span>
+        </div>
+        <h1 class="mob-heading" style="margin:0; font-family:'Playfair Display',Georgia,serif; font-size:28px; font-weight:800; color:${BRAND.darkText}; line-height:1.2;">
+          Return Request ${cfg.label}
+        </h1>
+        <p style="margin:10px 0 0; font-size:14px; color:${BRAND.mutedText};">Order #${orderId}</p>
+      </td>
+    </tr>
+    <tr>
+      <td class="mob-pad" style="padding:24px 40px;">
+        <p style="margin:0; font-size:15px; color:${BRAND.bodyText}; line-height:1.7; text-align:center;">${cfg.message}</p>
+      </td>
+    </tr>
+    ${notesBlock}
+    <tr>
+      <td class="mob-pad" style="padding:0 40px 40px;">
+        <div style="background:${BRAND.cream}; border-radius:10px; padding:16px 20px;">
+          <p style="margin:0; font-size:13px; color:${BRAND.bodyText}; line-height:1.6;">
+            <strong style="color:${BRAND.darkText};">Return Policy:</strong> Items must be unused, in original packaging, with unboxing video proof. Returns accepted within 2 days of delivery for damage only. Refunds processed within 5-7 business days.
+          </p>
+        </div>
+      </td>
+    </tr>
   `;
 
   return {
     subject: `Return Request ${cfg.label} - Order #${orderId} | ${BRAND.name}`,
-    html: baseLayout(content, `Your return request for order #${orderId} is ${cfg.label.toLowerCase()}.`),
+    html: premiumLayout(content, `Your return request for order #${orderId} is ${cfg.label.toLowerCase()}.`),
   };
 }
 
@@ -619,54 +649,89 @@ export async function sendOrderConfirmation(email: string, order: OrderData) {
 
 export async function sendAdminOrderNotification(adminEmails: string[], order: OrderData) {
   if (!adminEmails.length) return;
-  const itemsList = (order.items || [])
-    .map((item: any) => `<tr>
-      <td style="padding:6px 0; border-bottom:1px solid #eee; color:#374151; font-size:13px;">${item.name}${item.size ? ` (${item.size})` : ""}${item.color ? ` – ${item.color}` : ""}</td>
-      <td style="padding:6px 0; border-bottom:1px solid #eee; text-align:right; color:#374151; font-size:13px;">x${item.quantity}</td>
-      <td style="padding:6px 0; border-bottom:1px solid #eee; text-align:right; color:#374151; font-size:13px;">Rs. ${(Number(item.price) * item.quantity).toLocaleString("en-IN")}</td>
+  const items = (order.items || []) as any[];
+  const addr = order.shippingAddress as any;
+
+  const itemsList = items.map((item: any) => `
+    <tr>
+      <td style="padding:10px 0; border-bottom:1px solid #f0ece6;">
+        <table width="100%" border="0" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="font-size:13px; color:${BRAND.darkText}; font-weight:500;">
+              ${item.name}${item.size ? ` <span style="color:${BRAND.mutedText};">(${item.size})</span>` : ""}${item.color ? ` <span style="color:${BRAND.mutedText};">&middot; ${item.color}</span>` : ""}
+            </td>
+            <td style="font-size:13px; color:${BRAND.mutedText}; text-align:right; white-space:nowrap; width:40px;">x${item.quantity}</td>
+            <td style="font-size:13px; color:${BRAND.darkText}; text-align:right; font-weight:600; white-space:nowrap; width:90px;">${formatCurrency(Number(item.price) * item.quantity)}</td>
+          </tr>
+        </table>
+      </td>
     </tr>`).join("");
 
-  const addr = order.shippingAddress as any;
+  const ps = order.paymentStatus || "pending";
+  const paymentLabel = ps === "paid" ? "Paid" : ps === "cod" ? "Cash on Delivery" : "Pending";
+  const paymentColor = ps === "paid" ? BRAND.emerald : ps === "cod" ? BRAND.blue : BRAND.amber;
+
   const content = `
-    <div style="margin-bottom:20px;">
-      <h2 style="margin:0 0 4px; color:#2C3E50; font-size:20px; font-family:Georgia,serif;">🛍️ New Order Received</h2>
-      <p style="margin:0; color:#6B7280; font-size:14px;">Order <strong>#${order.id}</strong> has been placed on your store.</p>
-    </div>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px; background:#F9FAFB; border-radius:8px; overflow:hidden;">
-      <tr><td style="padding:16px;">
-        <p style="margin:0 0 6px; font-size:13px; color:#6B7280; text-transform:uppercase; letter-spacing:0.5px;">Customer</p>
-        <p style="margin:0; font-size:15px; font-weight:600; color:#111827;">${addr?.fullName || "—"}</p>
-        <p style="margin:2px 0 0; font-size:13px; color:#6B7280;">${addr?.phone || ""}</p>
-      </td></tr>
-      <tr><td style="padding:0 16px 16px;">
-        <p style="margin:0 0 6px; font-size:13px; color:#6B7280; text-transform:uppercase; letter-spacing:0.5px;">Ship To</p>
-        <p style="margin:0; font-size:13px; color:#374151;">${addr?.address || ""}${addr?.city ? `, ${addr.city}` : ""}${addr?.state ? `, ${addr.state}` : ""}${addr?.pincode ? ` – ${addr.pincode}` : ""}</p>
-      </td></tr>
-    </table>
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
-      <thead>
-        <tr>
-          <th style="text-align:left; padding:8px 0; border-bottom:2px solid #C9A961; font-size:12px; color:#6B7280; text-transform:uppercase; letter-spacing:0.5px;">Item</th>
-          <th style="text-align:right; padding:8px 0; border-bottom:2px solid #C9A961; font-size:12px; color:#6B7280; text-transform:uppercase; letter-spacing:0.5px;">Qty</th>
-          <th style="text-align:right; padding:8px 0; border-bottom:2px solid #C9A961; font-size:12px; color:#6B7280; text-transform:uppercase; letter-spacing:0.5px;">Amount</th>
-        </tr>
-      </thead>
-      <tbody>${itemsList}</tbody>
-    </table>
-    <div style="text-align:right; padding:12px 0; border-top:2px solid #2C3E50;">
-      <span style="font-size:18px; font-weight:700; color:#2C3E50;">Total: Rs. ${Number(order.totalAmount).toLocaleString("en-IN")}</span>
-    </div>
-    <div style="margin-top:20px; padding:12px 16px; background:#F0FDF4; border-radius:6px; border-left:4px solid #22C55E;">
-      <p style="margin:0; font-size:13px; color:#166534;">
-        <strong>Payment:</strong> ${order.paymentStatus === "paid" ? "✅ Paid" : order.paymentStatus === "pending" ? "⏳ Pending" : "💵 Cash on Delivery"}
-      </p>
-    </div>
-    <div style="margin-top:16px; text-align:center;">
-      <a href="${process.env.APP_URL || "https://your-store.com"}/admin" style="display:inline-block; padding:10px 24px; background:#2C3E50; color:#C9A961; text-decoration:none; border-radius:6px; font-size:14px; font-weight:600;">View in Admin Panel →</a>
-    </div>
+    <tr>
+      <td style="padding:40px 40px 0;">
+        <table width="100%" border="0" cellpadding="0" cellspacing="0">
+          <tr>
+            <td>
+              <p style="margin:0 0 4px; font-family:'Playfair Display',Georgia,serif; font-size:24px; font-weight:800; color:${BRAND.darkText};">New Order Received</p>
+              <p style="margin:0; font-size:14px; color:${BRAND.mutedText};">Order <strong style="color:${BRAND.darkText};">#${order.id}</strong> &middot; ${formatDate(order.createdAt || new Date())}</p>
+            </td>
+            <td style="text-align:right; vertical-align:top;">
+              <div style="display:inline-block; background:${paymentColor}; color:#fff; font-size:11px; font-weight:700; padding:5px 14px; border-radius:20px; text-transform:uppercase; letter-spacing:0.5px;">${paymentLabel}</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr>
+      <td class="mob-pad" style="padding:20px 40px 0;">
+        <div style="background:${BRAND.cream}; border-radius:10px; padding:16px 20px;">
+          <table width="100%" border="0" cellpadding="0" cellspacing="0">
+            <tr>
+              <td class="mob-stack" width="50%" style="vertical-align:top; padding-right:12px;">
+                <p style="margin:0 0 4px; font-size:11px; font-weight:700; color:${BRAND.mutedText}; text-transform:uppercase; letter-spacing:1px;">Customer</p>
+                <p style="margin:0; font-size:14px; font-weight:600; color:${BRAND.darkText};">${addr?.fullName || "—"}</p>
+                <p style="margin:2px 0 0; font-size:13px; color:${BRAND.mutedText};">${addr?.phone || ""}</p>
+              </td>
+              <td class="mob-stack" width="50%" style="vertical-align:top;">
+                <p style="margin:0 0 4px; font-size:11px; font-weight:700; color:${BRAND.mutedText}; text-transform:uppercase; letter-spacing:1px;">Ship To</p>
+                <p style="margin:0; font-size:13px; color:${BRAND.bodyText}; line-height:1.5;">${addr?.addressLine1 || addr?.address || ""}${addr?.city ? `, ${addr.city}` : ""}${addr?.state ? `, ${addr.state}` : ""}${addr?.pincode ? ` - ${addr.pincode}` : ""}</p>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </td>
+    </tr>
+
+    <tr>
+      <td class="mob-pad" style="padding:20px 40px 0;">
+        <table width="100%" border="0" cellpadding="0" cellspacing="0">
+          ${itemsList}
+        </table>
+        <div style="border-top:2px solid ${BRAND.darkText}; margin-top:8px;"></div>
+        <table width="100%" border="0" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="padding:12px 0; font-size:18px; font-weight:800; color:${BRAND.darkText};">Total</td>
+            <td style="padding:12px 0; font-size:18px; font-weight:800; color:${BRAND.darkText}; text-align:right;">${formatCurrency(order.totalAmount)}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="padding:20px 40px 40px; text-align:center;">
+        ${accentButton('View in Admin Panel', `${APP_URL}/admin`, BRAND.navy)}
+      </td>
+    </tr>
   `;
-  const html = baseLayout(content, `New order #${order.id} — Rs. ${Number(order.totalAmount).toLocaleString("en-IN")}`);
-  const subject = `🛍️ New Order #${order.id} — Rs. ${Number(order.totalAmount).toLocaleString("en-IN")}`;
+
+  const html = premiumLayout(content, `New order #${order.id} — ${formatCurrency(order.totalAmount)}`);
+  const subject = `New Order #${order.id} — ${formatCurrency(order.totalAmount)} | ${BRAND.name}`;
 
   for (const email of adminEmails) {
     sendEmail(email, subject, html).catch(err => console.error("Admin order email error:", err));
