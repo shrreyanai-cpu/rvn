@@ -109,13 +109,12 @@ export default function Footer() {
   return (
     <footer className="border-t bg-card">
       <FooterNewsletter />
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
           <div>
             <h3 className="font-serif text-lg font-bold mb-4 flex items-center gap-2">
               <img src="/logo.png" alt="Ravindrra Vastra Niketan" className="h-8 w-8 object-contain" />
-              <span className="text-foreground">RAVINDRRA</span>
+              <span className="text-foreground">Ravindrra Vastra Niketan</span>
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed mb-5">
               Premium Indian clothing for every occasion. Traditional elegance meets modern craftsmanship.
