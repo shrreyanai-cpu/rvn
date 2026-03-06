@@ -115,10 +115,7 @@ export default function Footer() {
           <div>
             <h3 className="font-serif text-lg font-bold mb-4 flex items-center gap-2">
               <img src="/logo.png" alt="Ravindrra Vastra Niketan" className="h-8 w-8 object-contain" />
-              <span>
-                <span className="text-foreground">RAVINDRRA</span>{" "}
-                <span className="text-[#C9A961]">VASTRA NIKETAN</span>
-              </span>
+              <span className="text-foreground">RAVINDRRA</span>
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed mb-5">
               Premium Indian clothing for every occasion. Traditional elegance meets modern craftsmanship.
