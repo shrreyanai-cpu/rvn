@@ -2,18 +2,25 @@ import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
 
+// Works in both ESM and CJS builds
+const distPath = path.resolve(process.cwd(), "dist", "public");
+
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "public");
   if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
+    console.warn(
+      `[Static] WARNING: Could not find the build directory: ${distPath}. ` +
+      `If you are on a VPS, please run 'npm run build' to generate the client files.`
     );
+    // Move on to catch-all which might serve a 404 or index.html error
+  } else {
+    app.use(express.static(distPath));
   }
-
-  app.use(express.static(distPath));
-
-  // fall through to index.html if the file doesn't exist
-  app.use("/{*path}", (_req, res) => {
+ 
+  // catch-all route for SPA: serve index.html for non-API routes
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/api")) {
+      return res.status(404).json({ message: "API route not found" });
+    }
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

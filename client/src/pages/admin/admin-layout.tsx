@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import type { AdminNotification } from "@shared/schema";
+import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const navItems: { href: string; label: string; icon: any; permission: Permission }[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, permission: "view_dashboard" },
@@ -278,19 +280,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   return (
-    <SidebarProvider style={style as React.CSSProperties}>
-      <div className="flex h-screen w-full">
-        <AdminSidebar />
-        <div className="flex flex-col flex-1">
-          <header className="flex items-center justify-between p-3 border-b">
-            <SidebarTrigger data-testid="button-admin-sidebar-toggle" />
-            <NotificationBell />
-          </header>
-          <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
-            {children}
-          </main>
+    <ThemeProvider defaultTheme="system" storageKey="rvn-admin-theme">
+      <SidebarProvider style={style as React.CSSProperties}>
+        <div className="flex h-screen w-full">
+          <AdminSidebar />
+          <div className="flex flex-col flex-1">
+            <header className="flex items-center justify-between p-3 border-b">
+              <SidebarTrigger data-testid="button-admin-sidebar-toggle" />
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <NotificationBell />
+              </div>
+            </header>
+            <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+              {children}
+            </main>
+          </div>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </ThemeProvider>
   );
 }

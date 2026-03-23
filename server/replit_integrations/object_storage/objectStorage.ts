@@ -25,10 +25,12 @@ export const objectStorageClient = new Storage({
         subject_token_field_name: "access_token",
       },
     },
-    universe_domain: "googleapis.com",
+  universe_domain: "googleapis.com",
   },
   projectId: "",
 });
+
+const isReplit = !!process.env.REPLIT_SIDECAR_ENDPOINT || !!process.env.REPLIT_SLUG || !!process.env.REPL_ID;
 
 export class ObjectNotFoundError extends Error {
   constructor() {
@@ -54,10 +56,13 @@ export class ObjectStorageService {
       )
     );
     if (paths.length === 0) {
-      throw new Error(
-        "PUBLIC_OBJECT_SEARCH_PATHS not set. Create a bucket in 'Object Storage' " +
-          "tool and set PUBLIC_OBJECT_SEARCH_PATHS env var (comma-separated paths)."
-      );
+      if (isReplit) {
+        throw new Error(
+          "PUBLIC_OBJECT_SEARCH_PATHS not set. Create a bucket in 'Object Storage' " +
+            "tool and set PUBLIC_OBJECT_SEARCH_PATHS env var (comma-separated paths)."
+        );
+      }
+      return [];
     }
     return paths;
   }
@@ -65,7 +70,7 @@ export class ObjectStorageService {
   // Gets the private object directory.
   getPrivateObjectDir(): string {
     const dir = process.env.PRIVATE_OBJECT_DIR || "";
-    if (!dir) {
+    if (!dir && isReplit) {
       throw new Error(
         "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' " +
           "tool and set PRIVATE_OBJECT_DIR env var."
@@ -131,8 +136,16 @@ export class ObjectStorageService {
   }
 
   // Gets the upload URL for an object entity.
-  async getObjectEntityUploadURL(): Promise<string> {
+  async getObjectEntityUploadURL(contentType?: string): Promise<string> {
+    if (!isReplit) {
+      const objectId = randomUUID();
+      const extension = this.getExtensionFromContentType(contentType || "application/octet-stream");
+      const fileName = `${objectId}${extension}`;
+      return `/api/uploads/local?filename=${fileName}`;
+    }
+
     const privateObjectDir = this.getPrivateObjectDir();
+    // ... rest of the Replit logic
     if (!privateObjectDir) {
       throw new Error(
         "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' " +
@@ -167,6 +180,13 @@ export class ObjectStorageService {
 
     const entityId = parts.slice(1).join("/");
     let entityDir = this.getPrivateObjectDir();
+    
+    if (!isReplit || !entityDir) {
+       // On VPS/Local, we handle file lookup via the static route or local filesystem if needed
+       // For now, if not on Replit, we don't use GCS bucket logic here
+       throw new ObjectNotFoundError();
+    }
+
     if (!entityDir.endsWith("/")) {
       entityDir = `${entityDir}/`;
     }
@@ -184,6 +204,14 @@ export class ObjectStorageService {
   normalizeObjectEntityPath(
     rawPath: string,
   ): string {
+    if (rawPath.startsWith("/api/uploads/local")) {
+      const url = new URL(rawPath, "http://localhost");
+      const filename = url.searchParams.get("filename");
+      return `/objects/${filename}`;
+    }
+    if (rawPath.startsWith("/objects/")) {
+      return rawPath;
+    }
     if (!rawPath.startsWith("https://storage.googleapis.com/")) {
       return rawPath;
     }
@@ -192,7 +220,15 @@ export class ObjectStorageService {
     const url = new URL(rawPath);
     const rawObjectPath = url.pathname;
   
-    let objectEntityDir = this.getPrivateObjectDir();
+    let objectEntityDir = "";
+    try {
+      objectEntityDir = this.getPrivateObjectDir();
+    } catch (e) {
+      // If we're not on Replit, this might fail, but that's okay for local
+    }
+
+    if (!objectEntityDir) return rawObjectPath;
+
     if (!objectEntityDir.endsWith("/")) {
       objectEntityDir = `${objectEntityDir}/`;
     }
@@ -236,6 +272,20 @@ export class ObjectStorageService {
       objectFile,
       requestedPermission: requestedPermission ?? ObjectPermission.READ,
     });
+  }
+
+  private getExtensionFromContentType(contentType: string): string {
+    const map: Record<string, string> = {
+      "image/jpeg": ".jpg",
+      "image/png": ".png",
+      "image/gif": ".gif",
+      "image/webp": ".webp",
+      "image/svg+xml": ".svg",
+      "video/mp4": ".mp4",
+      "video/quicktime": ".mov",
+      "application/pdf": ".pdf",
+    };
+    return map[contentType] || "";
   }
 }
 

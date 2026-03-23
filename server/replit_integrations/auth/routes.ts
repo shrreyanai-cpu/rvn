@@ -4,11 +4,10 @@ import { isAuthenticated } from "./replitAuth";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "../../db";
-import { emailVerifications } from "@shared/models/auth";
+import { emailVerifications, passwordResets } from "@shared/models/auth";
 import { eq, and, gt, desc } from "drizzle-orm";
-import { sendOtpEmail } from "../../email";
-import passport from "passport";
-import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { sendOtpEmail, sendPasswordResetEmail } from "../../email";
+import crypto from "crypto";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -59,87 +58,8 @@ async function createAndSendOtp(email: string): Promise<boolean> {
   return !!result;
 }
 
-function setupGoogleOAuth(app: Express) {
-  const clientID = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-
-  if (!clientID || !clientSecret) {
-    console.log("Google OAuth not configured (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET missing)");
-    return;
-  }
-
-  const callbackURL = process.env.GOOGLE_CALLBACK_URL || "/api/auth/google/callback";
-
-  passport.use(
-    new GoogleStrategy(
-      {
-        clientID,
-        clientSecret,
-        callbackURL,
-      },
-      async (_accessToken, _refreshToken, profile, done) => {
-        try {
-          const email = profile.emails?.[0]?.value;
-          if (!email) {
-            return done(new Error("No email found in Google profile"), undefined);
-          }
-
-          let user = await authStorage.getUserByEmail(email);
-          if (user) {
-            if (!user.profileImageUrl && profile.photos?.[0]?.value) {
-              await authStorage.updateUser(user.id, {
-                profileImageUrl: profile.photos[0].value,
-              });
-            }
-          } else {
-            user = await authStorage.upsertUser({
-              email,
-              firstName: profile.name?.givenName || "",
-              lastName: profile.name?.familyName || "",
-              profileImageUrl: profile.photos?.[0]?.value || null,
-              emailVerified: true,
-            });
-          }
-
-          done(null, user);
-        } catch (err) {
-          done(err as Error, undefined);
-        }
-      }
-    )
-  );
-
-  app.use(passport.initialize());
-
-  app.get("/api/auth/google", passport.authenticate("google", {
-    scope: ["profile", "email"],
-    session: false,
-    state: true,
-  } as any));
-
-  app.get("/api/auth/google/callback",
-    passport.authenticate("google", { session: false, failureRedirect: "/login?error=google_failed" }),
-    (req: any, res) => {
-      if (req.user) {
-        (req.session as any).userId = req.user.id;
-        req.session.save((err: any) => {
-          if (err) {
-            console.error("Session save error after Google OAuth:", err);
-            return res.redirect("/login?error=session_failed");
-          }
-          res.redirect("/");
-        });
-      } else {
-        res.redirect("/login?error=google_failed");
-      }
-    }
-  );
-
-  console.log("Google OAuth configured successfully");
-}
 
 export function registerAuthRoutes(app: Express): void {
-  setupGoogleOAuth(app);
 
   app.post("/api/auth/login", async (req, res) => {
     try {
@@ -303,6 +223,92 @@ export function registerAuthRoutes(app: Express): void {
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const schema = z.object({ email: z.string().email() });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid email" });
+      }
+      const { email } = parsed.data;
+      const user = await authStorage.getUserByEmail(email);
+      
+      // We return 200 even if user not found to prevent email enumeration
+      if (!user) {
+        return res.json({ message: "If an account with that email exists, we sent a reset link." });
+      }
+
+      // Invalidate old tokens
+      await db.update(passwordResets)
+        .set({ used: true })
+        .where(and(eq(passwordResets.email, email), eq(passwordResets.used, false)));
+
+      const token = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      await db.insert(passwordResets).values({
+        email,
+        token,
+        expiresAt,
+        used: false,
+      });
+
+      const host = process.env.VITE_APP_URL || process.env.APP_URL || "https://ravindrra.com";
+      const resetUrl = `${host}/reset-password?token=${token}`;
+      
+      await sendPasswordResetEmail(email, resetUrl);
+      
+      res.json({ message: "If an account with that email exists, we sent a reset link." });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ message: "Failed to process request" });
+    }
+  });
+
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const schema = z.object({
+        token: z.string().min(1),
+        newPassword: z.string().min(6),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+      }
+      const { token, newPassword } = parsed.data;
+
+      const [resetReq] = await db.select().from(passwordResets)
+        .where(and(
+          eq(passwordResets.token, token),
+          eq(passwordResets.used, false),
+          gt(passwordResets.expiresAt, new Date())
+        ))
+        .limit(1);
+
+      if (!resetReq) {
+        return res.status(400).json({ message: "Invalid or expired reset link. Please request a new one." });
+      }
+
+      const user = await authStorage.getUserByEmail(resetReq.email);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+      await authStorage.updateUser(user.id, { password: hashedPassword });
+      
+      await db.update(passwordResets)
+        .set({ used: true })
+        .where(eq(passwordResets.id, resetReq.id));
+
+      res.json({ message: "Password reset successful. You can now log in." });
+    } catch (error) {
+      console.error("Reset password error:", error);
+      res.status(500).json({ message: "Failed to reset password" });
     }
   });
 

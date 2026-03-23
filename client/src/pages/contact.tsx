@@ -91,7 +91,7 @@ export default function ContactPage() {
           },
           "telephone": "+918889777992",
           "email": "support@ravindrra.com",
-          "openingHours": ["Mo-Sa 10:00-20:00", "Su 11:00-18:00"],
+          "openingHours": ["Mo-Sa 08:00-20:00"],
         }}
       />
       <div className="bg-[#2C3E50] text-white py-12 sm:py-16">
@@ -139,7 +139,7 @@ export default function ContactPage() {
                   <div>
                     <h3 className="font-semibold text-sm mb-1">Address</h3>
                     <p className="text-sm text-muted-foreground" data-testid="text-address">
-                      MG Road, Raipur, Chhattisgarh 492001
+                      Ravindrra Vastra Niketan, Salgare, 416418
                     </p>
                   </div>
                 </div>
@@ -349,7 +349,7 @@ export default function ContactPage() {
           </h2>
           <div className="rounded-lg overflow-hidden shadow-lg">
             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d238132.60192973388!2d81.5246!3d21.2514!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a28dda23be28229%3A0x163ee1204ff9e240!2sRaipur%2C+Chhattisgarh!5e0!3m2!1sen!2sin!4v1"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3817.668652362676!2d74.91139981038502!3d16.892277883845857!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc12e80ffffffff%3A0xd54133e9217a5ce7!2sRavindrra%20Vastra%20Niketan!5e0!3m2!1sen!2sin!4v1773933318392!5m2!1sen!2sin"
               width="100%"
               height="450"
               loading="lazy"

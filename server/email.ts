@@ -1,41 +1,11 @@
 import { Resend } from 'resend';
 
-let connectionSettings: any;
-
-async function getCredentials() {
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY
-    ? 'repl ' + process.env.REPL_IDENTITY
-    : process.env.WEB_REPL_RENEWAL
-    ? 'depl ' + process.env.WEB_REPL_RENEWAL
-    : null;
-
-  if (!xReplitToken) {
-    throw new Error('X_REPLIT_TOKEN not found');
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error('RESEND_API_KEY is not set in environment variables');
   }
-
-  connectionSettings = await fetch(
-    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend',
-    {
-      headers: {
-        'Accept': 'application/json',
-        'X_REPLIT_TOKEN': xReplitToken,
-      },
-    },
-  ).then(res => res.json()).then(data => data.items?.[0]);
-
-  if (!connectionSettings || !connectionSettings.settings.api_key) {
-    throw new Error('Resend not connected');
-  }
-  return {
-    apiKey: connectionSettings.settings.api_key,
-    fromEmail: connectionSettings.settings.from_email,
-  };
-}
-
-async function getResendClient() {
-  const { apiKey, fromEmail } = await getCredentials();
-  return { client: new Resend(apiKey), fromEmail };
+  return new Resend(apiKey);
 }
 
 const BRAND = {
@@ -506,7 +476,7 @@ const REPLY_TO = "support@ravindrra.com";
 
 export async function sendEmail(to: string, subject: string, html: string, from?: string) {
   try {
-    const { client } = await getResendClient();
+    const client = getResendClient();
     const result = await client.emails.send({
       from: from || FROM_TRANSACTIONAL,
       to,
@@ -564,6 +534,48 @@ export async function sendOtpEmail(email: string, otp: string) {
   const { subject, html } = buildOtpEmail(otp);
   return sendEmail(email, subject, html, FROM_AUTH);
 }
+
+export function buildPasswordResetEmail(resetUrl: string) {
+  const content = `
+    <tr>
+      <td style="padding:48px 40px 0; text-align:center;">
+        <div style="width:64px; height:64px; border-radius:50%; background:${BRAND.blueLight}; display:inline-block; line-height:64px; text-align:center; margin-bottom:16px;">
+          <span style="font-size:28px; color:${BRAND.blue};">&#128273;</span>
+        </div>
+        <h1 class="mob-heading" style="margin:0; font-family:'Playfair Display',Georgia,serif; font-size:30px; font-weight:800; color:${BRAND.darkText}; line-height:1.2;">
+          Reset Your Password
+        </h1>
+        <p style="margin:12px 0 0; font-size:14px; color:${BRAND.mutedText}; line-height:1.5;">
+          Click the button below to set a new password for your account
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:32px 40px; text-align:center;">
+        ${accentButton('Reset Password', resetUrl, BRAND.navy)}
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:0 40px 48px; text-align:center;">
+        <p style="margin:0; font-size:14px; color:${BRAND.bodyText}; line-height:1.6;">
+          This link expires in <strong>1 hour</strong>.<br/>
+          If you didn't request this, you can safely ignore this email.
+        </p>
+      </td>
+    </tr>
+  `;
+
+  return {
+    subject: `Reset Your Password - ${BRAND.name}`,
+    html: premiumLayout(content, `Reset your password for ${BRAND.name}`),
+  };
+}
+
+export async function sendPasswordResetEmail(email: string, resetUrl: string) {
+  const { subject, html } = buildPasswordResetEmail(resetUrl);
+  return sendEmail(email, subject, html, FROM_AUTH);
+}
+
 
 export function buildReturnRequestEmail(orderId: number, status: string, adminNotes?: string | null) {
   const statusConfig: Record<string, { label: string; accentColor: string; accentBg: string; icon: string; message: string }> = {

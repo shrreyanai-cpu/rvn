@@ -45,7 +45,7 @@ export function registerObjectStorageRoutes(app: Express): void {
         });
       }
 
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL(contentType);
 
       // Extract object path from the presigned URL for later reference
       const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
@@ -62,19 +62,56 @@ export function registerObjectStorageRoutes(app: Express): void {
     }
   });
 
+  app.put("/api/uploads/local", async (req, res) => {
+    try {
+      const filename = req.query.filename as string;
+      if (!filename) {
+        return res.status(400).json({ error: "Missing filename in query" });
+      }
+
+      const chunks: Buffer[] = [];
+      req.on("data", (chunk) => chunks.push(chunk));
+      req.on("end", async () => {
+        const buffer = Buffer.concat(chunks);
+        const path = await import("path");
+        const fs = await import("fs");
+        const uploadsDir = path.resolve(process.cwd(), "uploads");
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        const filePath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filePath, buffer);
+        
+        res.json({
+          url: `/objects/${filename}`,
+          objectPath: `/objects/${filename}`,
+        });
+      });
+    } catch (error) {
+      console.error("Local upload error:", error);
+      res.status(500).json({ error: "Local upload failed" });
+    }
+  });
+
   /**
    * Serve uploaded objects.
-   *
-   * GET /objects/:objectPath(*)
-   *
-   * This serves files from object storage. For public files, no auth needed.
-   * For protected files, add authentication middleware and ACL checks.
    */
   app.use(async (req, res, next) => {
     if (!req.path.startsWith("/objects/") || req.method !== "GET") {
       return next();
     }
     try {
+      const isReplit = !!process.env.REPLIT_SIDECAR_ENDPOINT;
+      if (!isReplit) {
+        // Serve from local uploads directory
+        const path = await import("path");
+        const fs = await import("fs");
+        const fileName = req.path.split("/").pop() || "";
+        const filePath = path.resolve(process.cwd(), "uploads", fileName);
+        if (fileName && fs.existsSync(filePath)) {
+          return res.sendFile(filePath);
+        }
+      }
       const objectFile = await objectStorageService.getObjectEntityFile(req.path);
       await objectStorageService.downloadObject(objectFile, res);
     } catch (error) {

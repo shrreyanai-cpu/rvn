@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Mail, Lock, User as UserIcon, Eye, EyeOff, ArrowLeft, ShieldCheck } from "lucide-react";
-import { SiFacebook, SiGoogle } from "react-icons/si";
+import { Mail, Lock, User as UserIcon, Eye, EyeOff, ArrowLeft, ShieldCheck, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
@@ -11,7 +10,7 @@ export default function LoginPage() {
   const [, setLocation] = useLocation();
   const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
   const initialMode = params?.get("mode") === "register" ? "register" : "login";
-  const [mode, setMode] = useState<"login" | "register" | "verify">(initialMode);
+  const [mode, setMode] = useState<"login" | "register" | "verify" | "forgot">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -21,19 +20,15 @@ export default function LoginPage() {
   const [verifyEmail, setVerifyEmail] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const { login, register, verifyOtp, resendOtp } = useAuth();
+  const { login, register, verifyOtp, resendOtp, forgotPassword } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
     const errorParam = params?.get("error");
     if (errorParam) {
-      const messages: Record<string, string> = {
-        google_failed: "Google sign-in failed. Please try again or use email login.",
-        session_failed: "Sign-in succeeded but session could not be saved. Please try again.",
-      };
       toast({
         title: "Sign-in Error",
-        description: messages[errorParam] || "An error occurred during sign-in. Please try again.",
+        description: "An error occurred during sign-in. Please try again.",
         variant: "destructive",
       });
       window.history.replaceState({}, "", "/login");
@@ -154,7 +149,29 @@ export default function LoginPage() {
     }
   };
 
-  const isPending = login.isPending || register.isPending;
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast({ title: "Email required", description: "Please enter your email address.", variant: "destructive" });
+      return;
+    }
+    try {
+      await forgotPassword.mutateAsync({ email });
+      toast({
+        title: "Reset link sent!",
+        description: "If an account exists with this email, you will receive a reset link shortly.",
+      });
+      setMode("login");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to send reset link. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const isPending = login.isPending || register.isPending || forgotPassword.isPending || verifyOtp.isPending || resendOtp.isPending;
 
   return (
     <div className="min-h-screen flex">
@@ -259,6 +276,48 @@ export default function LoginPage() {
                 </div>
               </form>
             </>
+          ) : mode === "forgot" ? (
+            <>
+              <div className="mb-8">
+                <button
+                  type="button"
+                  onClick={() => setMode("login")}
+                  className="inline-flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer mb-6"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  Back to login
+                </button>
+                <div className="flex items-center gap-3 mb-1">
+                  <KeyRound className="h-7 w-7 text-[#C9A961]" />
+                  <h1 className="font-serif text-2xl font-bold">Forgot Password?</h1>
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Enter your email address and we'll send you a link to reset your password.
+                </p>
+              </div>
+
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    placeholder="Email address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                    required
+                    autoFocus
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A] font-semibold"
+                  disabled={forgotPassword.isPending}
+                >
+                  {forgotPassword.isPending ? "Sending Link..." : "Send Reset Link"}
+                </Button>
+              </form>
+            </>
           ) : (
             <>
               <div className="mb-8">
@@ -340,6 +399,18 @@ export default function LoginPage() {
                   </button>
                 </div>
 
+                {mode === "login" && (
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setMode("forgot")}
+                      className="text-xs text-[#C9A961] font-medium hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                )}
+
                 <Button
                   type="submit"
                   className="w-full bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A] font-semibold"
@@ -354,44 +425,7 @@ export default function LoginPage() {
                 </Button>
               </form>
 
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-3 text-muted-foreground">or continue with</span>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  type="button"
-                  data-testid="button-google-login"
-                  onClick={() => {
-                    window.location.href = "/api/auth/google";
-                  }}
-                >
-                  <SiGoogle className="h-4 w-4" />
-                  Google
-                </Button>
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  type="button"
-                  data-testid="button-facebook-login"
-                  onClick={() =>
-                    toast({
-                      title: "Coming Soon",
-                      description: "Facebook sign-in will be available soon.",
-                    })
-                  }
-                >
-                  <SiFacebook className="h-4 w-4" />
-                  Facebook
-                </Button>
-              </div>
 
               <p className="text-center text-sm text-muted-foreground mt-6">
                 {mode === "login" ? (

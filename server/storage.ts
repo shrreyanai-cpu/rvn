@@ -176,7 +176,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProduct(data: InsertProduct): Promise<Product> {
-    const [prod] = await db.insert(products).values(data).returning();
+    let sku = data.sku;
+    if (!sku) {
+      const allProds = await db.select({ sku: products.sku }).from(products).where(sql`${products.sku} LIKE 'RVN%'`);
+      let maxNum = 0;
+      for (const p of allProds) {
+        if (p.sku) {
+          const match = p.sku.match(/^RVN(\d+)$/);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (num > maxNum) maxNum = num;
+          }
+        }
+      }
+      sku = `RVN${maxNum + 1}`;
+    }
+    const [prod] = await db.insert(products).values({ ...data, sku }).returning();
     return prod;
   }
 

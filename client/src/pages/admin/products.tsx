@@ -19,6 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -117,140 +118,146 @@ function ProductForm({
   };
 
   return (
-    <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="sm:col-span-2">
-          <Label>Product Name</Label>
-          <Input
-            value={form.name}
-            onChange={(e) => {
-              const name = e.target.value;
-              setForm((f) => ({
-                ...f,
-                name,
-                sku: f.sku || (!product ? generateSku(name) : f.sku),
-              }));
-            }}
-            placeholder="Product name"
-            data-testid="input-product-name"
-          />
-        </div>
-        <div>
-          <Label>SKU Code</Label>
-          <div className="flex gap-2">
+    <ScrollArea className="max-h-[80vh] px-4">
+      <div className="space-y-4 pb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="sm:col-span-2">
+            <Label>Product Name</Label>
             <Input
-              value={form.sku}
-              onChange={(e) => setForm({ ...form, sku: e.target.value.toUpperCase() })}
-              placeholder="e.g., RBL01"
-              className="font-mono uppercase"
-              data-testid="input-product-sku"
+              value={form.name}
+              onChange={(e) => {
+                const name = e.target.value;
+                setForm((f) => ({
+                  ...f,
+                  name,
+                  sku: f.sku || (!product ? generateSku(name) : f.sku),
+                }));
+              }}
+              placeholder="Product name"
+              data-testid="input-product-name"
             />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="shrink-0"
-              onClick={() => setForm({ ...form, sku: generateSku(form.name || "SKU") })}
-              data-testid="button-generate-sku"
-            >
-              Generate
-            </Button>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">Unique code for inventory tracking. You can edit it freely.</p>
-        </div>
-        <div>
-          <Label>Slug (URL)</Label>
-          <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="Auto-generated from name" data-testid="input-product-slug" />
-        </div>
-        <div className="sm:col-span-2">
-          <Label>Description</Label>
-          <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Product description" data-testid="input-product-description" />
-        </div>
-        <div>
-          <Label>Price (Rs.)</Label>
-          <Input value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0.00" type="number" data-testid="input-product-price" />
-        </div>
-        <div>
-          <Label>Compare at Price (Rs.)</Label>
-          <Input value={form.compareAtPrice} onChange={(e) => setForm({ ...form, compareAtPrice: e.target.value })} placeholder="0.00" type="number" data-testid="input-product-compare-price" />
-        </div>
-        <div>
-          <Label>Category</Label>
-          <Select value={form.categoryId} onValueChange={(v) => setForm({ ...form, categoryId: v })}>
-            <SelectTrigger data-testid="select-product-category"><SelectValue placeholder="Select category" /></SelectTrigger>
-            <SelectContent>
-              {categories.filter((c) => !c.parentId).map((main) => {
-                const subs = categories.filter((c) => c.parentId === main.id);
-                return [
-                  <SelectItem key={main.id} value={main.id.toString()} className="font-semibold">{main.name}</SelectItem>,
-                  ...subs.map((sub) => (
-                    <SelectItem key={sub.id} value={sub.id.toString()} className="pl-8">&nbsp;&nbsp;{sub.name}</SelectItem>
-                  )),
-                ];
-              })}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label>Material</Label>
-          <Input value={form.material} onChange={(e) => setForm({ ...form, material: e.target.value })} placeholder="e.g., Pure Silk" data-testid="input-product-material" />
-        </div>
-        <div>
-          <Label>Brand</Label>
-          <Input value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} placeholder="e.g., Ravindrra" data-testid="input-product-brand" />
-        </div>
-        <div>
-          <Label>Sizes (comma separated)</Label>
-          <Input value={form.sizes} onChange={(e) => setForm({ ...form, sizes: e.target.value })} placeholder="S, M, L, XL" data-testid="input-product-sizes" />
-        </div>
-        <div>
-          <Label>Colors (comma separated)</Label>
-          <Input value={form.colors} onChange={(e) => setForm({ ...form, colors: e.target.value })} placeholder="Red, Blue, Green" data-testid="input-product-colors" />
-        </div>
-        <div>
-          <Label>Stock Quantity</Label>
-          <Input value={form.stockQuantity} onChange={(e) => setForm({ ...form, stockQuantity: e.target.value })} type="number" data-testid="input-product-stock" />
-        </div>
-        <div>
-          <Label>Weight (grams)</Label>
-          <Input value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} type="number" placeholder="e.g., 500" data-testid="input-product-weight" />
-        </div>
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <Switch checked={form.inStock} onCheckedChange={(c) => setForm({ ...form, inStock: c })} data-testid="switch-in-stock" />
-            <Label>In Stock</Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Switch checked={form.featured} onCheckedChange={(c) => setForm({ ...form, featured: c })} data-testid="switch-featured" />
-            <Label>Featured</Label>
-          </div>
-        </div>
-      </div>
-      <div>
-        <Label>Product Images</Label>
-        <div className="flex flex-wrap gap-2 mt-2">
-          {form.images.map((img, i) => (
-            <div key={i} className="relative w-16 h-20 rounded-md overflow-hidden bg-muted">
-              <img src={img} alt="" className="w-full h-full object-cover" />
-              <button onClick={() => setForm({ ...form, images: form.images.filter((_, idx) => idx !== i) })} className="absolute top-0.5 right-0.5 bg-black/50 rounded-full p-0.5">
-                <X className="h-3 w-3 text-white" />
-              </button>
+          <div>
+            <Label>SKU Code</Label>
+            <div className="flex gap-2">
+              <Input
+                value={form.sku}
+                onChange={(e) => setForm({ ...form, sku: e.target.value.toUpperCase() })}
+                placeholder="e.g., RBL01"
+                className="font-mono uppercase"
+                data-testid="input-product-sku"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => setForm({ ...form, sku: generateSku(form.name || "SKU") })}
+                data-testid="button-generate-sku"
+              >
+                Generate
+              </Button>
             </div>
-          ))}
-          <label className="w-16 h-20 rounded-md border-2 border-dashed flex items-center justify-center cursor-pointer hover-elevate">
-            <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-            {isUploading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : <ImageIcon className="h-4 w-4 text-muted-foreground" />}
-          </label>
+            <p className="text-xs text-muted-foreground mt-1">Unique code for inventory tracking. You can edit it freely.</p>
+          </div>
+          <div>
+            <Label>Slug (URL)</Label>
+            <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="Auto-generated from name" data-testid="input-product-slug" />
+          </div>
+          <div className="sm:col-span-2">
+            <Label>Description</Label>
+            <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Product description" data-testid="input-product-description" />
+          </div>
+          <div>
+            <Label>Price (Rs.)</Label>
+            <Input value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0.00" type="number" data-testid="input-product-price" />
+          </div>
+          <div>
+            <Label>Compare at Price (Rs.)</Label>
+            <Input value={form.compareAtPrice} onChange={(e) => setForm({ ...form, compareAtPrice: e.target.value })} placeholder="0.00" type="number" data-testid="input-product-compare-price" />
+          </div>
+          <div>
+            <Label>Category</Label>
+            <Select value={form.categoryId} onValueChange={(v) => setForm({ ...form, categoryId: v })}>
+              <SelectTrigger data-testid="select-product-category"><SelectValue placeholder="Select category" /></SelectTrigger>
+              <SelectContent>
+                {categories.filter((c) => !c.parentId).map((main) => {
+                  const subs = categories.filter((c) => c.parentId === main.id);
+                  return [
+                    <SelectItem key={main.id} value={main.id.toString()} className="font-semibold">{main.name}</SelectItem>,
+                    ...subs.map((sub) => (
+                      <SelectItem key={sub.id} value={sub.id.toString()} className="pl-8">&nbsp;&nbsp;{sub.name}</SelectItem>
+                    )),
+                  ];
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Material</Label>
+            <Input value={form.material} onChange={(e) => setForm({ ...form, material: e.target.value })} placeholder="e.g., Pure Silk" data-testid="input-product-material" />
+          </div>
+          <div>
+            <Label>Brand</Label>
+            <Input value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} placeholder="e.g., Ravindrra" data-testid="input-product-brand" />
+          </div>
+          <div>
+            <Label>Sizes (comma separated)</Label>
+            <Input value={form.sizes} onChange={(e) => setForm({ ...form, sizes: e.target.value })} placeholder="S, M, L, XL" data-testid="input-product-sizes" />
+          </div>
+          <div>
+            <Label>Colors (comma separated)</Label>
+            <Input value={form.colors} onChange={(e) => setForm({ ...form, colors: e.target.value })} placeholder="Red, Blue, Green" data-testid="input-product-colors" />
+          </div>
+          <div>
+            <Label>Stock Quantity</Label>
+            <Input value={form.stockQuantity} onChange={(e) => setForm({ ...form, stockQuantity: e.target.value })} type="number" data-testid="input-product-stock" />
+          </div>
+          <div>
+            <Label>Weight (grams)</Label>
+            <Input value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} type="number" placeholder="e.g., 500" data-testid="input-product-weight" />
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <Switch checked={form.inStock} onCheckedChange={(c) => setForm({ ...form, inStock: c })} data-testid="switch-in-stock" />
+              <Label>In Stock</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={form.featured} onCheckedChange={(c) => setForm({ ...form, featured: c })} data-testid="switch-featured" />
+              <Label>Featured</Label>
+            </div>
+          </div>
+        </div>
+        <div>
+          <Label>Product Images</Label>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {form.images.map((img, i) => (
+              <div key={i} className="relative w-16 h-20 rounded-md overflow-hidden bg-muted border">
+                <img src={img} alt="" className="w-full h-full object-cover" />
+                <button 
+                  type="button"
+                  onClick={() => setForm({ ...form, images: form.images.filter((_, idx) => idx !== i) })} 
+                  className="absolute top-0.5 right-0.5 bg-black/50 rounded-full p-0.5 hover:bg-black/70 transition-colors"
+                >
+                  <X className="h-3 w-3 text-white" />
+                </button>
+              </div>
+            ))}
+            <label className="w-16 h-20 rounded-md border-2 border-dashed flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors">
+              <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+              {isUploading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : <ImageIcon className="h-4 w-4 text-muted-foreground" />}
+            </label>
+          </div>
+        </div>
+        <div className="flex gap-2 pt-2 pb-2">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !form.name || !form.price} className="bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A]" data-testid="button-save-product">
+            {mutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {product ? "Update Product" : "Create Product"}
+          </Button>
         </div>
       </div>
-      <div className="flex gap-2 pt-2">
-        <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button onClick={() => mutation.mutate()} disabled={mutation.isPending || !form.name || !form.price} className="bg-[#2C3E50] dark:bg-[#C9A961] dark:text-[#1A1A1A]" data-testid="button-save-product">
-          {mutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          {product ? "Update Product" : "Create Product"}
-        </Button>
-      </div>
-    </div>
+    </ScrollArea>
   );
 }
 

@@ -76,6 +76,20 @@ export function useAuth() {
     },
   });
 
+  const forgotPasswordMutation = useMutation({
+    mutationFn: async (data: { email: string }) => {
+      const res = await apiRequest("POST", "/api/auth/forgot-password", data);
+      return res.json();
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (data: { token: string; newPassword: string }) => {
+      const res = await apiRequest("POST", "/api/auth/reset-password", data);
+      return res.json();
+    },
+  });
+
   return {
     user,
     isLoading,
@@ -86,5 +100,7 @@ export function useAuth() {
     register: registerMutation,
     verifyOtp: verifyOtpMutation,
     resendOtp: resendOtpMutation,
+    forgotPassword: forgotPasswordMutation,
+    resetPassword: resetPasswordMutation,
   };
 }

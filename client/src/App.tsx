@@ -18,6 +18,7 @@ import CheckoutPage from "@/pages/checkout";
 import OrdersPage from "@/pages/orders";
 import SearchPage from "@/pages/search";
 import LoginPage from "@/pages/login";
+import ResetPasswordPage from "@/pages/reset-password";
 import PaymentCallbackPage from "@/pages/payment-callback";
 import ProfilePage from "@/pages/profile";
 import NotFound from "@/pages/not-found";
@@ -154,6 +155,10 @@ function AppRouter() {
 
   if (location === "/login") {
     return <LoginPage />;
+  }
+
+  if (location.startsWith("/reset-password")) {
+    return <ResetPasswordPage />;
   }
 
   if (location.startsWith("/admin")) {
