@@ -94,6 +94,7 @@ export const orders = pgTable("orders", {
   paymentStatus: text("payment_status").notNull().default("pending"),
   paymentMethod: text("payment_method").default("cashfree"),
   cashfreeOrderId: text("cashfree_order_id"),
+  razorpayOrderId: text("razorpay_order_id"),
   deliveryCharge: numeric("delivery_charge", { precision: 10, scale: 2 }).default("0"),
   packageLength: numeric("package_length", { precision: 10, scale: 2 }),
   packageWidth: numeric("package_width", { precision: 10, scale: 2 }),
@@ -319,6 +320,20 @@ export const seasonalBanners = pgTable("seasonal_banners", {
 export const insertSeasonalBannerSchema = createInsertSchema(seasonalBanners).omit({ id: true, createdAt: true });
 export type InsertSeasonalBanner = z.infer<typeof insertSeasonalBannerSchema>;
 export type SeasonalBanner = typeof seasonalBanners.$inferSelect;
+
+export const paymentSettings = pgTable("payment_settings", {
+  id: serial("id").primaryKey(),
+  cashfreeEnabled: boolean("cashfree_enabled").notNull().default(true),
+  razorpayEnabled: boolean("razorpay_enabled").notNull().default(false),
+  codEnabled: boolean("cod_enabled").notNull().default(false),
+  razorpayKeyId: text("razorpay_key_id"),
+  razorpayKeySecret: text("razorpay_key_secret"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertPaymentSettingsSchema = createInsertSchema(paymentSettings).omit({ id: true, updatedAt: true });
+export type InsertPaymentSettings = z.infer<typeof insertPaymentSettingsSchema>;
+export type PaymentSettings = typeof paymentSettings.$inferSelect;
 
 export const abandonedCartEmails = pgTable("abandoned_cart_emails", {
   id: serial("id").primaryKey(),

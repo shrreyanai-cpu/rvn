@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Tag, FolderOpen,
   LogOut, ChevronLeft, Truck, Shield, Mail, RotateCcw, BarChart3,
-  Bell, CheckCheck, Image
+  Bell, CheckCheck, Image, CreditCard
 } from "lucide-react";
 import { hasPermission, isAdminRole, type Permission } from "@shared/models/auth";
 import { useAuth } from "@/hooks/use-auth";
@@ -37,6 +37,7 @@ const navItems: { href: string; label: string; icon: any; permission: Permission
   { href: "/admin/categories", label: "Categories", icon: FolderOpen, permission: "manage_categories" },
   { href: "/admin/coupons", label: "Coupons", icon: Tag, permission: "manage_coupons" },
   { href: "/admin/banners", label: "Banners", icon: Image, permission: "manage_products" },
+  { href: "/admin/payment-settings", label: "Payment Settings", icon: CreditCard, permission: "manage_products" },
   { href: "/admin/delivery", label: "Delivery", icon: Truck, permission: "manage_delivery" },
   { href: "/admin/returns", label: "Returns", icon: RotateCcw, permission: "manage_orders" },
   { href: "/admin/emails", label: "Emails", icon: Mail, permission: "manage_customers" },

@@ -6,7 +6,12 @@ import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integra
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { authStorage } from "./replit_integrations/auth/storage";
 import { Cashfree as CashfreeSDK, CFEnvironment } from "cashfree-pg";
+import Razorpay from "razorpay";
+import crypto from "crypto";
 import { hasPermission, isAdminRole, type Permission } from "@shared/models/auth";
+import { orders as ordersTable } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import { sendOrderConfirmation, sendShippingUpdate, sendPromotionalEmail, sendReturnRequestEmail } from "./email";
 import { sendOrderNotification, startAbandonedCartChecker } from "./whatsapp";
 
@@ -17,6 +22,10 @@ function getCashfreeInstance() {
   const instance = new (CashfreeSDK as any)(env, clientId, clientSecret);
   instance.XApiVersion = "2023-08-01";
   return instance;
+}
+
+function getRazorpayInstance(keyId: string, keySecret: string) {
+  return new Razorpay({ key_id: keyId, key_secret: keySecret });
 }
 
 function getUserId(req: any): string {
@@ -73,6 +82,7 @@ const shippingAddressSchema = z.object({
 const createOrderSchema = z.object({
   shippingAddress: shippingAddressSchema,
   couponCode: z.string().nullable().optional(),
+  paymentMethod: z.enum(["cashfree", "razorpay", "cod"]).optional().default("cashfree"),
 });
 
 const productSchema = z.object({
@@ -301,14 +311,27 @@ export async function registerRoutes(
 
       const finalTotal = Math.max(0, subtotal + shipping - discount).toFixed(2);
 
+      const selectedMethod = parsed.data.paymentMethod || "cashfree";
+
+      const ps = await storage.getPaymentSettings();
+      if (selectedMethod === "razorpay" && !ps.razorpayEnabled) {
+        return res.status(400).json({ message: "Razorpay is not enabled" });
+      }
+      if (selectedMethod === "cod" && !ps.codEnabled) {
+        return res.status(400).json({ message: "Cash on Delivery is not enabled" });
+      }
+      if (selectedMethod === "cashfree" && !ps.cashfreeEnabled) {
+        return res.status(400).json({ message: "Cashfree is not enabled" });
+      }
+
       const order = await storage.createOrder({
         userId,
-        status: "pending",
+        status: selectedMethod === "cod" ? "confirmed" : "pending",
         totalAmount: finalTotal,
         shippingAddress: parsed.data.shippingAddress,
         items,
-        paymentStatus: "pending",
-        paymentMethod: "cashfree",
+        paymentStatus: selectedMethod === "cod" ? "cod" : "pending",
+        paymentMethod: selectedMethod,
       });
 
       await storage.clearCart(userId);
@@ -317,9 +340,45 @@ export async function registerRoutes(
       storage.createAdminNotification({
         type: "new_order",
         title: "New Order Received",
-        message: `Order #${order.id} placed by ${orderUser?.firstName || orderUser?.email || "Customer"} for Rs. ${Number(order.totalAmount).toLocaleString("en-IN")}`,
+        message: `Order #${order.id} placed by ${orderUser?.firstName || orderUser?.email || "Customer"} for Rs. ${Number(order.totalAmount).toLocaleString("en-IN")}${selectedMethod === "cod" ? " (COD)" : ""}`,
         orderId: order.id,
       }).catch(err => console.error("Notification error:", err));
+
+      if (selectedMethod === "cod") {
+        if (orderUser?.email) {
+          sendOrderConfirmation(orderUser.email, order as any).catch(err => console.error("Order confirmation email error:", err));
+        }
+        sendOrderNotification(order as any).catch(err => console.error("WhatsApp order notification error:", err));
+        return res.json({ ...order, paymentMethod: "cod", paymentSessionId: null });
+      }
+
+      if (selectedMethod === "razorpay") {
+        if (!ps.razorpayKeyId || !ps.razorpayKeySecret) {
+          return res.json({ ...order, paymentSessionId: null, paymentError: "Razorpay not configured" });
+        }
+        try {
+          const rzp = getRazorpayInstance(ps.razorpayKeyId, ps.razorpayKeySecret);
+          const rzpOrder = await rzp.orders.create({
+            amount: Math.round(Number(finalTotal) * 100),
+            currency: "INR",
+            receipt: `rvn_${order.id}`,
+          });
+          await storage.updateOrderPayment(order.id, { paymentStatus: "pending", cashfreeOrderId: null } as any);
+          const amountInPaise = Math.round(Number(finalTotal) * 100);
+          await db.update(ordersTable).set({ razorpayOrderId: rzpOrder.id }).where(eq(ordersTable.id, order.id));
+          return res.json({
+            ...order,
+            paymentMethod: "razorpay",
+            razorpayOrderId: rzpOrder.id,
+            razorpayKeyId: ps.razorpayKeyId,
+            amountInPaise,
+            paymentSessionId: null,
+          });
+        } catch (rzpError: any) {
+          console.error("Razorpay order creation error:", rzpError?.error || rzpError);
+          return res.json({ ...order, paymentSessionId: null, paymentError: "Could not initiate Razorpay payment" });
+        }
+      }
 
       const clientId = process.env.CASHFREE_APP_ID;
       const clientSecret = process.env.CASHFREE_SECRET_KEY;
@@ -360,8 +419,6 @@ export async function registerRoutes(
       } catch (cfError: any) {
         const errorDetails = cfError?.response?.data || cfError?.message || cfError;
         console.error("Cashfree order creation error:", JSON.stringify(errorDetails, null, 2));
-        console.error("Cashfree env:", process.env.CASHFREE_ENV || "SANDBOX (default)");
-        console.error("Cashfree APP_ID length:", process.env.CASHFREE_APP_ID?.length || 0);
         res.json({ ...order, paymentSessionId: null, paymentError: "Could not initiate payment" });
       }
     } catch (error) {
@@ -589,6 +646,7 @@ export async function registerRoutes(
         color: z.string().nullable().optional(),
         shippingAddress: shippingAddressSchema,
         couponCode: z.string().nullable().optional(),
+        paymentMethod: z.enum(["cashfree", "razorpay", "cod"]).optional().default("cashfree"),
       });
       const parsed = buyNowSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
@@ -629,23 +687,72 @@ export async function registerRoutes(
 
       const finalTotal = Math.max(0, subtotal + shipping - discount).toFixed(2);
 
+      const selectedMethod = parsed.data.paymentMethod || "cashfree";
+
+      const ps = await storage.getPaymentSettings();
+      if (selectedMethod === "razorpay" && !ps.razorpayEnabled) {
+        return res.status(400).json({ message: "Razorpay is not enabled" });
+      }
+      if (selectedMethod === "cod" && !ps.codEnabled) {
+        return res.status(400).json({ message: "Cash on Delivery is not enabled" });
+      }
+      if (selectedMethod === "cashfree" && !ps.cashfreeEnabled) {
+        return res.status(400).json({ message: "Cashfree is not enabled" });
+      }
+
       const order = await storage.createOrder({
         userId,
-        status: "pending",
+        status: selectedMethod === "cod" ? "confirmed" : "pending",
         totalAmount: finalTotal,
         shippingAddress: parsed.data.shippingAddress,
         items,
-        paymentStatus: "pending",
-        paymentMethod: "cashfree",
+        paymentStatus: selectedMethod === "cod" ? "cod" : "pending",
+        paymentMethod: selectedMethod,
       });
 
       const orderUser = await authStorage.getUser(userId);
       storage.createAdminNotification({
         type: "new_order",
         title: "New Order Received",
-        message: `Order #${order.id} placed by ${orderUser?.firstName || orderUser?.email || "Customer"} for Rs. ${Number(order.totalAmount).toLocaleString("en-IN")}`,
+        message: `Order #${order.id} placed by ${orderUser?.firstName || orderUser?.email || "Customer"} for Rs. ${Number(order.totalAmount).toLocaleString("en-IN")}${selectedMethod === "cod" ? " (COD)" : ""}`,
         orderId: order.id,
       }).catch(err => console.error("Notification error:", err));
+
+      if (selectedMethod === "cod") {
+        if (orderUser?.email) {
+          sendOrderConfirmation(orderUser.email, order as any).catch(err => console.error("Order confirmation email error:", err));
+        }
+        sendOrderNotification(order as any).catch(err => console.error("WhatsApp order notification error:", err));
+        return res.json({ ...order, paymentMethod: "cod", paymentSessionId: null });
+      }
+
+      if (selectedMethod === "razorpay") {
+        if (!ps.razorpayKeyId || !ps.razorpayKeySecret) {
+          return res.json({ ...order, paymentSessionId: null, paymentError: "Razorpay not configured" });
+        }
+        try {
+          const rzp = getRazorpayInstance(ps.razorpayKeyId, ps.razorpayKeySecret);
+          const rzpOrder = await rzp.orders.create({
+            amount: Math.round(Number(finalTotal) * 100),
+            currency: "INR",
+            receipt: `rvn_${order.id}`,
+          });
+          await storage.updateOrderPayment(order.id, { paymentStatus: "pending", cashfreeOrderId: null } as any);
+          await db.update(ordersTable).set({ razorpayOrderId: rzpOrder.id }).where(eq(ordersTable.id, order.id));
+          const amountInPaise = Math.round(Number(finalTotal) * 100);
+          return res.json({
+            ...order,
+            paymentMethod: "razorpay",
+            razorpayOrderId: rzpOrder.id,
+            razorpayKeyId: ps.razorpayKeyId,
+            amountInPaise,
+            paymentSessionId: null,
+          });
+        } catch (rzpError: any) {
+          console.error("Razorpay order creation error:", rzpError?.error || rzpError);
+          return res.json({ ...order, paymentSessionId: null, paymentError: "Could not initiate Razorpay payment" });
+        }
+      }
 
       const clientId = process.env.CASHFREE_APP_ID;
       const clientSecret = process.env.CASHFREE_SECRET_KEY;
@@ -757,6 +864,89 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Payment verify error:", error?.response?.data || error);
       res.status(500).json({ message: "Failed to verify payment" });
+    }
+  });
+
+  app.post("/api/payments/verify-razorpay", isAuthenticated, async (req: any, res) => {
+    try {
+      const { orderId, razorpayPaymentId, razorpayOrderId, razorpaySignature } = req.body;
+      if (!orderId || !razorpayPaymentId || !razorpayOrderId || !razorpaySignature) {
+        return res.status(400).json({ message: "Missing payment information" });
+      }
+
+      const userId = getUserId(req);
+      const order = await storage.getOrderById(Number(orderId));
+      if (!order) return res.status(404).json({ message: "Order not found" });
+      if (order.userId !== userId) return res.status(403).json({ message: "Forbidden" });
+
+      if (order.razorpayOrderId && order.razorpayOrderId !== razorpayOrderId) {
+        return res.status(400).json({ message: "Razorpay order ID mismatch" });
+      }
+
+      const ps = await storage.getPaymentSettings();
+      if (!ps.razorpayKeySecret) {
+        return res.status(500).json({ message: "Razorpay not configured" });
+      }
+
+      const expectedSignature = crypto
+        .createHmac("sha256", ps.razorpayKeySecret)
+        .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+        .digest("hex");
+
+      if (expectedSignature === razorpaySignature) {
+        await storage.updateOrderPayment(order.id, { paymentStatus: "paid" });
+        await storage.updateOrderStatus(order.id, "confirmed");
+        await db.update(ordersTable).set({ razorpayOrderId }).where(eq(ordersTable.id, order.id));
+
+        const user = await authStorage.getUser(order.userId);
+        if (user?.email) {
+          sendOrderConfirmation(user.email, order as any).catch(err => console.error("Order confirmation email error:", err));
+        }
+        const updatedOrder = await storage.getOrderById(order.id);
+        if (updatedOrder) {
+          sendOrderNotification(updatedOrder as any).catch(err => console.error("WhatsApp order notification error:", err));
+        }
+
+        res.json({ paymentStatus: "paid", orderStatus: "confirmed" });
+      } else {
+        await storage.updateOrderPayment(order.id, { paymentStatus: "failed" });
+        await storage.updateOrderStatus(order.id, "cancelled");
+        res.json({ paymentStatus: "failed", orderStatus: "cancelled" });
+      }
+    } catch (error: any) {
+      console.error("Razorpay verify error:", error);
+      res.status(500).json({ message: "Failed to verify Razorpay payment" });
+    }
+  });
+
+  app.get("/api/payment-settings/active", async (_req, res) => {
+    try {
+      const ps = await storage.getPaymentSettings();
+      res.json({
+        cashfreeEnabled: ps.cashfreeEnabled,
+        razorpayEnabled: ps.razorpayEnabled,
+        codEnabled: ps.codEnabled,
+      });
+    } catch {
+      res.json({ cashfreeEnabled: true, razorpayEnabled: false, codEnabled: false });
+    }
+  });
+
+  app.get("/api/admin/payment-settings", isAuthenticated, requirePermission("manage_products"), async (_req, res) => {
+    try {
+      const ps = await storage.getPaymentSettings();
+      res.json(ps);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch payment settings" });
+    }
+  });
+
+  app.put("/api/admin/payment-settings", isAuthenticated, requirePermission("manage_products"), async (req, res) => {
+    try {
+      const updated = await storage.updatePaymentSettings(req.body);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update payment settings" });
     }
   });
 

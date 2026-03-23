@@ -14,6 +14,7 @@ import {
   type AdminNotification, adminNotifications,
   type Wishlist, type InsertWishlist, wishlists,
   type SeasonalBanner, type InsertSeasonalBanner, seasonalBanners,
+  type PaymentSettings, paymentSettings,
   abandonedCartEmails,
 } from "@shared/schema";
 import { users } from "@shared/models/auth";
@@ -132,6 +133,9 @@ export interface IStorage {
   getAbandonedCartsForEmail(hoursThreshold: number): Promise<Array<{ userId: string; email: string; items: Array<{ name: string; quantity: number; price: string; imageUrl?: string }>; totalValue: string }>>;
   recordAbandonedCartEmail(userId: string, email: string, cartValue: string): Promise<void>;
   wasAbandonedCartEmailSent(userId: string, hoursAgo: number): Promise<boolean>;
+
+  getPaymentSettings(): Promise<PaymentSettings>;
+  updatePaymentSettings(data: Partial<Omit<PaymentSettings, 'id' | 'updatedAt'>>): Promise<PaymentSettings>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -790,6 +794,22 @@ export class DatabaseStorage implements IStorage {
     const [result] = await db.select({ count: sql<number>`count(*)::int` }).from(abandonedCartEmails)
       .where(and(eq(abandonedCartEmails.userId, userId), gte(abandonedCartEmails.sentAt, threshold)));
     return (result?.count || 0) > 0;
+  }
+
+  async getPaymentSettings(): Promise<PaymentSettings> {
+    const rows = await db.select().from(paymentSettings).limit(1);
+    if (rows.length > 0) return rows[0];
+    const [created] = await db.insert(paymentSettings).values({}).returning();
+    return created;
+  }
+
+  async updatePaymentSettings(data: Partial<Omit<PaymentSettings, 'id' | 'updatedAt'>>): Promise<PaymentSettings> {
+    const existing = await this.getPaymentSettings();
+    const [updated] = await db.update(paymentSettings)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(paymentSettings.id, existing.id))
+      .returning();
+    return updated;
   }
 }
 

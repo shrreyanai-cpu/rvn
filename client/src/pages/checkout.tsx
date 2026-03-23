@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLocation, Link } from "wouter";
-import { ArrowLeft, Loader2, CreditCard, Shield, Tag, X, MapPin, Plus, Check, Truck, AlertCircle, Video } from "lucide-react";
+import { ArrowLeft, Loader2, CreditCard, Shield, Tag, X, MapPin, Plus, Check, Truck, AlertCircle, Video, Banknote, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ type CartItemWithProduct = CartItem & { product: Product };
 declare global {
   interface Window {
     Cashfree: any;
+    Razorpay: any;
   }
 }
 
@@ -43,6 +44,19 @@ function loadCashfreeScript(): Promise<void> {
   });
 }
 
+function loadRazorpayScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (window.Razorpay) return resolve();
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Failed to load Razorpay SDK"));
+    document.head.appendChild(script);
+  });
+}
+
+type PaymentMethod = "cashfree" | "razorpay" | "cod";
+
 export default function CheckoutPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -55,6 +69,7 @@ export default function CheckoutPage() {
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   const [pincodeCheckResult, setPincodeCheckResult] = useState<{ serviceable: boolean; checked: boolean; loading: boolean; pincode: string } | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
 
   const [form, setForm] = useState({
     fullName: "",
@@ -76,6 +91,21 @@ export default function CheckoutPage() {
   const { data: savedAddresses, isLoading: addressesLoading } = useQuery<Address[]>({
     queryKey: ["/api/user/addresses"],
   });
+
+  const { data: paymentSettings } = useQuery<{ cashfreeEnabled: boolean; razorpayEnabled: boolean; codEnabled: boolean }>({
+    queryKey: ["/api/payment-settings/active"],
+  });
+
+  const enabledMethods: PaymentMethod[] = [];
+  if (paymentSettings?.cashfreeEnabled) enabledMethods.push("cashfree");
+  if (paymentSettings?.razorpayEnabled) enabledMethods.push("razorpay");
+  if (paymentSettings?.codEnabled) enabledMethods.push("cod");
+
+  useEffect(() => {
+    if (enabledMethods.length > 0 && !selectedPaymentMethod) {
+      setSelectedPaymentMethod(enabledMethods[0]);
+    }
+  }, [paymentSettings]);
 
   useEffect(() => {
     if (savedAddresses && savedAddresses.length > 0 && selectedAddressId === null && !showNewAddressForm) {
@@ -197,19 +227,91 @@ export default function CheckoutPage() {
   }
 
   async function handlePaymentRedirect(data: any) {
-    if (!data.paymentSessionId) return;
-    setPaymentLoading(true);
-    try {
-      await loadCashfreeScript();
-      const cashfree = window.Cashfree({ mode: "production" });
-      await cashfree.checkout({ paymentSessionId: data.paymentSessionId, redirectTarget: "_self" });
-    } catch {
+    if (data.paymentMethod === "cod") {
       toast({
-        title: "Payment Error",
-        description: "Could not open payment page. Your order has been saved.",
-        variant: "destructive",
+        title: "Order Placed!",
+        description: `Order #${data.id} placed successfully. Pay on delivery.`,
       });
       navigate("/orders");
+      return;
+    }
+
+    if (data.paymentError) {
+      toast({
+        title: "Payment Error",
+        description: data.paymentError,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (data.paymentMethod === "razorpay" && data.razorpayOrderId) {
+      setPaymentLoading(true);
+      try {
+        await loadRazorpayScript();
+        const addr = getSelectedAddress();
+        const options = {
+          key: data.razorpayKeyId,
+          amount: data.amountInPaise || Math.round(Number(data.totalAmount) * 100),
+          currency: "INR",
+          name: "Ravindrra Vastra Niketan",
+          description: "Order Payment",
+          order_id: data.razorpayOrderId,
+          handler: async function (response: any) {
+            try {
+              const verifyRes = await apiRequest("POST", "/api/payments/verify-razorpay", {
+                orderId: data.id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpayOrderId: response.razorpay_order_id,
+                razorpaySignature: response.razorpay_signature,
+              });
+              const verifyData = await verifyRes.json();
+              queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+              queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+              if (verifyData.paymentStatus === "paid") {
+                toast({ title: "Payment Successful!", description: `Order #${data.id} has been placed.` });
+              } else {
+                toast({ title: "Payment Verification Issue", description: "Please check your order status.", variant: "destructive" });
+              }
+              navigate("/orders");
+            } catch {
+              toast({ title: "Payment Error", description: "Verification failed. Check your order status.", variant: "destructive" });
+              navigate("/orders");
+            }
+          },
+          prefill: {
+            name: addr?.fullName || "",
+            contact: addr?.phone || "",
+          },
+          theme: { color: "#2C3E50" },
+        };
+        const rzp = new window.Razorpay(options);
+        rzp.on("payment.failed", function () {
+          toast({ title: "Payment Failed", description: "Your payment could not be completed. Please try again.", variant: "destructive" });
+          setPaymentLoading(false);
+        });
+        rzp.open();
+      } catch {
+        toast({ title: "Payment Error", description: "Could not open payment page. Your order has been saved.", variant: "destructive" });
+        navigate("/orders");
+      }
+      return;
+    }
+
+    if (data.paymentSessionId) {
+      setPaymentLoading(true);
+      try {
+        await loadCashfreeScript();
+        const cashfree = window.Cashfree({ mode: "production" });
+        await cashfree.checkout({ paymentSessionId: data.paymentSessionId, redirectTarget: "_self" });
+      } catch {
+        toast({
+          title: "Payment Error",
+          description: "Could not open payment page. Your order has been saved.",
+          variant: "destructive",
+        });
+        navigate("/orders");
+      }
     }
   }
 
@@ -225,6 +327,7 @@ export default function CheckoutPage() {
         color: buyNowColor || null,
         shippingAddress: addr,
         couponCode: appliedCoupon?.code || null,
+        paymentMethod: selectedPaymentMethod || "cashfree",
       });
       return res.json();
     },
@@ -254,6 +357,7 @@ export default function CheckoutPage() {
       const res = await apiRequest("POST", "/api/orders", {
         shippingAddress: addr,
         couponCode: appliedCoupon?.code || null,
+        paymentMethod: selectedPaymentMethod || "cashfree",
       });
       return res.json();
     },
@@ -614,6 +718,59 @@ export default function CheckoutPage() {
               </div>
             )}
           </Card>
+
+          {enabledMethods.length > 1 && (
+            <Card className="p-6">
+              <h2 className="font-semibold mb-4 flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Payment Method
+              </h2>
+              <div className="space-y-3">
+                {enabledMethods.map((method) => (
+                  <div
+                    key={method}
+                    onClick={() => setSelectedPaymentMethod(method)}
+                    className={`p-4 rounded-md border cursor-pointer transition-colors ${
+                      selectedPaymentMethod === method
+                        ? "border-[#C9A961] bg-[#C9A961]/5"
+                        : "border-border hover-elevate"
+                    }`}
+                    data-testid={`payment-method-${method}`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                          selectedPaymentMethod === method ? "border-[#C9A961]" : "border-muted-foreground/40"
+                        }`}>
+                          {selectedPaymentMethod === method && (
+                            <div className="w-2 h-2 rounded-full bg-[#C9A961]" />
+                          )}
+                        </div>
+                        {method === "cashfree" && <CreditCard className="h-4 w-4 text-muted-foreground" />}
+                        {method === "razorpay" && <CreditCard className="h-4 w-4 text-muted-foreground" />}
+                        {method === "cod" && <Banknote className="h-4 w-4 text-muted-foreground" />}
+                        <div>
+                          <p className="text-sm font-medium">
+                            {method === "cashfree" && "Online Payment (Cashfree)"}
+                            {method === "razorpay" && "Online Payment (Razorpay)"}
+                            {method === "cod" && "Cash on Delivery"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {method === "cashfree" && "UPI, Cards, Net Banking & Wallets"}
+                            {method === "razorpay" && "UPI, Cards, Net Banking & Wallets"}
+                            {method === "cod" && "Pay when your order is delivered"}
+                          </p>
+                        </div>
+                      </div>
+                      {selectedPaymentMethod === method && (
+                        <Check className="h-4 w-4 text-[#C9A961] flex-shrink-0" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
         </div>
 
         <div>
@@ -672,7 +829,11 @@ export default function CheckoutPage() {
             <div className="mt-4 p-3 rounded bg-muted/50 flex items-start gap-2">
               <Shield className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
               <p className="text-xs text-muted-foreground">
-                Secure payment powered by Cashfree. Supports UPI, Cards, Net Banking & Wallets.
+                {selectedPaymentMethod === "cod"
+                  ? "Cash on Delivery. Pay when your order arrives."
+                  : selectedPaymentMethod === "razorpay"
+                    ? "Secure payment powered by Razorpay. Supports UPI, Cards, Net Banking & Wallets."
+                    : "Secure payment powered by Cashfree. Supports UPI, Cards, Net Banking & Wallets."}
               </p>
             </div>
 
@@ -724,6 +885,11 @@ export default function CheckoutPage() {
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   {paymentLoading ? "Redirecting to Payment..." : "Processing..."}
+                </>
+              ) : selectedPaymentMethod === "cod" ? (
+                <>
+                  <Banknote className="mr-2 h-4 w-4" />
+                  Place Order (COD) - Rs. {total.toLocaleString("en-IN")}
                 </>
               ) : (
                 <>

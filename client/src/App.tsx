@@ -34,6 +34,7 @@ import AdminRoles from "@/pages/admin/roles";
 import AdminEmails from "@/pages/admin/emails";
 import AdminReturns from "@/pages/admin/returns";
 import AdminBanners from "@/pages/admin/banners";
+import AdminPaymentSettings from "@/pages/admin/payment-settings";
 import AdminCustomerDetail from "@/pages/admin/customer-detail";
 import ReturnPolicyPage from "@/pages/return-policy";
 import TermsConditionsPage from "@/pages/terms-conditions";
@@ -115,6 +116,7 @@ function AdminRouter() {
         <Route path="/admin/emails" component={AdminEmails} />
         <Route path="/admin/returns" component={AdminReturns} />
         <Route path="/admin/banners" component={AdminBanners} />
+        <Route path="/admin/payment-settings" component={AdminPaymentSettings} />
         <Route path="/admin/roles" component={AdminRoles} />
         <Route component={NotFound} />
       </Switch>

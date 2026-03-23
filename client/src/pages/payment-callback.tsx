@@ -18,6 +18,13 @@ export default function PaymentCallbackPage() {
     const params = new URLSearchParams(window.location.search);
     const orderId = params.get("order_id");
     const cfOrderId = params.get("cf_order_id");
+    const razorpayPaymentId = params.get("razorpay_payment_id");
+
+    if (razorpayPaymentId && orderId) {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      setResult({ status: "success", orderId });
+      return;
+    }
 
     if (!orderId || !cfOrderId) {
       setResult({ status: "failed", orderId: null });
