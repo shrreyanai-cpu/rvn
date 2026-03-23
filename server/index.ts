@@ -120,11 +120,13 @@ if (!process.env.VERCEL) {
       log(`serving on port ${port}`);
     },
   );
-} else {
-  // Trust the Vercel proxy for headers like x-forwarded-for
+}
+
+if (process.env.NODE_ENV === "production") {
+  // Trust the proxy (Nginx/Vercel) for headers like x-forwarded-for
   app.set("trust proxy", 1);
 }
 
 
-export default app;
 
+export default app;
