@@ -526,7 +526,7 @@ export async function registerRoutes(
         const clientSecret = process.env.CASHFREE_SECRET_KEY;
         if (!clientId || !clientSecret) return res.status(500).json({ message: "Cashfree not configured" });
 
-        const user = await storage.getUser(userId);
+        const user = await authStorage.getUser(userId);
         const cashfree = getCashfreeInstance();
         const baseUrl = `${req.protocol}://${req.get("host")}`;
         const cfOrderId = `rvn_${order.id}_${Date.now()}`;
@@ -2496,7 +2496,8 @@ export async function registerRoutes(
         try {
           await sendPromotionalEmail(
             [cart.email],
-            "You left something behind! Complete your purchase",
+            "You left something behind!",
+            "Complete your purchase",
             `<div style="font-family: 'Raleway', sans-serif; max-width: 600px; margin: 0 auto;">
               <div style="background: #2C3E50; padding: 30px; text-align: center;">
                 <h1 style="color: #C9A961; font-family: 'Playfair Display', serif; margin: 0;">Ravindrra Vastra Niketan</h1>
