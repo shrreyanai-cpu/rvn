@@ -11,22 +11,28 @@ export default function CookieBanner() {
   const [nonEssentialOpen, setNonEssentialOpen] = useState(false);
 
   useEffect(() => {
+    // Synchronous check to see if we should show it
     const consent = localStorage.getItem(COOKIE_KEY);
     if (!consent) {
       const timer = setTimeout(() => setVisible(true), 1500);
       return () => clearTimeout(timer);
+    } else {
+      setVisible(false);
     }
   }, []);
 
   const accept = () => {
+    console.log("CookieBanner: Accept clicked");
     localStorage.setItem(COOKIE_KEY, "accepted");
     setVisible(false);
   };
 
   const decline = () => {
+    console.log("CookieBanner: Decline clicked");
     localStorage.setItem(COOKIE_KEY, "declined");
     setVisible(false);
   };
+
 
   if (!visible) return null;
 

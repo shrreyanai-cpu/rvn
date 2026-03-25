@@ -43,11 +43,9 @@ async function seedTestUser() {
   }
 }
 
-
 export async function seedDatabase() {
   await seedAdminUser();
   await seedTestUser();
-
 
   const existingCategories = await storage.getCategories();
   if (existingCategories.length > 0) {
@@ -105,8 +103,8 @@ export async function seedDatabase() {
     { parentSlug: "kids-wear", name: "Girls Kurti", slug: "girls-kurti", description: "Pretty kurtis for girls" },
     { parentSlug: "kids-wear", name: "Boys Jeans", slug: "boys-jeans", description: "Durable and stylish jeans for boys" },
     { parentSlug: "kids-wear", name: "Girls Jeans", slug: "girls-jeans", description: "Trendy jeans for girls" },
-    { parentSlug: "kids-wear", name: "Kids Night Wear", slug: "kids-night-wear", description: "Soft and cozy night wear for children" },
-    { parentSlug: "kids-wear", name: "Kids Ethnic Set", slug: "kids-ethnic-set", description: "Traditional ethnic sets for kids" },
+    { parentSlug: "kids-night-wear", name: "Kids Night Wear", slug: "kids-night-wear", description: "Soft and cozy night wear for children" },
+    { parentSlug: "kids-ethnic-set", name: "Kids Ethnic Set", slug: "kids-ethnic-set", description: "Traditional ethnic sets for kids" },
   ];
 
   const createdSub: Record<string, number> = {};
