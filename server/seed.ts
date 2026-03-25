@@ -22,11 +22,31 @@ async function seedAdminUser() {
   } else if (!existing.isAdmin) {
     await db.update(users).set({ isAdmin: true, role: "super_admin" }).where(eq(users.id, existing.id));
     console.log("Admin privileges granted to: " + adminEmail);
+}
+
+async function seedTestUser() {
+  const testEmail = "test@test.com";
+  const [existing] = await db.select().from(users).where(eq(users.email, testEmail));
+  if (!existing) {
+    const hashedPassword = await bcrypt.hash("test@123", 12);
+    await db.insert(users).values({
+      email: testEmail,
+      password: hashedPassword,
+      firstName: "Test",
+      lastName: "User",
+      isAdmin: false,
+      role: "user",
+      emailVerified: true,
+    });
+    console.log("Test user created: " + testEmail);
   }
 }
 
+
 export async function seedDatabase() {
   await seedAdminUser();
+  await seedTestUser();
+
 
   const existingCategories = await storage.getCategories();
   if (existingCategories.length > 0) {
