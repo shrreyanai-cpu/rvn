@@ -22,6 +22,7 @@ async function seedAdminUser() {
   } else if (!existing.isAdmin) {
     await db.update(users).set({ isAdmin: true, role: "super_admin" }).where(eq(users.id, existing.id));
     console.log("Admin privileges granted to: " + adminEmail);
+  }
 }
 
 async function seedTestUser() {
